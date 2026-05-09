@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "name": "Auto-Translate Content",
+  "description": "Monitors changes to localization files (.json, .yaml, .yml) and automatically generates translations for all configured target languages while maintaining context and locale conventions",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.json",
+      "**/*.yaml",
+      "**/*.yml",
+      "**/locales/**/*",
+      "**/i18n/**/*",
+      "**/translations/**/*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A localization or text content file has been modified. Please:\n1. Identify the new or modified text entries in the changed file\n2. Detect the source language from the file structure or content\n3. Identify all target languages that need translations (check for existing locale files or ask if unclear)\n4. Generate accurate translations for each target language, ensuring:\n   - Proper context and meaning are preserved\n   - Locale-specific conventions are followed (date formats, currency, etc.)\n   - Placeholders and variables remain unchanged\n   - Formatting and structure match the source file\n5. Update or create the corresponding translation files for each target language\n6. Verify that all translation files maintain consistent structure"
+  },
+  "workspaceFolderName": "DerLg",
+  "shortName": "auto-translate-content"
+}
