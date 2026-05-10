@@ -149,11 +149,12 @@ backend/
 `auth`, `users`, `trips`, `bookings`, `payments`, `transportation`, `hotels`, `guides`, `explore`, `festivals`, `emergency`, `student-discount`, `loyalty`, `notifications`, `currency`, `ai-tools`, plus `common/` (guards, interceptors, filters, decorators, pipes) and `config/`.
 
 ### Documentation (`docs/`)
-- `prd.md` — Product Requirements Document (high-level product truth)
-- `architecture.md` — System architecture, auth flow, payment flow, real-time channels
-- `feature-decisions.md` — Canonical feature registry with scope, priority, status, owner
-- `features/F01–F16/` — Per-feature API specs (`api.yaml`), architecture, and requirements
-- `features/feature_index.md` — Feature index
+- `product/prd.md` — Product Requirements Document (high-level product truth)
+- `platform/architecture/system-overview.md` — System architecture, auth flow, payment flow, real-time channels
+- `product/feature-decisions.md` — Canonical feature registry with scope, priority, status, owner
+- `modules/` — Per-feature API specs (`api.yaml`), architecture, and requirements
+- `modules/README.md` — Feature module index
+- `glossary.md` — Domain terms and abbreviations
 
 ### Kiro Configuration (`.kiro/`)
 - `.kiro/steering/tech.md` — Technology stack decisions and common commands
