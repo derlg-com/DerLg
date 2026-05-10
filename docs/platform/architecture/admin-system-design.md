@@ -14,7 +14,7 @@ The DerLg System Admin Panel is a role-based administrative interface for managi
 - **Customer support:** Profiles, loyalty points, reviews
 - **Emergency response:** Real-time alert monitoring, location tracking, status lifecycle
 - **Business intelligence:** Revenue analytics, booking statistics, performance metrics
-- **Platform governance:** Admin user management, audit logging, data export
+- **Platform governance:** Admin user management, audit logging, data export, backup
 - **Promotions:** Discount codes, student verification review
 
 ---
@@ -135,9 +135,23 @@ Indexes: `(vehicle_id)`, `(status)`, `(scheduled_date)`
 
 Indexes: `(user_id)`, `(admin_role)`
 
+#### `backups`
+
+| Column | Type | Constraints |
+|--------|------|-------------|
+| `id` | UUID | PK |
+| `backup_file_url` | TEXT | NOT NULL |
+| `backup_size_bytes` | BIGINT | nullable |
+| `created_by_admin_id` | UUID | FK → `users.id`, NOT NULL |
+| `created_at` | TIMESTAMP | default now() |
+
+Indexes: `(created_at)`
+
 ### 3.2 Existing Tables (leveraged by admin)
 
 The admin module reads and writes to existing tables: `users`, `bookings`, `transportation_vehicles`, `hotels`, `hotel_rooms`, `guides`, `trips`, `payments`, `reviews`, `emergency_alerts`, `discount_codes`, `student_verifications`, `loyalty_transactions`, `audit_logs`, `ai_sessions`.
+
+The `backups` table is new (see 3.1 above) but sits alongside these admin-specific tables.
 
 ### 3.3 Enums
 
@@ -150,24 +164,25 @@ enum AdminRole      { SUPER_ADMIN OPERATIONS_MANAGER SUPPORT_AGENT FLEET_MANAGER
 ### 3.4 Entity Relationships
 
 ```
-users ──1:1── admin_users
-users ──1:N── bookings
-users ──1:N── emergency_alerts
-users ──1:N── reviews
-users ──1:N── loyalty_transactions
+users ══1:1══ admin_users
+users ══1:N══ bookings
+users ══1:N══ emergency_alerts
+users ══1:N══ reviews
+users ══1:N══ loyalty_transactions
+users ══1:N══ backups (created_by_admin_id)
 
-drivers ──N:1── transportation_vehicles
-drivers ──1:N── driver_assignments
-driver_assignments ──N:1── bookings
-driver_assignments ──N:1── transportation_vehicles
+drivers ══N:1══ transportation_vehicles
+drivers ══1:N══ driver_assignments
+driver_assignments ══N:1══ bookings
+driver_assignments ══N:1══ transportation_vehicles
 
-transportation_vehicles ──1:N── vehicle_maintenance
+transportation_vehicles ══1:N══ vehicle_maintenance
 
-bookings ──1:N── payments
-bookings ──N:1── trips (optional, for PACKAGE type)
-bookings ──N:1── hotel_rooms (optional, for HOTEL type)
-bookings ──N:1── transportation_vehicles (optional, for TRANSPORT type)
-bookings ──N:1── guides (optional, for GUIDE type)
+bookings ══1:N══ payments
+bookings ══N:1══ trips (optional, for PACKAGE type)
+bookings ══N:1══ hotel_rooms (optional, for HOTEL type)
+bookings ══N:1══ transportation_vehicles (optional, for TRANSPORT type)
+bookings ══N:1══ guides (optional, for GUIDE type)
 ```
 
 ---
@@ -179,24 +194,27 @@ bookings ──N:1── guides (optional, for GUIDE type)
 | Capability | SUPER_ADMIN | OPS_MANAGER | FLEET_MANAGER | SUPPORT_AGENT |
 |------------|:-----------:|:-----------:|:-------------:|:-------------:|
 | Dashboard view | full | full | fleet-only | bookings-only |
-| Driver CRUD | yes | yes | yes | no |
-| Vehicle CRUD | yes | yes | yes | no |
-| Maintenance CRUD | yes | yes | yes | no |
+| Driver CRUD | yes | yes | yes * | no |
+| Vehicle CRUD | yes | yes | yes * | no |
+| Maintenance CRUD | yes | yes | yes * | no |
 | Driver assignment | yes | yes | yes | no |
 | Hotel/room CRUD | yes | yes | no | no |
 | Guide CRUD | yes | yes | no | no |
-| Booking view | yes | yes | read-only | yes |
+| Booking view | yes | yes | no | yes |
 | Booking modify/cancel | yes | yes | no | yes |
 | Emergency respond | yes | yes | no | no |
 | Customer view | yes | yes | no | yes |
 | Loyalty adjust | yes | yes | no | no |
 | Discount CRUD | yes | yes | no | no |
 | Student verify | yes | yes | no | no |
-| Analytics | yes | yes | fleet-only | no |
+| AI session view | yes | yes | no | no |
+| Analytics | yes | yes | no | no |
 | Admin user CRUD | yes | no | no | no |
 | Audit log view | yes | no | no | no |
 | Data export | yes | no | no | no |
 | Backup | yes | no | no | no |
+
+> \* **Known spec conflict:** Requirement 10.4 restricts FLEET_MANAGER to read-only (GET only) on drivers/vehicles/maintenance. However, Tasks 3.2, 4.2, 5.2, and 6.2 grant write access (POST/PATCH) to FLEET_MANAGER. The task-level assignments take precedence since they represent the implementation-level decision. Resolve with product owner before implementation.
 
 ### 4.2 Implementation
 
@@ -293,8 +311,8 @@ Response:
 
 | Method | Path | Roles | Description |
 |--------|------|-------|-------------|
-| `GET` | `/v1/admin/bookings` | all | List with `?booking_type=&status=&start_date=&end_date=&search=&ai_assisted=` |
-| `GET` | `/v1/admin/bookings/:id` | all | Full detail: trip/hotel/vehicle/guide + payment history + driver assignment |
+| `GET` | `/v1/admin/bookings` | SUPPORT, OPS, SUPER | List with `?booking_type=&status=&start_date=&end_date=&search=&ai_assisted=` |
+| `GET` | `/v1/admin/bookings/:id` | SUPPORT, OPS, SUPER | Full detail: trip/hotel/vehicle/guide + payment history + driver assignment |
 | `PATCH` | `/v1/admin/bookings/:id` | SUPPORT, OPS, SUPER | Modify travel_date, end_date, num_adults, num_children, customizations |
 | `POST` | `/v1/admin/bookings/:id/cancel` | SUPPORT, OPS, SUPER | Cancel booking, process refund, release resources |
 
@@ -351,9 +369,10 @@ Response:
 |--------|------|-------|-------------|
 | `GET` | `/v1/admin/analytics/revenue` | SUPER, OPS | Revenue by booking_type, `?start_date=&end_date=` |
 | `GET` | `/v1/admin/analytics/bookings` | SUPER, OPS | Counts by status, cancellation rate |
-| `GET` | `/v1/admin/analytics/drivers` | SUPER, OPS, FLEET | Driver performance: trips, avg rating |
-| `GET` | `/v1/admin/analytics/ai-bookings` | SUPER, OPS | AI-assisted booking metrics |
-| `GET` | `/v1/admin/analytics/export` | SUPER, OPS | `?format=csv&metric=revenue&start_date=&end_date=` |
+| `GET` | `/v1/admin/analytics/drivers` | SUPER, OPS | Driver performance: trips, avg rating |
+| `GET` | `/v1/admin/analytics/ai-bookings` | SUPER, OPS | AI-assisted booking success rate |
+| `GET` | `/v1/admin/analytics/ai-performance` | SUPER, OPS | AI booking time, satisfaction from reviews |
+| `GET` | `/v1/admin/analytics/export` | SUPER | `?format=csv&metric=revenue&start_date=&end_date=` |
 
 #### Admin Users
 
@@ -391,6 +410,89 @@ Response:
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `POST` | `/v1/telegram/driver-status` | Webhook secret | `{ telegram_id, vehicle_id, driver_name, status }` — updates/creates driver, publishes to Redis |
+
+### 5.4 Backend Module Structure
+
+```
+backend/src/
+├── admin/
+│   ├── admin.module.ts
+│   ├── controllers/
+│   │   ├── admin-dashboard.controller.ts
+│   │   ├── admin-drivers.controller.ts
+│   │   ├── admin-vehicles.controller.ts
+│   │   ├── admin-maintenance.controller.ts
+│   │   ├── admin-assignments.controller.ts
+│   │   ├── admin-bookings.controller.ts
+│   │   ├── admin-hotels.controller.ts
+│   │   ├── admin-guides.controller.ts
+│   │   ├── admin-emergency.controller.ts
+│   │   ├── admin-customers.controller.ts
+│   │   ├── admin-discounts.controller.ts
+│   │   ├── admin-analytics.controller.ts
+│   │   ├── admin-users.controller.ts
+│   │   ├── admin-audit.controller.ts
+│   │   ├── admin-export.controller.ts
+│   │   └── admin-ai-monitoring.controller.ts
+│   ├── services/
+│   │   ├── admin-dashboard.service.ts
+│   │   ├── admin-drivers.service.ts
+│   │   ├── admin-vehicles.service.ts
+│   │   ├── admin-maintenance.service.ts
+│   │   ├── admin-assignments.service.ts
+│   │   ├── admin-bookings.service.ts
+│   │   ├── admin-hotels.service.ts
+│   │   ├── admin-guides.service.ts
+│   │   ├── admin-emergency.service.ts
+│   │   ├── admin-customers.service.ts
+│   │   ├── admin-discounts.service.ts
+│   │   ├── admin-analytics.service.ts
+│   │   ├── admin-users.service.ts
+│   │   ├── admin-audit.service.ts
+│   │   ├── admin-export.service.ts
+│   │   └── admin-ai-monitoring.service.ts
+│   ├── dto/
+│   │   ├── create-driver.dto.ts
+│   │   ├── update-driver.dto.ts
+│   │   ├── create-vehicle.dto.ts
+│   │   ├── update-vehicle.dto.ts
+│   │   ├── schedule-maintenance.dto.ts
+│   │   ├── update-maintenance.dto.ts
+│   │   ├── assign-driver.dto.ts
+│   │   ├── update-booking.dto.ts
+│   │   ├── create-hotel.dto.ts
+│   │   ├── update-hotel.dto.ts
+│   │   ├── create-room.dto.ts
+│   │   ├── update-room.dto.ts
+│   │   ├── create-guide.dto.ts
+│   │   ├── update-guide.dto.ts
+│   │   ├── update-emergency.dto.ts
+│   │   ├── adjust-loyalty.dto.ts
+│   │   ├── create-discount.dto.ts
+│   │   ├── update-discount.dto.ts
+│   │   ├── review-student-verification.dto.ts
+│   │   ├── create-admin-user.dto.ts
+│   │   ├── update-admin-user.dto.ts
+│   │   ├── export-request.dto.ts
+│   │   └── dashboard-overview.dto.ts
+│   ├── guards/
+│   │   └── admin-role.guard.ts
+│   ├── interceptors/
+│   │   └── audit-log.interceptor.ts
+│   └── websocket/
+│       └── admin.gateway.ts
+├── telegram/
+│   ├── telegram.module.ts
+│   ├── telegram.controller.ts
+│   └── telegram.service.ts
+└── common/
+    ├── decorators/
+    │   └── admin-roles.decorator.ts
+    └── dto/
+        └── driver-status-webhook.dto.ts
+```
+
+This structure matches the design.md spec exactly, plus the two additional controllers/services revealed during cross-check: AdminExportController/Service and AdminAIMonitoringController/Service.
 
 ---
 
@@ -582,7 +684,7 @@ Given the project is in early scaffolding, the admin panel depends on core infra
 
 ### Phase 0: Foundation (prerequisites)
 
-1. Prisma schema with all 18 base models + 4 admin models
+1. Prisma schema with all 18 base models + 5 admin models (drivers, driver_assignments, vehicle_maintenance, admin_users, backups)
 2. Auth module (JWT, refresh tokens, guards)
 3. Users module (profile, roles)
 4. Common module (decorators, interceptors, filters, pipes)
@@ -673,12 +775,36 @@ Given the project is in early scaffolding, the admin panel depends on core infra
 
 ## 12. References
 
+### Specification Files
+
+These four files define the full admin system specification. Use them according to the workflow in `Prompt.Format.md`:
+
+| File | Purpose |
+|------|---------|
+| `.kiro/specs/system-admin-panel/requirements.md` | 20 requirements with numbered acceptance criteria (1.1–20.7) |
+| `.kiro/specs/system-admin-panel/design.md` | Visual/interaction intent — component specs, route trees, module structure |
+| `.kiro/specs/system-admin-panel/tasks.md` | 39 implementation tasks, each referencing requirement IDs |
+| `.kiro/specs/system-admin-panel/admin.all.combination.task.md` | All three merged inline — each task with its requirements, design patterns, and verification checklist |
+
+### How to Use These Files
+
+1. Read the task from `admin.all.combination.task.md`
+2. Cross-reference the requirement IDs listed in the task
+3. Check the design file for visual context
+4. Implement the code
+5. Mark the task complete (`[ ]` → `[x]`)
+
+Each task includes a verification checklist:
+- All referenced acceptance criteria satisfied
+- Design patterns followed (file structure, naming, tech stack)
+- Sub-steps completed with tests passing
+- No extra features beyond current task scope
+
+### Other References
+
 - Product requirements: `docs/product/prd.md`
 - Feature registry: `docs/product/feature-decisions.md`
 - System architecture: `docs/platform/architecture/system-overview.md`
-- Admin requirements (20): `.kiro/specs/system-admin-panel/requirements.md`
-- Admin task plan (39 tasks): `.kiro/specs/system-admin-panel/tasks.md`
-- Backend requirements (50): `.kiro/specs/backend-nestjs-supabase/requirements.md`
 - Project conventions: `AGENTS.md`
 - Tech stack decisions: `.kiro/steering/tech.md`
 - Planned directory structure: `.kiro/steering/structure.md`
