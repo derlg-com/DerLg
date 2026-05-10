@@ -18,7 +18,7 @@ Frontend (Next.js) ←→ Backend API (NestJS) ←→ Database (Supabase Postgre
 
 ## Frontend
 
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui
