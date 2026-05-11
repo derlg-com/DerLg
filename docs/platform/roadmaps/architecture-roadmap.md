@@ -2,7 +2,7 @@
 
 > **Purpose:** Track the creation of the single official `architecture.md` that describes how the entire DerLg system works — services, data flow, tech stack, hosting, and integrations. This roadmap ensures the architecture doc is comprehensive, consistent, and references the correct source documents.
 
-**Target output file:** `docs/platform/architecture/system-overview.md` (replaces the current outdated version)
+**Target output:** `docs/platform/architecture/*.md` — multi-file architecture documentation suite (replaces the single outdated `system-overview.md`)
 
 **Primary references:**
 - [`.kiro/steering/product.md`](../../.kiro/steering/product.md) — Product overview, features, users, business model
@@ -24,18 +24,18 @@
 
 *Before writing a single line of architecture.md, fix contradictions in the steering files.*
 
-- [ ] **Version Alignment**
-  - [ ] `structure.md` says Next.js 14 → reconcile with `tech.md` (Next.js 16) and actual `package.json`
-  - [ ] `structure.md` says NestJS 10 → reconcile with `tech.md` and actual `package.json`
-  - [ ] `tech.md` says Claude Sonnet 4.5 → confirm model name accuracy
+- [x] **Version Alignment**
+  - [x] `structure.md` says Next.js 14 → reconcile with `tech.md` (Next.js 16) and actual `package.json` → **Resolved: Next.js 16.2.6, React 19.2.4**
+  - [x] `structure.md` says NestJS 10 → reconcile with `tech.md` and actual `package.json` → **Resolved: NestJS 11.x**
+  - [x] `tech.md` says Claude Sonnet 4.5 → confirm model name accuracy → **Resolved: Claude 4 Sonnet**
 
-- [ ] **Directory Naming**
-  - [ ] `structure.md` references `docs/architectures/` but actual directory was `docs/architechture/` → now consolidated under `docs/platform/`
-  - [ ] `structure.md` references `llm_agentic_chatbot/` but no such directory exists yet → note as planned vs. actual
+- [x] **Directory Naming**
+  - [x] `structure.md` references `docs/architectures/` but actual directory was `docs/architechture/` → now consolidated under `docs/platform/` → **Verified: `docs/platform/architecture/` is correct; old typo folder does not exist**
+  - [x] `structure.md` references `llm_agentic_chatbot/` but no such directory exists yet → note as planned vs. actual → **Documented as planned directory**
 
-- [ ] **Scope Confirmation**
-  - [ ] Confirm which third-party services are committed vs. aspirational (e.g. OpenWeatherMap, Google Maps API)
-  - [ ] Confirm AI agent directory name and location
+- [x] **Scope Confirmation**
+  - [x] Confirm which third-party services are committed vs. aspirational (e.g. OpenWeatherMap, Google Maps API) → **Resolved: OpenStreetMap + Leaflet committed; Google Maps aspirational; OpenWeatherMap aspirational**
+  - [x] Confirm AI agent directory name and location → **Resolved: `llm_agentic_chatbot/` at repo root**
 
 ---
 
@@ -43,22 +43,22 @@
 
 *The 30,000-foot view. Anyone reading this should understand what DerLg is and why it exists.*
 
-- [ ] **Product Context** *(ref: `product.md`)*
-  - [ ] Core value proposition (1–2 sentences)
-  - [ ] Target users and primary market (Chinese tourists, students, etc.)
-  - [ ] Business model (commission-based + loyalty)
+- [x] **Product Context** *(ref: `product.md`)*
+  - [x] Core value proposition (1–2 sentences)
+  - [x] Target users and primary market (Chinese tourists, students, etc.)
+  - [x] Business model (commission-based + loyalty)
 
-- [ ] **System Diagram**
-  - [ ] High-level architecture diagram (ASCII or Mermaid)
-  - [ ] All three services shown: Frontend → Backend → AI Agent
-  - [ ] Data stores shown: PostgreSQL, Redis, Supabase Storage
-  - [ ] External services shown: Stripe, FCM, Resend, etc.
+- [x] **System Diagram**
+  - [x] High-level architecture diagram (Mermaid)
+  - [x] All three services shown: Frontend → Backend → AI Agent
+  - [x] Data stores shown: PostgreSQL, Redis, Supabase Storage
+  - [x] External services shown: Stripe, FCM, Resend, etc.
 
-- [ ] **Key Design Principles**
-  - [ ] Mobile-first PWA
-  - [ ] AI-assisted booking ("Vibe Booking")
-  - [ ] Multi-language support (EN/ZH/KM)
-  - [ ] Offline-capable where possible
+- [x] **Key Design Principles**
+  - [x] Mobile-first PWA
+  - [x] AI-assisted booking ("Vibe Booking")
+  - [x] Multi-language support (EN/ZH/KM)
+  - [x] Offline-capable where possible
 
 ---
 
@@ -66,32 +66,33 @@
 
 *What each service owns, what it does not own, and how they talk.*
 
-- [ ] **Frontend (Next.js)** *(ref: `tech.md`, `structure.md`)*
-  - [ ] Responsibility: UI rendering, client state, PWA shell, offline caching
-  - [ ] Rendering strategy: App Router, Server Components by default
-  - [ ] Key libraries: Tailwind, Zustand, React Query, next-intl, Leaflet
-  - [ ] Port: 3000
-  - [ ] Deployment target: TBD (Vercel? Docker?)
+- [x] **Frontend (Next.js 16)** *(ref: `tech.md`, `structure.md`)*
+  - [x] Responsibility: UI rendering, client state, PWA shell, offline caching
+  - [x] Rendering strategy: App Router, Server Components by default
+  - [x] Key libraries: Tailwind, Zustand, React Query, next-intl, Leaflet
+  - [x] Port: 3000
+  - [x] Deployment target: Docker on VPS (AWS/DigitalOcean)
 
-- [ ] **Backend (NestJS)** *(ref: `tech.md`, `structure.md`)*
-  - [ ] Responsibility: Business logic, auth, bookings, payments, notifications
-  - [ ] Module list: all 16 modules documented
-  - [ ] Key libraries: Prisma, Supabase Auth, Stripe SDK, class-validator
-  - [ ] Port: 3001
-  - [ ] Deployment target: TBD
+- [x] **Backend (NestJS 11)** *(ref: `tech.md`, `structure.md`)*
+  - [x] Responsibility: Business logic, auth, bookings, payments, notifications
+  - [x] Module list: all 16 modules documented
+  - [x] Key libraries: Prisma, Supabase Auth, Stripe SDK, class-validator
+  - [x] Port: 3001
+  - [x] Deployment target: Docker on VPS (AWS/DigitalOcean)
 
-- [ ] **AI Agent (Python/FastAPI)** *(ref: `tech.md`, `structure.md`)*
-  - [ ] Responsibility: Conversational assistant, trip recommendations, booking via tools
-  - [ ] Key libraries: LangGraph, Anthropic Claude, FastAPI
-  - [ ] Communication: WebSocket (chat), HTTP (tool calls to backend)
-  - [ ] Constraint: **No direct database access** — only via backend API
-  - [ ] Session storage: Redis with 7-day TTL
+- [x] **AI Agent (Python/FastAPI)** *(ref: `tech.md`, `structure.md`)*
+  - [x] Responsibility: Conversational assistant, trip recommendations, booking via tools
+  - [x] Key libraries: LangGraph, Claude 4 Sonnet, FastAPI
+  - [x] Communication: WebSocket (chat), HTTP (tool calls to backend)
+  - [x] Constraint: **No direct database access** — only via backend API
+  - [x] Session storage: Redis with 7-day TTL
 
-- [ ] **Service Communication Matrix**
-  - [ ] Frontend ↔ Backend: REST API (`/v1/*`)
-  - [ ] Frontend ↔ AI Agent: WebSocket (direct or proxied through backend?)
-  - [ ] AI Agent ↔ Backend: HTTP (`/v1/ai-tools/*` with `X-Service-Key`)
-  - [ ] Backend → External: Stripe, Resend, FCM, ExchangeRate-API
+- [x] **Service Communication Matrix**
+  - [x] Frontend ↔ Backend: REST API (`/v1/*`)
+  - [x] Frontend ↔ AI Agent: WebSocket (**direct**, same Docker network)
+  - [x] AI Agent ↔ Backend: HTTP (`/v1/ai-tools/*` with `X-Service-Key`)
+  - [x] Backend → External: Stripe, Resend, FCM, ExchangeRate-API
+  - [x] Bakong: separate payment service → Backend webhooks
 
 ---
 
@@ -99,25 +100,25 @@
 
 *Where data lives, how it moves, and who owns it.*
 
-- [ ] **Primary Database (PostgreSQL / Supabase)**
-  - [ ] Role: Source of truth for all business data
-  - [ ] Hosting: Supabase (production) vs. Docker `postgres:15-alpine` (dev)
-  - [ ] ORM: Prisma — schema location, migration strategy
-  - [ ] Row-Level Security (RLS) policy noted
+- [x] **Primary Database (PostgreSQL / Supabase)**
+  - [x] Role: Source of truth for all business data
+  - [x] Hosting: Supabase (production) vs. Docker `postgres:15-alpine` (dev)
+  - [x] ORM: Prisma — schema location, migration strategy
+  - [x] Row-Level Security (RLS) policy noted
 
-- [ ] **Cache & Sessions (Redis)**
-  - [ ] Role: Session store, rate limiting, pub/sub, AI conversation state
-  - [ ] Hosting: Upstash (production) vs. Docker `redis:7-alpine` (dev)
-  - [ ] Key patterns: TTL policies, key naming conventions
+- [x] **Cache & Sessions (Redis)**
+  - [x] Role: Session store, rate limiting, pub/sub, AI conversation state
+  - [x] Hosting: Upstash (production) vs. Docker `redis:7-alpine` (dev)
+  - [x] Key patterns: TTL policies, key naming conventions
 
-- [ ] **File Storage (Supabase Storage)**
-  - [ ] Role: Avatars, ID verifications, hotel images
-  - [ ] Access pattern: Public URL vs. signed URL?
+- [x] **File Storage (Supabase Storage)**
+  - [x] Role: Avatars, ID verifications, hotel images
+  - [x] Access pattern: Public URL (images) vs. signed URL (uploads, receipts)
 
-- [ ] **Data Flow Diagrams**
-  - [ ] Read flow: Frontend → Backend → Prisma → PostgreSQL
-  - [ ] Write flow: Frontend → Backend → Prisma → PostgreSQL → Redis cache invalidation
-  - [ ] AI flow: User message → AI Agent → Tool call → Backend → Database → Response
+- [x] **Data Flow Diagrams**
+  - [x] Read flow: Frontend → Backend → Prisma → PostgreSQL
+  - [x] Write flow: Frontend → Backend → Prisma → PostgreSQL → Redis cache invalidation
+  - [x] AI flow: User message → AI Agent → Tool call → Backend → Database → Response
 
 ---
 
@@ -125,28 +126,28 @@
 
 *The most critical cross-cutting concern. Must be consistent across all three services.*
 
-- [ ] **Auth Strategy** *(ref: `tech.md`)*
-  - [ ] Supabase Auth for email/password + Google OAuth
-  - [ ] Backend-issued JWT access token (15 min) + refresh token (7 days, httpOnly cookie)
-  - [ ] AI Agent auth: `X-Service-Key` header for internal endpoints
+- [x] **Auth Strategy** *(ref: `tech.md`)*
+  - [x] Supabase Auth for email/password + Google OAuth
+  - [x] Backend-issued JWT access token (15 min) + refresh token (7 days, httpOnly cookie)
+  - [x] AI Agent auth: `X-Service-Key` header for internal endpoints
 
-- [ ] **Identity Flow**
-  - [ ] Registration → Supabase creates user → Backend creates `users` record with `supabase_uid`
-  - [ ] Login → Supabase validates → Backend issues JWT pair
-  - [ ] Token refresh → Client sends refresh cookie → Backend issues new access token
-  - [ ] Logout → Backend revokes refresh token → Client clears state
+- [x] **Identity Flow**
+  - [x] Registration → Supabase creates user → Backend creates `users` record with `supabase_uid`
+  - [x] Login → Supabase validates → Backend issues JWT pair
+  - [x] Token refresh → Client sends refresh cookie → Backend issues new access token
+  - [x] Logout → Backend revokes refresh token → Client clears state
 
-- [ ] **Authorization**
-  - [ ] Role definitions: `user`, `guide`, `admin`, `student`
-  - [ ] Permission model: RBAC or attribute-based?
-  - [ ] AI Agent permissions: Which endpoints can it call? Which can it not?
+- [x] **Authorization**
+  - [x] Role definitions: `user`, `guide`, `admin`, `student`
+  - [x] Permission model: **RBAC**
+  - [x] AI Agent permissions: Documented — `/v1/ai-tools/*` allowed; payments/admin denied
 
-- [ ] **Security Baseline**
-  - [ ] Rate limiting (Redis-backed)
-  - [ ] CORS whitelist
-  - [ ] Input validation (class-validator DTOs)
-  - [ ] Secret management (no hardcoded keys)
-  - [ ] Stripe webhook signature verification
+- [x] **Security Baseline**
+  - [x] Rate limiting (Redis-backed)
+  - [x] CORS whitelist
+  0  - [x] Input validation (class-validator DTOs)
+  - [x] Secret management (no hardcoded keys)
+  - [x] Stripe webhook signature verification
 
 ---
 
@@ -154,25 +155,25 @@
 
 *Money flow is the most failure-sensitive part of the system.*
 
-- [ ] **Payment Methods**
-  - [ ] Stripe: Card payments (Payment Intent or Checkout Session?)
-  - [ ] Bakong / ABA QR: Cambodia-local payment method
+- [x] **Payment Methods**
+  - [x] Stripe: Card payments (**Payment Intent + Stripe Elements**)
+  - [x] Bakong / ABA QR: Cambodia-local payment method (**separate service**)
 
-- [ ] **Booking Hold & Confirmation Flow**
-  - [ ] Step 1: User completes booking form → Backend creates booking with `RESERVED` status (15-min hold)
-  - [ ] Step 2: Backend creates Stripe Payment Intent → returns `client_secret` to frontend
-  - [ ] Step 3: Frontend completes payment (Stripe Elements or QR scan)
-  - [ ] Step 4: Stripe webhook → Backend confirms payment → Booking status → `CONFIRMED`
-  - [ ] Step 5: Side effects triggered (loyalty points, notifications, receipt email)
+- [x] **Booking Hold & Confirmation Flow**
+  - [x] Step 1: User completes booking form → Backend creates booking with `RESERVED` status (15-min hold)
+  - [x] Step 2: Backend creates Stripe Payment Intent → returns `client_secret` to frontend
+  - [x] Step 3: Frontend completes payment (Stripe Elements or QR scan)
+  - [x] Step 4: Stripe webhook → Backend confirms payment → Booking status → `CONFIRMED`
+  - [x] Step 5: Side effects triggered (loyalty points, notifications, receipt email)
 
-- [ ] **Failure Handling**
-  - [ ] Hold expiration: Cron or Redis TTL releases inventory
-  - [ ] Failed payment: Retry policy? User notification?
-  - [ ] Refund tiers: 100% (>7 days), 50% (1–7 days), 0% (<24h)
+- [x] **Failure Handling**
+  - [x] Hold expiration: Redis TTL + cron backup releases inventory
+  - [x] Failed payment: Retry policy documented (1 hold extension)
+  - [x] Refund tiers: 100% (>7 days), 50% (1–7 days), 0% (<24h)
 
-- [ ] **Idempotency**
-  - [ ] Webhook idempotency key strategy
-  - [ ] Duplicate payment prevention
+- [x] **Idempotency**
+  - [x] Webhook idempotency key strategy (Redis `webhook:stripe:{event_id}`)
+  - [x] Duplicate payment prevention (one active PaymentIntent per booking)
 
 ---
 
@@ -180,18 +181,18 @@
 
 *How live data moves between services and users.*
 
-- [ ] **AI Chat**
-  - [ ] Protocol: WebSocket
-  - [ ] Connection path: Frontend → AI Agent (direct?) or Frontend → Backend → AI Agent?
-  - [ ] Message history: Persisted in Redis or PostgreSQL?
+- [x] **AI Chat**
+  - [x] Protocol: WebSocket
+  - [x] Connection path: Frontend → AI Agent (**direct**, same Docker network)
+  - [x] Message history: Redis (active, 7d TTL) + PostgreSQL (archive)
 
-- [ ] **Payment Status Updates**
-  - [ ] Protocol: Redis Pub/Sub or Server-Sent Events?
-  - [ ] Flow: Stripe webhook → Backend publishes → Frontend subscribes
+- [x] **Payment Status Updates**
+  - [x] Protocol: **Server-Sent Events (SSE)** — primary; short-polling fallback
+  - [x] Flow: Stripe webhook → Backend publishes → Frontend subscribes via SSE
 
-- [ ] **Push Notifications**
-  - [ ] Protocol: Firebase Cloud Messaging (FCM)
-  - [ ] Trigger events: Booking confirmed, payment failed, trip reminder, emergency alert
+- [x] **Push Notifications**
+  - [x] Protocol: Firebase Cloud Messaging (FCM)
+  - [x] Trigger events: Booking confirmed, payment failed, trip reminder, emergency alert
 
 ---
 
@@ -199,21 +200,21 @@
 
 *The AI agent is a fourth participant in most user journeys. Document its role clearly.*
 
-- [ ] **Agent Capabilities**
-  - [ ] Conversational trip planning
-  - [ ] Search and recommendation (hotels, trips, guides)
-  - [ ] Booking assistance (create holds, suggest dates)
-  - [ ] Emergency guidance
+- [x] **Agent Capabilities**
+  - [x] Conversational trip planning
+  - [x] Search and recommendation (hotels, trips, guides)
+  - [x] Booking assistance (create holds, suggest dates)
+  - [x] Emergency guidance
 
-- [ ] **Tool Calling**
-  - [ ] Backend exposes `/v1/ai-tools/*` endpoints
-  - [ ] AI agent calls these with `X-Service-Key`
-  - [ ] Tools available: search hotels, search trips, create booking hold, check availability, get weather, etc.
+- [x] **Tool Calling**
+  - [x] Backend exposes `/v1/ai-tools/*` endpoints
+  - [x] AI agent calls these with `X-Service-Key`
+  - [x] Tools available: search hotels, search trips, create booking hold, check availability, get weather, etc.
 
-- [ ] **State Machine**
-  - [ ] LangGraph orchestrates conversation flow
-  - [ ] Session state in Redis (7-day TTL)
-  - [ ] Human-in-the-loop for payment execution (AI never charges directly)
+- [x] **State Machine**
+  - [x] LangGraph orchestrates conversation flow
+  - [x] Session state in Redis (7-day TTL)
+  - [x] Human-in-the-loop for payment execution (AI never charges directly)
 
 ---
 
@@ -221,29 +222,29 @@
 
 *Where everything runs in production and how it gets there.*
 
-- [ ] **Frontend**
-  - [ ] Hosting platform: Vercel? Docker on VPS? AWS?
-  - [ ] Environment variables: `NEXT_PUBLIC_API_URL`, etc.
-  - [ ] CDN for static assets and images
+- [x] **Frontend**
+  - [x] Hosting platform: Docker on VPS (AWS/DigitalOcean)
+  - [x] Environment variables: `NEXT_PUBLIC_API_URL`, etc.
+  - [x] CDN for static assets and images
 
-- [ ] **Backend**
-  - [ ] Hosting platform: Docker? Railway? Render? AWS ECS?
-  - [ ] Database connection pooling (PgBouncer? Supabase pooler?)
-  - [ ] Health check endpoint for load balancers
+- [x] **Backend**
+  - [x] Hosting platform: Docker on VPS (AWS/DigitalOcean)
+  - [x] Database connection pooling (Supabase pooler / PgBouncer)
+  - [x] Health check endpoint (`/health`) for load balancers
 
-- [ ] **AI Agent**
-  - [ ] Hosting platform: Docker? Python-specific platform?
-  - [ ] GPU requirements? (Claude is API-based, so likely none)
+- [x] **AI Agent**
+  - [x] Hosting platform: Docker on VPS (same host)
+  - [x] GPU requirements: None (Claude is API-based)
 
-- [ ] **Data Stores**
-  - [ ] PostgreSQL: Supabase managed vs. self-hosted
-  - [ ] Redis: Upstash vs. self-hosted
-  - [ ] Storage: Supabase Storage
+- [x] **Data Stores**
+  - [x] PostgreSQL: Supabase managed (prod) / Docker (dev)
+  - [x] Redis: Upstash (prod) / Docker (dev)
+  - [x] Storage: Supabase Storage
 
-- [ ] **CI/CD**
-  - [ ] Build pipeline for each service
-  - [ ] Database migration strategy (run in CI or manually?)
-  - [ ] Deployment triggers (push to `main`? manual?)
+- [x] **CI/CD**
+  - [x] Build pipeline for each service (GitHub Actions → Docker Hub → VPS)
+  - [x] Database migration strategy: `prisma migrate deploy` in CI/on startup
+  - [x] Deployment triggers: push to `main`; manual rollback via workflow dispatch
 
 ---
 
@@ -251,14 +252,14 @@
 
 *Third-party services and how they fit.*
 
-- [ ] **Payment**: Stripe + Bakong/ABA QR
-- [ ] **Email**: Resend (transactional emails)
-- [ ] **Push**: Firebase Cloud Messaging (FCM)
-- [ ] **Maps**: Google Maps API or OpenStreetMap + Leaflet?
-- [ ] **Weather**: OpenWeatherMap API (confirm if committed)
-- [ ] **Currency**: ExchangeRate-API (daily USD/KHR/CNY conversion)
-- [ ] **Storage**: Supabase Storage
-- [ ] **Error Tracking**: Sentry
+- [x] **Payment**: Stripe + Bakong/ABA QR
+- [x] **Email**: Resend (transactional emails)
+- [x] **Push**: Firebase Cloud Messaging (FCM)
+- [x] **Maps**: **OpenStreetMap + Leaflet** (committed); Google Maps API (aspirational)
+- [x] **Weather**: OpenWeatherMap API (**aspirational**)
+- [x] **Currency**: ExchangeRate-API (daily USD/KHR/CNY conversion)
+- [x] **Storage**: Supabase Storage
+- [x] **Error Tracking**: Sentry
 
 ---
 
@@ -266,21 +267,21 @@
 
 *How a new developer gets the entire system running locally.*
 
-- [ ] **Docker Compose**
-  - [ ] Services: PostgreSQL, Redis, Backend, Frontend, AI Agent
-  - [ ] Hot reload for all services
-  - [ ] Prisma migrate + seed on first startup
-  - [ ] File location: repo root or `backend/`?
+- [x] **Docker Compose**
+  - [x] Services: PostgreSQL, Redis, Backend, Frontend, AI Agent
+  - [x] Hot reload for all services
+  - [x] Prisma migrate + seed on first startup
+  - [x] File location: **repo root**
 
-- [ ] **Environment Files**
-  - [ ] `.env.example` for each service
-  - [ ] Required variables list per service
-  - [ ] Secret generation guide (JWT secrets, service keys, Stripe keys)
+- [x] **Environment Files**
+  - [x] `.env.example` for each service
+  - [x] Required variables list per service
+  - [x] Secret generation guide (JWT secrets, service keys, Stripe keys)
 
-- [ ] **Local Tooling**
-  - [ ] Node.js version manager (nvm?)
-  - [ ] Python virtual environment (venv? poetry?)
-  - [ ] Database GUI (Prisma Studio? pgAdmin?)
+- [x] **Local Tooling**
+  - [x] Node.js version manager (nvm recommended)
+  - [x] Python virtual environment (venv)
+  - [x] Database GUI (Prisma Studio + optional pgAdmin)
 
 ---
 
@@ -288,18 +289,18 @@
 
 *How you know the system is healthy and what to do when it's not.*
 
-- [ ] **Health Checks**
-  - [ ] `/health` endpoint (backend): DB + Redis connectivity
-  - [ ] Frontend health: build status, error rate
+- [x] **Health Checks**
+  - [x] `/health` endpoint (backend): DB + Redis connectivity
+  - [x] Frontend health: build status, error rate (CI + Sentry)
 
-- [ ] **Monitoring**
-  - [ ] Error tracking: Sentry integration
-  - [ ] Logs: structured JSON logging from NestJS
-  - [ ] Metrics: API latency, error rate, booking success rate
+- [x] **Monitoring**
+  - [x] Error tracking: Sentry integration (frontend, backend, AI agent)
+  - [x] Logs: structured JSON logging from NestJS + Python structlog
+  - [x] Metrics: API latency, error rate, booking success rate
 
-- [ ] **Alerting**
-  - [ ] Critical: Payment webhook failures, database connectivity loss
-  - [ ] Warning: High error rate, slow API responses
+- [x] **Alerting**
+  - [x] Critical: Payment webhook failures, database connectivity loss
+  - [x] Warning: High error rate, slow API responses
 
 ---
 
@@ -307,11 +308,11 @@
 
 *Link the architecture doc to the rest of the documentation ecosystem.*
 
-- [ ] **Per-Feature Architecture**: Link to `docs/modules/*/architecture.md`
-- [ ] **API Specifications**: Link to `docs/features/F*/api.yaml`
-- [ ] **Backend Roadmap**: Link to `roadmap-backend.md`
-- [ ] **Frontend Roadmap**: Link to `roadmap-frontend.md`
-- [ ] **Kiro Specs**: Link to `.kiro/specs/` for implementation details
+- [x] **Per-Feature Architecture**: Link to `docs/modules/*/README.md`
+- [x] **API Specifications**: Link to `docs/modules/*/README.md` and `.kiro/specs/*/requirements.md`
+- [x] **Backend Roadmap**: Link to `roadmap-backend.md`
+- [x] **Frontend Roadmap**: Link to `roadmap-frontend.md`
+- [x] **Kiro Specs**: Link to `.kiro/specs/` for implementation details
 
 ---
 
@@ -319,11 +320,11 @@
 
 *Before marking this roadmap complete:*
 
-- [ ] `docs/platform/architecture/system-overview.md` is written and covers all sections above
-- [ ] All contradictions between `.kiro/steering/*` files are resolved in the doc
-- [ ] Old `docs/architecture.md` is archived or overwritten (migrated to `docs/platform/architecture/system-overview.md`)
-- [ ] Empty `docs/architechture/` folder is deleted (typo fixed; content migrated to `docs/platform/`)
-- [ ] At least one other person (or future you) can read the doc and understand the whole system
+- [x] `docs/platform/architecture/*.md` is written and covers all sections above (replaced single-file approach with 7 focused files)
+- [x] All contradictions between `.kiro/steering/*` files are resolved in the docs
+- [x] Old `docs/architecture.md` does not exist; outdated `system-overview.md` deleted
+- [x] Empty `docs/architechture/` folder does not exist
+- [x] At least one other person (or future you) can read `index.md` and understand the whole system
 
 ---
 
@@ -334,4 +335,4 @@
 - [Tech Steering](../../.kiro/steering/tech.md)
 - [Backend Roadmap](roadmap-backend.md)
 - [Frontend Roadmap](roadmap-frontend.md)
-- [Current (Outdated) Architecture](../architecture/system-overview.md)
+- [Architecture Index](../architecture/index.md)
