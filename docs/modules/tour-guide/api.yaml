@@ -1,0 +1,221 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Tour Guide API
+  version: 1.0.0
+  description: Guide directory, profiles, and guide booking.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /guides:
+    get:
+      summary: List tour guides with filtering
+      tags: [Guides]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum: [EN, ZH, KM]
+        - name: specialty
+          in: query
+          schema:
+            type: string
+            enum: [Temples, Nature, Food, History, Adventure]
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: gender
+          in: query
+          schema:
+            type: string
+            enum: [Male, Female, Other, PreferNotToSay]
+        - name: is_verified
+          in: query
+          schema:
+            type: boolean
+        - name: min_price
+          in: query
+          schema:
+            type: number
+        - name: max_price
+          in: query
+          schema:
+            type: number
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [recommended, rating_desc, price_asc, price_desc]
+            default: recommended
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated list of guides
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/GuideSummary'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+
+  /guides/{id}:
+    get:
+      summary: Get guide profile detail
+      tags: [Guides]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Guide profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/GuideDetail'
+        '404':
+          description: Guide not found
+
+  /guides/{id}/availability:
+    get:
+      summary: Check guide availability for date range
+      tags: [Guides]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Availability and pricing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      is_available:
+                        type: boolean
+                      price_estimate_usd:
+                        type: number
+                      days:
+                        type: integer
+
+components:
+  parameters:
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      schema:
+        type: string
+        default: en
+
+  schemas:
+    GuideSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        photo_url:
+          type: string
+          format: uri
+        languages:
+          type: array
+          items:
+            type: string
+            enum: [EN, ZH, KM]
+        specialties:
+          type: array
+          items:
+            type: string
+            enum: [Temples, Nature, Food, History, Adventure]
+        location:
+          type: string
+        gender:
+          type: string
+        price_per_day_usd:
+          type: number
+        is_verified:
+          type: boolean
+        rating_average:
+          type: number
+        rating_count:
+          type: integer
+
+    GuideDetail:
+      allOf:
+        - $ref: '#/components/schemas/GuideSummary'
+        - type: object
+          properties:
+            bio:
+              type: string
+            experience_years:
+              type: integer
+            gallery_image_urls:
+              type: array
+              items:
+                type: string
+                format: uri
+            status:
+              type: string
+              enum: [ACTIVE, INACTIVE, SUSPENDED]

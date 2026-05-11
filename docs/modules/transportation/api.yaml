@@ -1,0 +1,210 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Transportation API
+  version: 1.0.0
+  description: Vehicle inventory, availability, and transportation booking.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /transportation/vehicles:
+    get:
+      summary: List available transportation vehicles
+      tags: [Transportation]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [Van, Bus, TukTuk, PrivateCar]
+        - name: capacity
+          in: query
+          schema:
+            type: integer
+        - name: has_ac
+          in: query
+          schema:
+            type: boolean
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter by availability from this date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [price_asc, price_desc, rating_desc]
+            default: price_asc
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of vehicles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Vehicle'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+
+  /transportation/vehicles/{id}:
+    get:
+      summary: Get vehicle detail
+      tags: [Transportation]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Vehicle detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Vehicle'
+        '404':
+          description: Vehicle not found
+
+  /transportation/vehicles/{id}/availability:
+    get:
+      summary: Check vehicle availability for date range
+      tags: [Transportation]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Availability status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      is_available:
+                        type: boolean
+                      price_estimate_usd:
+                        type: number
+                      conflicting_bookings:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            start_date:
+                              type: string
+                              format: date
+                            end_date:
+                              type: string
+                              format: date
+
+components:
+  parameters:
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      schema:
+        type: string
+        default: en
+
+  schemas:
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [Van, Bus, TukTuk, PrivateCar]
+        name:
+          type: string
+        capacity:
+          type: integer
+        price_per_day_usd:
+          type: number
+          nullable: true
+        price_per_km_usd:
+          type: number
+          nullable: true
+        has_ac:
+          type: boolean
+        has_wifi:
+          type: boolean
+        luggage_capacity:
+          type: string
+        image_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+        description:
+          type: string
+        rating_average:
+          type: number
+        rating_count:
+          type: integer
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE]

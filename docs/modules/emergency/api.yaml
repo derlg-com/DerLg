@@ -1,0 +1,321 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Emergency & Safety API
+  version: 1.0.0
+  description: SOS alerts, location sharing, and emergency contacts.
+  x-nfr-alert-delivery-ms: 5000
+  x-nfr-availability: "99.9%"
+  x-nfr-location-accuracy-meters: 10
+  x-nfr-monitoring: "24/7"
+  x-nfr-location-update-interval-min: 5
+  x-nfr-data-retention-days: 30
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /emergency/alerts:
+    post:
+      summary: Send SOS alert
+      description: Triggers an emergency alert with GPS coordinates. Sends push notification and SMS to the support team. Creates an alert record with status SENT. A 5-second countdown on the client prevents accidental triggers.
+      tags: [Emergency]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, latitude, longitude]
+              properties:
+                type:
+                  type: string
+                  enum: [SOS, MEDICAL, THEFT, LOST]
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                accuracy_meters:
+                  type: integer
+                notes:
+                  type: string
+                  maxLength: 500
+      responses:
+        '201':
+          description: Alert sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      alert_id:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+                        enum: [SENT]
+                      message:
+                        type: string
+        '400':
+          description: Invalid location data
+
+  /emergency/alerts/{id}/status:
+    get:
+      summary: Get alert status
+      description: Retrieves the current status of an emergency alert, including timestamps for acknowledgment and resolution.
+      tags: [Emergency]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Alert status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [SENT, ACKNOWLEDGED, RESOLVED, ESCALATED]
+                      acknowledged_at:
+                        type: string
+                        format: date-time
+                      resolved_at:
+                        type: string
+                        format: date-time
+
+  /emergency/alerts/{id}/acknowledge:
+    post:
+      summary: Admin: acknowledge alert
+      description: Marks an emergency alert as acknowledged by the support team. Updates the alert status to ACKNOWLEDGED and notifies the user.
+      tags: [Emergency Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Acknowledged
+
+  /emergency/alerts/{id}/resolve:
+    post:
+      summary: Admin: resolve alert
+      description: Resolves an emergency alert. Updates the alert status to RESOLVED and records support team resolution notes.
+      tags: [Emergency Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Resolved
+
+  /location-shares:
+    post:
+      summary: Create location sharing link
+      description: Creates a time-limited location sharing link. Generates a unique token that recipients can use to view the user's live location. Starts background geolocation tracking.
+      tags: [Location Sharing]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expires_in_hours]
+              properties:
+                expires_in_hours:
+                  type: integer
+                  enum: [24, 72]
+      responses:
+        '201':
+          description: Sharing link created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      share_url:
+                        type: string
+                        format: uri
+                      token:
+                        type: string
+                      expires_at:
+                        type: string
+                        format: date-time
+
+  /location-shares/{token}:
+    get:
+      summary: Get shared location (public, no auth)
+      description: Returns the current location and history trail for a shared location link. No authentication required. Returns 403 if the link has expired or been revoked.
+      tags: [Location Sharing]
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Location data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      latitude:
+                        type: number
+                      longitude:
+                        type: number
+                      accuracy_meters:
+                        type: integer
+                      updated_at:
+                        type: string
+                        format: date-time
+                      history:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            latitude:
+                              type: number
+                            longitude:
+                              type: number
+                            recorded_at:
+                              type: string
+                              format: date-time
+        '403':
+          description: Sharing revoked or expired
+
+  /location-shares/{token}/revoke:
+    post:
+      summary: Revoke location sharing
+      description: Revokes an active location sharing link immediately. Prevents further access to the shared location data.
+      tags: [Location Sharing]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Revoked
+
+  /emergency/contacts:
+    get:
+      summary: Get emergency contacts for a province
+      description: Returns emergency contacts (Police, Hospital, Fire, Tourist Police) for a province. Supports lookup by province name or GPS coordinates for auto-detection. No authentication required.
+      tags: [Emergency]
+      parameters:
+        - name: province
+          in: query
+          schema:
+            type: string
+        - name: lat
+          in: query
+          schema:
+            type: number
+        - name: lng
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Emergency contacts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EmergencyContact'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    EmergencyContact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        province:
+          type: string
+        contact_type:
+          type: string
+          enum: [POLICE, HOSPITAL, FIRE, TOURIST_POLICE]
+        name_en:
+          type: string
+        name_km:
+          type: string
+        phone:
+          type: string
+        address_en:
+          type: string
+        address_km:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number

@@ -1,0 +1,105 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Offline Maps API
+  version: 1.0.0
+  description: Map pack metadata and download management.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /map-packs:
+    get:
+      summary: List available map packs
+      tags: [Offline Maps]
+      responses:
+        '200':
+          description: List of province map packs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MapPack'
+
+  /map-packs/{province}/download:
+    get:
+      summary: Get tile manifest for a province pack
+      tags: [Offline Maps]
+      parameters:
+        - name: province
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tile manifest (list of URLs to download)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      province:
+                        type: string
+                      tile_count:
+                        type: integer
+                      estimated_size_mb:
+                        type: number
+                      tiles:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+                            z:
+                              type: integer
+                            x:
+                              type: integer
+                            y:
+                              type: integer
+
+components:
+  schemas:
+    MapPack:
+      type: object
+      properties:
+        province:
+          type: string
+        name_en:
+          type: string
+        name_km:
+          type: string
+        bbox:
+          type: object
+          properties:
+            north:
+              type: number
+            south:
+              type: number
+            east:
+              type: number
+            west:
+              type: number
+        estimated_size_mb:
+          type: number
+        tile_count:
+          type: integer
+        priority:
+          type: string
+          enum: [high, medium, low]
+        last_updated:
+          type: string
+          format: date-time

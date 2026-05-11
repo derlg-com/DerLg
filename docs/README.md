@@ -1,7 +1,8 @@
 # DerLg Documentation
 
 > **DerLg** is a Cambodia travel booking platform with an AI-powered "Vibe Booking" feature.  
-> This directory contains all product, platform, and feature specification documentation.
+> This direc
+tory contains all product, platform, and feature specification documentation.
 
 ---
 

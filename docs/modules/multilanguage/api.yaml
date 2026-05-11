@@ -1,0 +1,117 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Multi-Language API
+  version: 1.0.0
+  description: Content localization conventions applied across all API endpoints. This spec defines the common patterns; individual modules reference these conventions.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /locale/content:
+    get:
+      summary: Get localized content for a specific entity (example pattern)
+      tags: [Localization]
+      parameters:
+        - name: Accept-Language
+          in: header
+          required: false
+          schema:
+            type: string
+            enum: [en, zh, km]
+            default: en
+          description: Preferred content language
+        - name: entity_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [trip, place, hotel, guide, category]
+        - name: entity_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Localized content
+          headers:
+            Content-Language:
+              schema:
+                type: string
+              description: Actual locale returned (may differ from request if fallback used)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      locale:
+                        type: string
+                        enum: [en, zh, km]
+                      isFallback:
+                        type: boolean
+                        description: True if returned locale differs from requested
+                      name:
+                        type: string
+                      description:
+                        type: string
+                      translationsAvailable:
+                        type: array
+                        items:
+                          type: string
+                          enum: [en, zh, km]
+        '404':
+          description: Entity not found
+
+components:
+  schemas:
+    LocalizedString:
+      type: object
+      description: A field with translations in all supported languages
+      properties:
+        en:
+          type: string
+          description: English translation (required)
+        zh:
+          type: string
+          description: Chinese (Simplified) translation
+        km:
+          type: string
+          description: Khmer translation
+      required: [en]
+
+    TranslationsObject:
+      type: object
+      description: JSONB translations structure for content entities
+      properties:
+        name:
+          $ref: '#/components/schemas/LocalizedString'
+        description:
+          $ref: '#/components/schemas/LocalizedString'
+        short_description:
+          $ref: '#/components/schemas/LocalizedString'
+        visitor_tips:
+          $ref: '#/components/schemas/LocalizedString'
+        dress_code:
+          $ref: '#/components/schemas/LocalizedString'
+
+  parameters:
+    AcceptLanguageHeader:
+      name: Accept-Language
+      in: header
+      required: false
+      schema:
+        type: string
+        enum: [en, zh, km]
+        default: en
+      description: Preferred content language for the response

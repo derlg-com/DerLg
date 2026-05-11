@@ -1,0 +1,272 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Hotel Booking API
+  version: 1.0.0
+  description: Hotel inventory, room availability, and hotel booking.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /hotels:
+    get:
+      summary: List hotels with filtering
+      tags: [Hotels]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: min_price
+          in: query
+          schema:
+            type: number
+        - name: max_price
+          in: query
+          schema:
+            type: number
+        - name: star_rating
+          in: query
+          schema:
+            type: number
+            minimum: 1
+            maximum: 5
+        - name: amenities
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [recommended, price_asc, price_desc, rating_desc]
+            default: recommended
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated list of hotels
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/HotelSummary'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+
+  /hotels/{slug}:
+    get:
+      summary: Get hotel detail with rooms
+      tags: [Hotels]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Hotel detail with room types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/HotelDetail'
+        '404':
+          description: Hotel not found
+
+  /hotels/{hotelId}/rooms/{roomId}/availability:
+    get:
+      summary: Check room availability for date range
+      tags: [Hotels]
+      parameters:
+        - name: hotelId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: check_in_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: check_out_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: guests_adults
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Availability and pricing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      is_available:
+                        type: boolean
+                      price_total_usd:
+                        type: number
+                      nights:
+                        type: integer
+                      availability_per_night:
+                        type: object
+                        additionalProperties:
+                          type: object
+                          properties:
+                            available:
+                              type: integer
+                            price:
+                              type: number
+
+components:
+  parameters:
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      schema:
+        type: string
+        default: en
+
+  schemas:
+    HotelSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        cover_image_url:
+          type: string
+          format: uri
+        location:
+          type: string
+        star_rating:
+          type: number
+        price_per_night_from:
+          type: number
+          description: Lowest room price
+        amenities:
+          type: array
+          items:
+            type: string
+        rating_average:
+          type: number
+        rating_count:
+          type: integer
+
+    HotelDetail:
+      allOf:
+        - $ref: '#/components/schemas/HotelSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+            address:
+              type: string
+            latitude:
+              type: number
+            longitude:
+              type: number
+            gallery_image_urls:
+              type: array
+              items:
+                type: string
+                format: uri
+            check_in_time:
+              type: string
+            check_out_time:
+              type: string
+            cancellation_policy:
+              type: string
+            rooms:
+              type: array
+              items:
+                $ref: '#/components/schemas/Room'
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        bed_configuration:
+          type: string
+        max_occupancy:
+          type: integer
+        size_sqm:
+          type: integer
+        amenities:
+          type: array
+          items:
+            type: string
+        image_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+        price_per_night_usd:
+          type: number
+        total_rooms:
+          type: integer
