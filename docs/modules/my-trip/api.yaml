@@ -1,0 +1,315 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Booking Management API
+  version: 1.0.0
+  description: Core booking engine for trips, hotels, transport, and guides.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /bookings:
+    post:
+      summary: Create a new booking (with hold)
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Booking created with hold
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Booking'
+        '409':
+          description: Item no longer available
+        '422':
+          description: Invalid booking data
+
+    get:
+      summary: List user's bookings
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [upcoming, past, cancelled, all]
+            default: all
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated bookings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BookingSummary'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+
+  /bookings/{id}:
+    get:
+      summary: Get booking detail
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Booking'
+        '404':
+          description: Booking not found
+
+  /bookings/{id}/cancel:
+    post:
+      summary: Cancel a booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Booking cancelled with refund details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      refund_amount_usd:
+                        type: number
+                      refund_percentage:
+                        type: integer
+                      refund_method:
+                        type: string
+        '400':
+          description: Cannot cancel — within non-refundable window
+        '403':
+          description: Not authorized to cancel this booking
+
+  /bookings/{id}/qr:
+    get:
+      summary: Get booking QR code
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: QR code data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      qr_data:
+                        type: string
+                      qr_image_url:
+                        type: string
+                        format: uri
+
+  /bookings/{id}/ical:
+    get:
+      summary: Download booking as iCal file
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: iCal file
+          content:
+            text/calendar:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CreateBookingRequest:
+      type: object
+      required: [items, currency]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [item_type, item_id, quantity]
+            properties:
+              item_type:
+                type: string
+                enum: [TRIP, HOTEL, TRANSPORT, GUIDE]
+              item_id:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+                minimum: 1
+              metadata:
+                type: object
+                description: Type-specific data (dates, guests, etc.)
+        currency:
+          type: string
+          enum: [USD, KHR, CNY]
+          default: USD
+        guest_email:
+          type: string
+          format: email
+          description: Required if not authenticated
+
+    BookingSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+          enum: [HOLD, PENDING_PAYMENT, CONFIRMED, CANCELLED, EXPIRED, COMPLETED]
+        total_price_usd:
+          type: number
+        currency:
+          type: string
+        payment_status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Booking:
+      allOf:
+        - $ref: '#/components/schemas/BookingSummary'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BookingItem'
+            hold_expires_at:
+              type: string
+              format: date-time
+            cancelled_at:
+              type: string
+              format: date-time
+            cancellation_reason:
+              type: string
+            refund_amount_usd:
+              type: number
+
+    BookingItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        item_type:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+        unit_price_usd:
+          type: number
+        total_price_usd:
+          type: number
+        metadata:
+          type: object

@@ -1,0 +1,194 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Festival Calendar API
+  version: 1.0.0
+  description: Cultural festivals, calendar, and event-based discounts.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /festivals:
+    get:
+      summary: List festivals
+      tags: [Festivals]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: month
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: province
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [Religious, Cultural, National, Regional]
+        - name: upcoming
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated festivals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FestivalSummary'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+
+  /festivals/{slug}:
+    get:
+      summary: Get festival detail
+      tags: [Festivals]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Festival detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/FestivalDetail'
+        '404':
+          description: Festival not found
+
+  /festivals/{slug}/related-trips:
+    get:
+      summary: Get trips related to a festival
+      tags: [Festivals]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 4
+      responses:
+        '200':
+          description: Related trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+components:
+  parameters:
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      schema:
+        type: string
+        default: en
+
+  schemas:
+    FestivalSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        location:
+          type: string
+        category:
+          type: string
+        image_url:
+          type: string
+          format: uri
+        is_featured:
+          type: boolean
+
+    FestivalDetail:
+      allOf:
+        - $ref: '#/components/schemas/FestivalSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+            history:
+              type: string
+            travel_tips:
+              type: string
+            latitude:
+              type: number
+            longitude:
+              type: number
+            discount_code:
+              type: object
+              properties:
+                code:
+                  type: string
+                discount_percentage:
+                  type: number
+                valid_until:
+                  type: string
+                  format: date-time

@@ -12,9 +12,9 @@ Full EN / ZH / KM language support across all content. `Accept-Language` header 
 
 | Type | File | Status |
 |------|------|--------|
-| Requirements | `requirements.md` | Not started |
-| Architecture | `architecture.md` | Not started |
-| API Contract | `api.yaml` | Not started |
+| Requirements | `requirements.md` | Completed |
+| Architecture | `architecture.md` | Completed |
+| API Contract | `api.yaml` | Completed |
 
 ## Related
 

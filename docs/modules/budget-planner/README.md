@@ -12,9 +12,9 @@ AI-driven trip cost estimation (accommodation, transport, meals, entry fees) wit
 
 | Type | File | Status |
 |------|------|--------|
-| Requirements | `requirements.md` | Not started |
-| Architecture | `architecture.md` | Not started |
-| API Contract | `api.yaml` | Not started |
+| Requirements | `requirements.md` | Completed |
+| Architecture | `architecture.md` | Completed |
+| API Contract | `api.yaml` | Completed |
 
 ## Related
 

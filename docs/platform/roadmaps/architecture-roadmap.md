@@ -145,7 +145,7 @@
 - [x] **Security Baseline**
   - [x] Rate limiting (Redis-backed)
   - [x] CORS whitelist
-  0  - [x] Input validation (class-validator DTOs)
+  - [x] Input validation (class-validator DTOs)
   - [x] Secret management (no hardcoded keys)
   - [x] Stripe webhook signature verification
 

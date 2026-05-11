@@ -1,0 +1,227 @@
+openapi: 3.0.3
+info:
+  title: DerLg — AI Chat Service API
+  version: 1.0.0
+  description: WebSocket chat protocol and AI tool endpoints for the conversational concierge.
+
+servers:
+  - url: ws://localhost:3002/v1
+    description: AI Service WebSocket (local)
+  - url: http://localhost:3001/v1
+    description: Backend AI Tools (local)
+
+paths:
+  /chat:
+    get:
+      summary: WebSocket chat connection
+      description: |
+        Upgrade to WebSocket. Send/receive structured messages.
+        Headers: `Authorization: Bearer <jwt>`, `X-Session-Id: <uuid>`
+      responses:
+        '101':
+          description: WebSocket upgrade successful
+
+  /ai-tools/search/trips:
+    post:
+      summary: AI tool — Search trips by natural language query
+      tags: [AI Tools]
+      security:
+        - serviceKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query, locale]
+              properties:
+                query:
+                  type: string
+                  description: Natural language search intent
+                locale:
+                  type: string
+                  enum: [en, zh, km]
+                user_id:
+                  type: string
+                  format: uuid
+                max_results:
+                  type: integer
+                  default: 3
+                  maximum: 5
+      responses:
+        '200':
+          description: Matching trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+
+  /ai-tools/bookings:
+    post:
+      summary: AI tool — Create booking hold
+      tags: [AI Tools]
+      security:
+        - serviceKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, items]
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      item_type:
+                        type: string
+                        enum: [TRIP, HOTEL, TRANSPORT, GUIDE]
+                      item_id:
+                        type: string
+                        format: uuid
+                      quantity:
+                        type: integer
+                      metadata:
+                        type: object
+                currency:
+                  type: string
+                  default: USD
+      responses:
+        '201':
+          description: Booking created with hold
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      booking_id:
+                        type: string
+                        format: uuid
+                      reference:
+                        type: string
+                      hold_expires_at:
+                        type: string
+                        format: date-time
+                      total_price_usd:
+                        type: number
+
+  /ai-tools/payments/qr:
+    post:
+      summary: AI tool — Generate QR payment for chat
+      tags: [AI Tools]
+      security:
+        - serviceKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [booking_id, provider]
+              properties:
+                booking_id:
+                  type: string
+                  format: uuid
+                provider:
+                  type: string
+                  enum: [BAKONG, ABA]
+      responses:
+        '201':
+          description: QR payment data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      qr_data:
+                        type: string
+                      qr_image_url:
+                        type: string
+                      amount_usd:
+                        type: number
+                      expiry:
+                        type: string
+                        format: date-time
+
+  /ai-tools/budget/estimate:
+    post:
+      summary: AI tool — Estimate trip budget
+      tags: [AI Tools]
+      security:
+        - serviceKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query, locale]
+              properties:
+                query:
+                  type: string
+                  description: Budget request, e.g. "3 days in Siem Reap, mid-range"
+                locale:
+                  type: string
+                  enum: [en, zh, km]
+                currency:
+                  type: string
+                  default: USD
+      responses:
+        '200':
+          description: Budget breakdown
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      total_min_usd:
+                        type: number
+                      total_max_usd:
+                        type: number
+                      breakdown:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            category:
+                              type: string
+                            min_usd:
+                              type: number
+                            max_usd:
+                              type: number
+                            notes:
+                              type: string
+
+components:
+  securitySchemes:
+    serviceKey:
+      type: apiKey
+      in: header
+      name: X-Service-Key

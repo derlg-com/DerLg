@@ -1,0 +1,398 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Auth & Profile API
+  version: 1.0.0
+  description: Authentication, authorization, and user profile management endpoints.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created; verification email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      summary: Login with email and password
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: refresh_token cookie (httpOnly, Secure, SameSite=Strict, 7d)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Email not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/google:
+    get:
+      summary: Initiate Google OAuth login
+      tags: [Auth]
+      responses:
+        '302':
+          description: Redirect to Google consent screen
+
+  /auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      tags: [Auth]
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OAuth login successful
+          headers:
+            Set-Cookie:
+              description: refresh_token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags: [Auth]
+      parameters:
+        - name: Cookie
+          in: header
+          required: true
+          schema:
+            type: string
+          description: refresh_token cookie
+      responses:
+        '200':
+          description: New access token issued
+          headers:
+            Set-Cookie:
+              description: Rotated refresh_token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '401':
+          description: Invalid or expired refresh token
+
+  /auth/logout:
+    post:
+      summary: Logout and invalidate tokens
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Cookie
+          in: header
+          required: true
+          schema:
+            type: string
+          description: refresh_token cookie
+      responses:
+        '204':
+          description: Logout successful
+          headers:
+            Clear-Cookie:
+              description: Clears refresh_token cookie
+              schema:
+                type: string
+
+  /auth/forgot-password:
+    post:
+      summary: Request password reset email
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent (silent success if email not found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/reset-password:
+    post:
+      summary: Reset password with token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password updated successfully
+        '400':
+          description: Invalid or expired token
+
+  /users/me:
+    get:
+      summary: Get current user profile
+      tags: [Profile]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Not authenticated
+
+    patch:
+      summary: Update current user profile
+      tags: [Profile]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: Avatar image (max 5MB, JPEG/PNG/WebP)
+                name:
+                  type: string
+                phone:
+                  type: string
+                preferred_language:
+                  type: string
+                  enum: [EN, ZH, KM]
+                emergency_contact_name:
+                  type: string
+                emergency_contact_phone:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          description: Invalid input or avatar format
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          description: Must contain 1 uppercase, 1 number, 1 special character
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            expiresIn:
+              type: integer
+              description: Seconds until expiry (900 = 15 minutes)
+            user:
+              $ref: '#/components/schemas/User'
+        message:
+          type: string
+
+    RefreshResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            expiresIn:
+              type: integer
+
+    UserProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/User'
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        phone:
+          type: string
+          pattern: '^\+[1-9]\d{1,14}$'
+        preferred_language:
+          type: string
+          enum: [EN, ZH, KM]
+        emergency_contact_name:
+          type: string
+          maxLength: 255
+        emergency_contact_phone:
+          type: string
+          pattern: '^\+[1-9]\d{1,14}$'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        phone:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        preferred_language:
+          type: string
+          enum: [EN, ZH, KM]
+        emergency_contact_name:
+          type: string
+        emergency_contact_phone:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        email_verified:
+          type: boolean
+        student_status:
+          type: string
+          enum: [NONE, PENDING, VERIFIED, REJECTED]
+        loyalty_balance:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
