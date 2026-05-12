@@ -1,0 +1,494 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Trip Discovery API
+  version: 1.0.0
+  description: Trip catalog, filtering, search, reviews, and favorites.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /trips:
+    get:
+      summary: List trips with filtering and sorting
+      tags: [Trips]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: featured
+          in: query
+          schema:
+            type: boolean
+          description: Return only featured trips
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [Temples, Nature, Culture, Adventure, Food]
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: Filter by province/area
+        - name: min_price
+          in: query
+          schema:
+            type: number
+        - name: max_price
+          in: query
+          schema:
+            type: number
+        - name: duration_days
+          in: query
+          schema:
+            type: integer
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [featured, price_asc, price_desc, duration_asc, rating_desc]
+            default: featured
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated list of trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TripSummary'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+
+  /trips/{slug}:
+    get:
+      summary: Get trip detail by slug
+      tags: [Trips]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trip detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/TripDetail'
+        '404':
+          description: Trip not found
+
+  /trips/{slug}/related:
+    get:
+      summary: Get related trips
+      tags: [Trips]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 4
+            maximum: 8
+      responses:
+        '200':
+          description: Related trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TripSummary'
+
+  /trips/{tripId}/reviews:
+    get:
+      summary: Get reviews for a trip
+      tags: [Reviews]
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Review'
+                      total:
+                        type: integer
+                      averageRating:
+                        type: number
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+
+    post:
+      summary: Submit a review
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created
+        '403':
+          description: User has no completed booking for this trip
+
+  /search:
+    get:
+      summary: Global search across trips, places, hotels, guides
+      tags: [Search]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, trip, place, hotel, guide]
+            default: all
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Search results grouped by type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResults'
+
+  /users/me/favorites:
+    get:
+      summary: Get user's favorite trips
+      tags: [Favorites]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+      responses:
+        '200':
+          description: List of favorite trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TripSummary'
+
+  /users/me/favorites/{tripId}:
+    post:
+      summary: Add trip to favorites
+      tags: [Favorites]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Added to favorites
+        '400':
+          description: Favorite limit exceeded
+
+    delete:
+      summary: Remove trip from favorites
+      tags: [Favorites]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Removed from favorites
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      schema:
+        type: string
+        default: en
+
+  schemas:
+    TripSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        cover_image_url:
+          type: string
+          format: uri
+        duration_days:
+          type: integer
+        price_usd:
+          type: number
+        category:
+          type: string
+        location:
+          type: string
+        rating_average:
+          type: number
+        rating_count:
+          type: integer
+        is_featured:
+          type: boolean
+
+    TripDetail:
+      allOf:
+        - $ref: '#/components/schemas/TripSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+            gallery_image_urls:
+              type: array
+              items:
+                type: string
+                format: uri
+            itinerary_days:
+              type: array
+              items:
+                type: object
+                properties:
+                  day_number:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  duration_hours:
+                    type: number
+            included_items:
+              type: array
+              items:
+                type: string
+            excluded_items:
+              type: array
+              items:
+                type: string
+            meeting_point:
+              type: object
+              properties:
+                description:
+                  type: string
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+            cancellation_policy:
+              type: string
+            max_guests:
+              type: integer
+            status:
+              type: string
+              enum: [ACTIVE, INACTIVE, DRAFT]
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_name:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+        photo_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+        is_verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    CreateReviewRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          maxLength: 1000
+        photo_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          maxItems: 5
+
+    SearchResults:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            trips:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TripSummary'
+                total:
+                  type: integer
+            places:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                total:
+                  type: integer
+            hotels:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                total:
+                  type: integer
+            guides:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                total:
+                  type: integer

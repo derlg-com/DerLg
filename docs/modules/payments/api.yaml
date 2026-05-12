@@ -1,0 +1,285 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Payments API
+  version: 1.0.0
+  description: Payment processing, intent creation, refunds, and webhooks.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /payments/intent:
+    post:
+      summary: Create a payment intent
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentIntentRequest'
+      responses:
+        '201':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      client_secret:
+                        type: string
+                      payment_intent_id:
+                        type: string
+                      amount_usd:
+                        type: number
+                      currency:
+                        type: string
+        '400':
+          description: Invalid payment request
+        '409':
+          description: Payment already exists for this booking
+
+  /payments/qr:
+    post:
+      summary: Generate QR code payment
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [booking_id, provider]
+              properties:
+                booking_id:
+                  type: string
+                  format: uuid
+                provider:
+                  type: string
+                  enum: [BAKONG, ABA]
+      responses:
+        '201':
+          description: QR code generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      qr_data:
+                        type: string
+                      qr_image_url:
+                        type: string
+                        format: uri
+                      expiry:
+                        type: string
+                        format: date-time
+                      reference:
+                        type: string
+
+  /payments/{id}/status:
+    get:
+      summary: Check payment status
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Payment'
+
+  /payments/{id}/refund:
+    post:
+      summary: Process refund (admin or automated)
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount_usd:
+                  type: number
+                  description: Partial refund amount; omit for full refund
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Refund initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      refund_id:
+                        type: string
+                      amount_usd:
+                        type: number
+                      status:
+                        type: string
+                        enum: [PENDING, SUCCEEDED, FAILED]
+
+  /discount-codes/validate:
+    post:
+      summary: Validate a discount code
+      tags: [Discounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, booking_value_usd]
+              properties:
+                code:
+                  type: string
+                booking_value_usd:
+                  type: number
+                item_types:
+                  type: array
+                  items:
+                    type: string
+                    enum: [TRIP, HOTEL, TRANSPORT, GUIDE]
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      valid:
+                        type: boolean
+                      discount_amount_usd:
+                        type: number
+                      discount_percentage:
+                        type: number
+                      message:
+                        type: string
+        '400':
+          description: Invalid or expired code
+
+  /webhooks/stripe:
+    post:
+      summary: Stripe webhook endpoint
+      tags: [Webhooks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CreatePaymentIntentRequest:
+      type: object
+      required: [booking_id, payment_method]
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        payment_method:
+          type: string
+          enum: [STRIPE_CARD, STRIPE_QR]
+        currency:
+          type: string
+          enum: [USD, KHR, CNY]
+          default: USD
+        discount_code:
+          type: string
+        loyalty_points_to_redeem:
+          type: integer
+          minimum: 0
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        booking_id:
+          type: string
+          format: uuid
+        payment_method:
+          type: string
+          enum: [STRIPE_CARD, STRIPE_QR, BAKONG_QR, ABA_QR]
+        provider_transaction_id:
+          type: string
+        amount_usd:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, SUCCEEDED, FAILED, REFUNDED, PARTIALLY_REFUNDED]
+        refund_amount_usd:
+          type: number
+        created_at:
+          type: string
+          format: date-time
