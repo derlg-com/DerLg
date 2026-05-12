@@ -1,0 +1,13 @@
+# Prisma gitignore — keep CLI and IDE noise out of version control
+# =============================================================================
+# Everything already covered by backend/.gitignore, but make it explicit.
+
+.env
+migrations/*/migration_lock.toml
+
+# Prisma-generated client (recreated by prisma generate)
+client/
+
+# Temp/dev data
+seeds/*.db
+seeds/exports/
