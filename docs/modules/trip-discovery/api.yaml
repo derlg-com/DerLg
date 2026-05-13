@@ -1,0 +1,705 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Trip Discovery API
+  version: 1.0.0
+  description: Trip catalog, filtering, search, reviews, and favorites.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /trips:
+    get:
+      summary: List trips with filtering and sorting
+      description: Returns a paginated list of trips. Supports filtering by featured flag, category, location, price range, and duration. Results can be sorted by featured, price, duration, or rating.
+      tags: [Trips]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: featured
+          in: query
+          schema:
+            type: boolean
+          description: Return only featured trips
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [Temples, Nature, Culture, Adventure, Food]
+        - name: location
+          in: query
+          schema:
+            type: string
+          description: Filter by province/area
+        - name: min_price
+          in: query
+          schema:
+            type: number
+        - name: max_price
+          in: query
+          schema:
+            type: number
+        - name: duration_days
+          in: query
+          schema:
+            type: integer
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [featured, price_asc, price_desc, duration_asc, rating_desc]
+            default: featured
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated list of trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TripSummary'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+
+  /trips/{slug}:
+    get:
+      summary: Get trip detail by slug
+      description: Returns full details for a single trip including itinerary, included/excluded items, meeting point, cancellation policy, and current status. Slug is the URL-friendly identifier.
+      tags: [Trips]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trip detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/TripDetail'
+        '404':
+          description: Trip not found
+
+  /trips/{slug}/related:
+    get:
+      summary: Get related trips
+      description: Returns up to 4 related trips based on the same category and location as the referenced trip. Useful for the "You might also like" section on the trip detail page.
+      tags: [Trips]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 4
+            maximum: 8
+      responses:
+        '200':
+          description: Related trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TripSummary'
+
+  /trips/{slug}/share:
+    post:
+      summary: Generate shareable link and QR code for a trip
+      description: Creates a short shareable URL and QR code image for a trip. Logs the share event for analytics. The short link redirects to the full trip detail page with proper Open Graph metadata.
+      tags: [Trips]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareTripRequest'
+      responses:
+        '200':
+          description: Share link and QR code generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ShareTripResponse'
+        '404':
+          description: Trip not found
+
+  /trips/{tripId}/reviews:
+    get:
+      summary: Get reviews for a trip
+      description: Returns paginated reviews for a trip, including average rating and total count. Reviews include a verified-booking badge when the reviewer has a completed booking for this trip.
+      tags: [Reviews]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated reviews
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Review'
+                      total:
+                        type: integer
+                      averageRating:
+                        type: number
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+
+    post:
+      summary: Submit a review
+      description: Creates a new review for a trip. User must have a completed booking for this trip to submit a review. Verified reviews earn 50 loyalty points (first review per booking only).
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created
+        '403':
+          description: User has no completed booking for this trip
+
+  /trips/{tripId}/reviews/{reviewId}:
+    patch:
+      summary: Update a review
+      description: Updates an existing review. Only the original author can edit their review. Reviews can only be edited within 7 days of creation.
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: reviewId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewRequest'
+      responses:
+        '200':
+          description: Review updated
+        '403':
+          description: Not the review author or edit window (7 days) has expired
+        '404':
+          description: Review not found
+
+    delete:
+      summary: Delete a review
+      description: Permanently deletes a review. Only the original author can delete their review. Deletion is permanent and removes associated loyalty points earned for that review.
+      tags: [Reviews]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: reviewId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Review deleted
+        '403':
+          description: Not the review author
+        '404':
+          description: Review not found
+
+  /search:
+    get:
+      summary: Global search across trips, places, hotels, guides
+      description: Performs full-text search across trips, places, hotels, and guides using Meilisearch. Results are grouped by entity type. Supports locale-aware ranking via Accept-Language header.
+      tags: [Search]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, trip, place, hotel, guide]
+            default: all
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Search results grouped by type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResults'
+
+  /users/me/favorites:
+    get:
+      summary: Get user's favorite trips
+      description: Returns a paginated list of trips saved to the authenticated user's wishlist. Maximum 100 favorites per user.
+      tags: [Favorites]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated list of favorite trips
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TripSummary'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+
+  /users/me/favorites/{tripId}:
+    post:
+      summary: Add trip to favorites
+      description: Adds a trip to the authenticated user's wishlist. Returns 201 if newly created, or 200 if already exists (idempotent).
+      tags: [Favorites]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Added to favorites
+        '200':
+          description: Already in favorites
+        '400':
+          description: Favorite limit exceeded
+
+    delete:
+      summary: Remove trip from favorites
+      description: Removes a trip from the authenticated user's wishlist. Returns 204 on success; 404 if the favorite did not exist.
+      tags: [Favorites]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: tripId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Removed from favorites
+        '404':
+          description: Favorite not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      description: Preferred language for localized content
+      schema:
+        type: string
+        enum: [en, zh, km]
+        default: en
+
+  schemas:
+    TripSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        cover_image_url:
+          type: string
+          format: uri
+        duration_days:
+          type: integer
+        price_usd:
+          type: number
+        category:
+          type: string
+        location:
+          type: string
+        rating_average:
+          type: number
+        rating_count:
+          type: integer
+        is_featured:
+          type: boolean
+
+    TripDetail:
+      allOf:
+        - $ref: '#/components/schemas/TripSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+            gallery_image_urls:
+              type: array
+              items:
+                type: string
+                format: uri
+            itinerary_days:
+              type: array
+              items:
+                type: object
+                properties:
+                  day_number:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  duration_hours:
+                    type: number
+            included_items:
+              type: array
+              items:
+                type: string
+            excluded_items:
+              type: array
+              items:
+                type: string
+            meeting_point:
+              type: object
+              properties:
+                description:
+                  type: string
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+            cancellation_policy:
+              type: string
+            max_guests:
+              type: integer
+            status:
+              type: string
+              enum: [ACTIVE, INACTIVE, DRAFT]
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_name:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+        photo_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+        is_verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    CreateReviewRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          maxLength: 1000
+        photo_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          maxItems: 5
+
+    UpdateReviewRequest:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          maxLength: 1000
+        photo_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          maxItems: 5
+
+    ShareTripRequest:
+      type: object
+      required: [platform]
+      properties:
+        platform:
+          type: string
+          enum: [wechat, whatsapp, copy]
+          description: Target platform for the share
+
+    ShareTripResponse:
+      type: object
+      properties:
+        share_url:
+          type: string
+          format: uri
+          description: Short shareable URL (e.g., https://derlg.com/s/abc123)
+        qr_code_url:
+          type: string
+          format: uri
+          description: URL to the generated QR code image
+        expires_at:
+          type: string
+          format: date-time
+          description: When the short link expires
+
+    SearchResults:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            trips:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TripSummary'
+                total:
+                  type: integer
+            places:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, slug, name, category, province, latitude, longitude]
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      slug:
+                        type: string
+                      name:
+                        type: string
+                      cover_image_url:
+                        type: string
+                        format: uri
+                      category:
+                        type: string
+                        enum: [Temple, Museum, Nature, Market, Beach, Mountain, Other]
+                      province:
+                        type: string
+                      latitude:
+                        type: number
+                      longitude:
+                        type: number
+                      rating_average:
+                        type: number
+                      rating_count:
+                        type: integer
+                      entry_fee_usd:
+                        type: number
+                        nullable: true
+                        description: Entry fee in USD; null if free entry
+                total:
+                  type: integer
+            hotels:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                total:
+                  type: integer
+            guides:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                total:
+                  type: integer

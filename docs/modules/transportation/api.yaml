@@ -1,0 +1,556 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Transportation API
+  version: 1.0.0
+  description: Vehicle inventory, availability checking, and transportation booking management.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /transportation/vehicles:
+    get:
+      summary: List available transportation vehicles
+      description: |
+        List available transportation vehicles with filtering, sorting, and pagination.
+        Supports filtering by vehicle type, capacity, AC availability, and date range.
+        Returns vehicle summaries including pricing, capacity, amenities, and ratings.
+      tags: [Transportation]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: type
+          in: query
+          description: Filter by vehicle type
+          schema:
+            type: string
+            enum: [VAN, BUS, TUK_TUK, PRIVATE_CAR]
+        - name: capacity
+          in: query
+          description: Minimum passenger capacity
+          schema:
+            type: integer
+        - name: has_ac
+          in: query
+          description: Filter for vehicles with air conditioning
+          schema:
+            type: boolean
+        - name: start_date
+          in: query
+          description: Filter by availability from this date (inclusive)
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          description: Filter by availability until this date (inclusive)
+          schema:
+            type: string
+            format: date
+        - name: sort
+          in: query
+          description: Sort order for results
+          schema:
+            type: string
+            enum: [price_asc, price_desc, rating_desc]
+            default: price_asc
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of results per page (max 50)
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated list of vehicles
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    required: [items, total, page, limit]
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Vehicle'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+        '400':
+          description: Invalid query parameters
+        '500':
+          description: Internal server error
+
+  /transportation/vehicles/{id}:
+    get:
+      summary: Get vehicle detail
+      description: |
+        Get detailed information about a specific vehicle including full specifications,
+        photos, amenities, ratings, and pricing. Driver details are not included;
+        assigned driver information is revealed 24 hours before the booking start date.
+      tags: [Transportation]
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: id
+          in: path
+          required: true
+          description: Vehicle UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Vehicle detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Vehicle'
+        '404':
+          description: Vehicle not found
+        '500':
+          description: Internal server error
+
+  /transportation/vehicles/{id}/availability:
+    get:
+      summary: Check vehicle availability for date range
+      description: |
+        Check if a specific vehicle is available for the given date range.
+        Returns availability status, estimated price, and any conflicting bookings.
+        Uses an overlap check against confirmed, pending payment, and hold statuses.
+        Response time SLA: < 200ms.
+      tags: [Transportation]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Vehicle UUID
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          required: true
+          description: Start date of the desired booking period (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          description: End date of the desired booking period (ISO 8601)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Availability status and pricing estimate
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    required: [is_available]
+                    properties:
+                      is_available:
+                        type: boolean
+                      price_estimate_usd:
+                        type: number
+                      conflicting_bookings:
+                        type: array
+                        items:
+                          type: object
+                          required: [start_date, end_date]
+                          properties:
+                            start_date:
+                              type: string
+                              format: date
+                            end_date:
+                              type: string
+                              format: date
+        '400':
+          description: Invalid date range or missing required parameters
+        '404':
+          description: Vehicle not found
+        '500':
+          description: Internal server error
+
+  /transportation/bookings:
+    get:
+      summary: List user's transportation bookings
+      description: |
+        Retrieve a paginated list of transportation bookings for the authenticated user.
+        Returns booking summaries including vehicle info, dates, route, and status.
+      tags: [Transportation]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: status
+          in: query
+          description: Filter by booking status
+          schema:
+            type: string
+            enum: [HOLD, PENDING_PAYMENT, CONFIRMED, COMPLETED, CANCELLED]
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of results per page (max 50)
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated list of transportation bookings
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    required: [items, total, page, limit]
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TransportationBooking'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+        '401':
+          description: Unauthorized — valid Bearer token required
+        '500':
+          description: Internal server error
+    post:
+      summary: Create a transportation booking
+      description: |
+        Create a new transportation booking for the authenticated user.
+        Validates vehicle availability, calculates price, and creates a 15-minute hold.
+        Supports idempotency via the `Idempotency-Key` header to prevent duplicate bookings.
+        Returns 409 if the vehicle is no longer available for the selected dates.
+      tags: [Transportation]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Unique key for idempotent booking creation (UUID v4 recommended)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransportationBookingRequest'
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/TransportationBooking'
+        '400':
+          description: Invalid request body or date range
+        '401':
+          description: Unauthorized — valid Bearer token required
+        '409':
+          description: Vehicle not available for selected dates
+        '500':
+          description: Internal server error
+
+  /transportation/bookings/{id}:
+    get:
+      summary: Get transportation booking detail
+      description: |
+        Retrieve full details of a specific transportation booking.
+        Driver information (name, phone, vehicle plate) is only revealed 24 hours
+        before the booking start date; until then, `driver` is null.
+      tags: [Transportation]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - name: id
+          in: path
+          required: true
+          description: Booking UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/TransportationBooking'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Booking not found
+        '500':
+          description: Internal server error
+
+  /transportation/bookings/{id}/cancel:
+    patch:
+      summary: Cancel a transportation booking
+      description: |
+        Cancel a transportation booking and initiate a tiered refund.
+        Refund policy: 100% refund if cancelled >= 7 days before start,
+        50% refund if 1–7 days before, 0% refund if < 24 hours before.
+        Cancellation is irreversible. Refund is processed to the original payment method.
+      tags: [Transportation]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Booking UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    required: [booking_id, status, refund_amount_usd]
+                    properties:
+                      booking_id:
+                        type: string
+                        format: uuid
+                      status:
+                        type: string
+                        enum: [CANCELLED]
+                      refund_amount_usd:
+                        type: number
+        '400':
+          description: Cancellation not allowed (e.g., within 24 hours)
+        '401':
+          description: Unauthorized
+        '404':
+          description: Booking not found
+        '500':
+          description: Internal server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token (15 min expiry)
+
+  parameters:
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      description: Preferred language for response content
+      schema:
+        type: string
+        default: en
+        enum: [en, zh, km]
+
+  schemas:
+    Vehicle:
+      type: object
+      required: [id, type, name, capacity, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          description: Vehicle type category
+          enum: [VAN, BUS, TUK_TUK, PRIVATE_CAR]
+        name:
+          type: string
+          description: Display name of the vehicle
+          example: "Comfort Van — Toyota HiAce"
+        capacity:
+          type: integer
+          description: Maximum passenger capacity
+        price_per_day_usd:
+          type: number
+          nullable: true
+          description: Daily rental price in USD. Null if distance-based only.
+        price_per_km_usd:
+          type: number
+          nullable: true
+          description: Per-kilometer price in USD. Null if day-based only.
+        has_ac:
+          type: boolean
+          description: Whether the vehicle has air conditioning
+        has_wifi:
+          type: boolean
+          description: Whether the vehicle has WiFi
+        luggage_capacity:
+          type: string
+          description: Luggage capacity description
+          example: "2 large suitcases"
+        image_urls:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: Vehicle photo URLs
+        description:
+          type: string
+          description: Detailed vehicle description
+        rating_average:
+          type: number
+          description: Average customer rating (0–5)
+          minimum: 0
+          maximum: 5
+        rating_count:
+          type: integer
+          description: Number of ratings received
+        status:
+          type: string
+          description: Vehicle availability status
+          enum: [ACTIVE, INACTIVE]
+
+    CreateTransportationBookingRequest:
+      type: object
+      required: [vehicle_id, start_date, end_date, pickup_location, dropoff_location]
+      properties:
+        vehicle_id:
+          type: string
+          format: uuid
+          description: UUID of the vehicle to book
+        start_date:
+          type: string
+          format: date
+          description: Booking start date (ISO 8601)
+        end_date:
+          type: string
+          format: date
+          description: Booking end date (ISO 8601)
+        pickup_location:
+          type: string
+          description: Pickup address or location name
+        dropoff_location:
+          type: string
+          description: Drop-off address or location name
+        stops:
+          type: array
+          description: Optional intermediate stops
+          items:
+            type: string
+        estimated_distance_km:
+          type: integer
+          description: Estimated trip distance in kilometers (for distance-based pricing)
+
+    TransportationBooking:
+      type: object
+      required: [booking_id, vehicle, start_date, end_date, pickup_location, dropoff_location, status, total_price_usd]
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        vehicle:
+          $ref: '#/components/schemas/Vehicle'
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        pickup_location:
+          type: string
+        dropoff_location:
+          type: string
+        stops:
+          type: array
+          items:
+            type: string
+        estimated_distance_km:
+          type: integer
+        driver:
+          type: object
+          nullable: true
+          description: Driver details revealed 24h before start_date
+          properties:
+            driver_name:
+              type: string
+            driver_phone:
+              type: string
+            vehicle_plate:
+              type: string
+        status:
+          type: string
+          description: Current booking status
+          enum: [HOLD, PENDING_PAYMENT, CONFIRMED, COMPLETED, CANCELLED]
+        total_price_usd:
+          type: number
+          description: Final calculated price
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

@@ -181,9 +181,9 @@ paths:
       tags: [Vehicles]
       summary: List vehicles
       parameters:
-        - name: category
+        - name: type
           in: query
-          schema: { type: string, enum: [VAN, BUS, TUK_TUK] }
+          schema: { type: string, enum: [VAN, BUS, TUK_TUK, PRIVATE_CAR] }
         - name: tier
           in: query
           schema: { type: string, enum: [STANDARD, VIP] }
@@ -1216,7 +1216,7 @@ components:
       required: [name, category, capacity, tier, price_per_day]
       properties:
         name: { type: string }
-        category: { type: string, enum: [VAN, BUS, TUK_TUK] }
+        type: { type: string, enum: [VAN, BUS, TUK_TUK, PRIVATE_CAR] }
         capacity: { type: integer }
         tier: { type: string, enum: [STANDARD, VIP] }
         price_per_day: { type: number }
@@ -1229,7 +1229,7 @@ components:
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
-        category: { type: string }
+        type: { type: string }
         capacity: { type: integer }
         tier: { type: string }
 
@@ -1277,15 +1277,13 @@ components:
       properties:
         name: { type: string }
         description: { type: string }
-        location:
-          type: object
-          properties:
-            lat: { type: number }
-            lng: { type: number }
-            address: { type: string }
-            province: { type: string }
-        images: { type: array, items: { type: string, format: uri } }
-        rating: { type: number }
+        location: { type: string }
+        address: { type: string }
+        latitude: { type: number }
+        longitude: { type: number }
+        star_rating: { type: number, minimum: 1, maximum: 5 }
+        cover_image_url: { type: string, format: uri }
+        gallery_image_urls: { type: array, items: { type: string, format: uri } }
         amenities: { type: array, items: { type: string } }
         check_in_time: { type: string }
         check_out_time: { type: string }
@@ -1293,14 +1291,17 @@ components:
 
     CreateRoomDto:
       type: object
-      required: [name, capacity, price_per_night]
+      required: [name, max_occupancy, price_per_night_usd, total_rooms]
       properties:
         name: { type: string }
         description: { type: string }
-        capacity: { type: integer }
-        price_per_night: { type: number }
-        images: { type: array, items: { type: string, format: uri } }
+        max_occupancy: { type: integer }
+        price_per_night_usd: { type: number }
+        image_urls: { type: array, items: { type: string, format: uri } }
         amenities: { type: array, items: { type: string } }
+        bed_configuration: { type: string }
+        size_sqm: { type: integer }
+        total_rooms: { type: integer }
 
     # ---- Guide ----
     CreateGuideDto:
