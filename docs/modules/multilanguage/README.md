@@ -20,4 +20,4 @@ Full EN / ZH / KM language support across all content. `Accept-Language` header 
 
 - [Product PRD — Explore, Maps & Content](../../product/prd.md#79-explore-maps--content-f80f85)
 - `.kiro/specs/frontend-nextjs-implementation/`
-- Related modules: [`ai-chat`](../ai-chat/), [`profile`](../profile/)
+- Related modules: [`vibe-booking`](../vibe-booking/), [`profile`](../profile/)

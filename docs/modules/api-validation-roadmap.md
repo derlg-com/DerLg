@@ -24,7 +24,7 @@
 
 ## Per-Module Validation Tracker
 
-### 01 — AI Travel Concierge Chat (`ai-chat/`)
+### 01 — Vibe Booking (`vibe-booking/`)
 
 | # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
 |---|------|----|----|----|----|----|----|----|----|----|-------|
@@ -46,102 +46,101 @@
 | 1.16 | **Production**: AI tool endpoints have idempotency key support | - | - | - | - | - | - | - | - | - | |
 | 1.17 | Cross-check: `/ai-tools/bookings` schema aligned with `my-trip` bookings | - | - | - | - | - | - | - | - | - | |
 | 1.18 | Cross-check: `/ai-tools/payments/qr` aligned with `payments` QR endpoint | - | - | - | - | - | - | - | - | - | |
-| 1.19 | Cross-check: `/ai-tools/budget/estimate` aligned with `budget-planner` | - | - | - | - | - | - | - | - | - | |
 
 ### 02 — Trip Discovery & Smart Suggestions (`trip-discovery/`)
 
 | # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
 |---|------|----|----|----|----|----|----|----|----|----|-------|
-| 2.1 | OpenAPI syntax valid | - | - | - | - | - | - | - | - | - | |
-| 2.2 | **Every endpoint has a `description` field** | - | - | - | - | - | - | - | - | - | |
-| 2.3 | Pagination params (`page`, `limit`) consistent with other list endpoints | - | - | - | - | - | - | - | - | - | |
-| 2.4 | `limit` maximum enforced (50) | - | - | - | - | - | - | - | - | - | |
-| 2.5 | `sort` enum values documented and consistent | - | - | - | - | - | - | - | - | - | |
-| 2.6 | `Accept-Language` header parameter defined and referenced correctly | - | - | - | - | - | - | - | - | - | |
-| 2.7 | `TripDetail` schema includes all planned fields | - | - | - | - | - | - | - | - | - | |
-| 2.8 | Review endpoint (`POST /trips/{tripId}/reviews`) has correct auth | - | - | - | - | - | - | - | - | - | |
-| 2.9 | Search endpoint (`GET /search`) `type` enum covers all catalog types | - | - | - | - | - | - | - | - | - | |
-| 2.10 | **Functional requirements**: all user stories in `requirements.md` have matching endpoints | - | - | - | - | - | - | - | - | - | |
-| 2.11 | **NFRs documented**: search response < 500ms, cache TTL, max results per type | - | - | - | - | - | - | - | - | - | |
-| 2.12 | **CRUD check: Trips** — Create (admin), Read (list + detail by slug), Update (admin), Delete (admin) | - | - | - | - | - | - | - | - | - | |
-| 2.13 | **CRUD check: Reviews** — Create (POST), Read (GET list), Update (PATCH?), Delete (DELETE?) | - | - | - | - | - | - | - | - | - | |
-| 2.14 | **CRUD check: Favorites** — Create (POST), Read (GET list), Delete (DELETE) — missing Update? | - | - | - | - | - | - | - | - | - | |
-| 2.15 | **Operation flow**: browse trips → filter/sort → view detail → view related → read reviews → add favorite | - | - | - | - | - | - | - | - | - | |
-| 2.16 | **Production**: search endpoint has rate limit, caching strategy, CDN for images | - | - | - | - | - | - | - | - | - | |
-| 2.17 | Favorites endpoints auth and path consistency with `profile` module | - | - | - | - | - | - | - | - | - | |
-| 2.18 | Cross-check: `TripSummary` schema fields aligned with `ai-chat` search results | - | - | - | - | - | - | - | - | - | |
+| 2.1 | OpenAPI syntax valid | x | x | x | x | x | x | x | x | - | Valid YAML; parseable OpenAPI 3.0.3 |
+| 2.2 | **Every endpoint has a `description` field** | x | x | x | x | x | x | x | x | - | Added to all 12 endpoints |
+| 2.3 | Pagination params (`page`, `limit`) consistent with other list endpoints | x | x | x | x | x | x | x | x | - | Fixed: /search limit max; /favorites now paginated |
+| 2.4 | `limit` maximum enforced (50) | x | x | x | x | x | x | x | x | - | All list endpoints now cap at 50 |
+| 2.5 | `sort` enum values documented and consistent | x | x | x | x | x | x | x | x | - | Enum: [featured, price_asc, price_desc, duration_asc, rating_desc] |
+| 2.6 | `Accept-Language` header parameter defined and referenced correctly | x | x | x | x | x | x | x | x | - | Added to all endpoints; parameter now has enum [en, zh, km] |
+| 2.7 | `TripDetail` schema includes all planned fields | x | x | x | x | x | x | x | x | - | All fields from data model present; allOf composition correct |
+| 2.8 | Review endpoint (`POST /trips/{tripId}/reviews`) has correct auth | x | x | x | x | x | x | x | x | - | bearerAuth applied |
+| 2.9 | Search endpoint (`GET /search`) `type` enum covers all catalog types | x | x | x | x | x | x | x | x | - | [all, trip, place, hotel, guide] |
+| 2.10 | **Functional requirements**: all user stories in `requirements.md` have matching endpoints | x | x | x | x | x | x | x | x | - | Added: POST /trips/{slug}/share (F26), PATCH/DELETE reviews (F24) |
+| 2.11 | **NFRs documented**: search response < 500ms, cache TTL, max results per type | x | x | x | x | x | x | x | x | - | Documented in architecture.md NFRs table |
+| 2.12 | **CRUD check: Trips** — Create (admin), Read (list + detail by slug), Update (admin), Delete (admin) | x | x | x | x | x | x | x | x | - | Public Read in this module; admin CRUD lives in `admin` module |
+| 2.13 | **CRUD check: Reviews** — Create (POST), Read (GET list), Update (PATCH?), Delete (DELETE?) | x | x | x | x | x | x | x | x | - | Added PATCH and DELETE endpoints |
+| 2.14 | **CRUD check: Favorites** — Create (POST), Read (GET list), Delete (DELETE) — missing Update? | x | x | x | x | x | x | x | x | - | Update not needed (toggle/join table); pagination added to GET |
+| 2.15 | **Operation flow**: browse trips → filter/sort → view detail → view related → read reviews → add favorite | x | x | x | x | x | x | x | x | - | Documented in architecture.md |
+| 2.16 | **Production**: search endpoint has rate limit, caching strategy, CDN for images | x | x | x | x | x | x | x | x | - | Documented in architecture.md NFRs table |
+| 2.17 | Favorites endpoints auth and path consistency with `profile` module | x | x | x | x | x | x | x | x | - | `/users/me/favorites` pattern consistent |
+| 2.18 | Cross-check: `TripSummary` schema fields aligned with `vibe-booking` search results | - | - | - | - | - | - | - | - | - | Pending cross-module review with `vibe-booking` |
 
 ### 03 — Transportation Booking (`transportation/`)
 
 | # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
 |---|------|----|----|----|----|----|----|----|----|----|-------|
-| 3.1 | OpenAPI syntax valid | - | - | - | - | - | - | - | - | - | |
-| 3.2 | **Every endpoint has a `description` field** | - | - | - | - | - | - | - | - | - | |
-| 3.3 | Vehicle `type` enum matches `admin` vehicle category enum | - | - | - | - | - | - | - | - | - | |
-| 3.4 | Availability endpoint query params (`start_date`, `end_date`) consistent with `hotel-booking` | - | - | - | - | - | - | - | - | - | |
-| 3.5 | Price fields use `number` with `nullable: true` where applicable | - | - | - | - | - | - | - | - | - | |
-| 3.6 | `status` enum (`ACTIVE`, `INACTIVE`) documented | - | - | - | - | - | - | - | - | - | |
-| 3.7 | **Functional requirements**: booking flow requirements mapped to endpoints | - | - | - | - | - | - | - | - | - | |
-| 3.8 | **NFRs documented**: availability check < 200ms, concurrent booking lock | - | - | - | - | - | - | - | - | - | |
-| 3.9 | **CRUD check: Vehicles** — Read (list + detail + availability) only; no public Create/Update/Delete | - | - | - | - | - | - | - | - | - | |
-| 3.10 | **CRUD check: Bookings** — Create (POST), Read (GET list + detail), Update (PATCH status?), Delete (cancel?) — **MISSING** | - | - | - | - | - | - | - | - | - | |
-| 3.11 | **Operation flow**: search vehicles → check availability → select → create booking → payment → confirmation | - | - | - | - | - | - | - | - | - | |
-| 3.12 | **Production**: booking creation is idempotent (idempotency key), overbooking prevention | - | - | - | - | - | - | - | - | - | |
-| 3.13 | Missing: booking creation endpoints? (only listing/detail now) | - | - | - | - | - | - | - | - | - | |
-| 3.14 | Cross-check: vehicle schema aligned with `admin` `VehicleBrief` | - | - | - | - | - | - | - | - | - | |
+| 3.1 | OpenAPI syntax valid | x | x | x | x | x | x | x | x | x | |
+| 3.2 | **Every endpoint has a `description` field** | x | x | x | x | x | x | x | x | x | Added descriptions to all 7 endpoints |
+| 3.3 | Vehicle `type` enum matches `admin` vehicle category enum | x | x | x | x | x | x | x | x | x | Standardized on UPPER_SNAKE_CASE: [VAN, BUS, TUK_TUK, PRIVATE_CAR] |
+| 3.4 | Availability endpoint query params (`start_date`, `end_date`) consistent with `hotel-booking` | x | x | x | x | x | x | x | x | x | Domain-specific naming is intentional; documented |
+| 3.5 | Price fields use `number` with `nullable: true` where applicable | x | x | x | x | x | x | x | x | x | |
+| 3.6 | `status` enum (`ACTIVE`, `INACTIVE`) documented | x | x | x | x | x | x | x | x | x | Added description field to status property |
+| 3.7 | **Functional requirements**: booking flow requirements mapped to endpoints | x | x | x | x | x | x | x | x | x | All 4 user stories have matching endpoints |
+| 3.8 | **NFRs documented**: availability check < 200ms, concurrent booking lock | x | x | x | x | x | x | x | x | x | Added NFR table and concurrent lock section to architecture.md |
+| 3.9 | **CRUD check: Vehicles** — Read (list + detail + availability) only; no public Create/Update/Delete | x | x | x | x | x | x | x | x | x | |
+| 3.10 | **CRUD check: Bookings** — Create (POST), Read (GET list + detail), Update (PATCH status?), Delete (cancel?) — **MISSING** | x | x | x | x | x | x | x | x | x | Added POST, GET list, GET detail, PATCH cancel endpoints |
+| 3.11 | **Operation flow**: search vehicles → check availability → select → create booking → payment → confirmation | x | x | x | x | x | x | x | x | x | Documented booking and cancellation flows in architecture.md |
+| 3.12 | **Production**: booking creation is idempotent (idempotency key), overbooking prevention | x | x | x | x | x | x | x | x | x | Idempotency-Key header documented; concurrent lock in architecture.md |
+| 3.13 | Missing: booking creation endpoints? (only listing/detail now) | x | x | x | x | x | x | x | x | x | Added full booking CRUD to api.yaml |
+| 3.14 | Cross-check: vehicle schema aligned with `admin` `VehicleBrief` | x | x | x | x | x | x | x | x | x | Aligned field name (`type`) and enum values across modules |
 
 ### 04 — Hotel Booking (`hotel-booking/`)
 
 | # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
 |---|------|----|----|----|----|----|----|----|----|----|-------|
-| 4.1 | OpenAPI syntax valid | - | - | - | - | - | - | - | - | - | |
-| 4.2 | **Every endpoint has a `description` field** | - | - | - | - | - | - | - | - | - | |
-| 4.3 | `star_rating` min/max constraints (1–5) | - | - | - | - | - | - | - | - | - | |
-| 4.4 | `amenities` array parameter style (`form`, `explode: true`) correct | - | - | - | - | - | - | - | - | - | |
-| 4.5 | Availability endpoint path (`/hotels/{hotelId}/rooms/{roomId}/availability`) is clear | - | - | - | - | - | - | - | - | - | |
-| 4.6 | `HotelDetail` uses `allOf` correctly for composition | - | - | - | - | - | - | - | - | - | |
-| 4.7 | **Functional requirements**: all booking scenarios (hold, confirm, cancel) mapped | - | - | - | - | - | - | - | - | - | |
-| 4.8 | **NFRs documented**: room availability cache TTL, overbooking protection | - | - | - | - | - | - | - | - | - | |
-| 4.9 | **CRUD check: Hotels** — Read (list + detail) only public; Create/Update/Delete admin-only | - | - | - | - | - | - | - | - | - | |
-| 4.10 | **CRUD check: Rooms** — Read (within hotel detail + availability); no public room CRUD | - | - | - | - | - | - | - | - | - | |
-| 4.11 | **CRUD check: Bookings** — Create (POST), Read (GET), Update (PATCH dates?), Delete (cancel?) — **MISSING** | - | - | - | - | - | - | - | - | - | |
-| 4.12 | **Operation flow**: search hotels → filter → view detail → check room availability → select room → create booking → payment | - | - | - | - | - | - | - | - | - | |
-| 4.13 | **Production**: room hold TTL (e.g., 15 min), idempotency on booking creation | - | - | - | - | - | - | - | - | - | |
-| 4.14 | Missing: actual booking creation/checkout flow? | - | - | - | - | - | - | - | - | - | |
-| 4.15 | Cross-check: hotel/room schemas aligned with `admin` `CreateHotelDto`/`CreateRoomDto` | - | - | - | - | - | - | - | - | - | |
+| 4.1 | OpenAPI syntax valid | x | x | x | x | x | x | x | x | x | |
+| 4.2 | **Every endpoint has a `description` field** | x | x | x | x | x | x | x | x | x | Added descriptions to all 7 endpoints |
+| 4.3 | `star_rating` min/max constraints (1–5) | x | x | x | x | x | x | x | x | x | Added min/max to `HotelSummary` schema |
+| 4.4 | `amenities` array parameter style (`form`, `explode: true`) correct | x | x | x | x | x | x | x | x | x | |
+| 4.5 | Availability endpoint path (`/hotels/{hotelId}/rooms/{roomId}/availability`) is clear | x | x | x | x | x | x | x | x | x | |
+| 4.6 | `HotelDetail` uses `allOf` correctly for composition | x | x | x | x | x | x | x | x | x | |
+| 4.7 | **Functional requirements**: all booking scenarios (hold, confirm, cancel) mapped | x | x | x | x | x | x | x | x | x | Added POST /bookings, POST /bookings/{id}/cancel |
+| 4.8 | **NFRs documented**: room availability cache TTL, overbooking protection | x | x | x | x | x | x | x | x | x | Added `x-nfr-*` extensions to api.yaml |
+| 4.9 | **CRUD check: Hotels** — Read (list + detail) only public; Create/Update/Delete admin-only | x | x | x | x | x | x | x | x | x | |
+| 4.10 | **CRUD check: Rooms** — Read (within hotel detail + availability); no public room CRUD | x | x | x | x | x | x | x | x | x | |
+| 4.11 | **CRUD check: Bookings** — Create (POST), Read (GET), Update (PATCH dates?), Delete (cancel?) — **MISSING** | x | x | x | x | x | x | x | x | x | Added full CRUD: POST, GET, PATCH, POST /cancel |
+| 4.12 | **Operation flow**: search hotels → filter → view detail → check room availability → select room → create booking → payment | x | x | x | x | x | x | x | x | x | Flow documented in endpoint descriptions |
+| 4.13 | **Production**: room hold TTL (e.g., 15 min), idempotency on booking creation | x | x | x | x | x | x | x | x | x | `x-nfr-hold-ttl: 900`, `x-idempotency-key: true` |
+| 4.14 | Missing: actual booking creation/checkout flow? | x | x | x | x | x | x | x | x | x | Added `POST /hotels/{hotelId}/bookings` |
+| 4.15 | Cross-check: hotel/room schemas aligned with `admin` `CreateHotelDto`/`CreateRoomDto` | x | x | x | x | x | x | x | x | x | Aligned admin DTOs to public schema (Option A) |
 
 ### 05 — Tour Guide Booking (`tour-guide/`)
 
 | # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
 |---|------|----|----|----|----|----|----|----|----|----|-------|
-| 5.1 | OpenAPI syntax valid | - | - | - | - | - | - | - | - | - | |
-| 5.2 | **Every endpoint has a `description` field** | - | - | - | - | - | - | - | - | - | |
-| 5.3 | `language` query enum (`EN`, `ZH`, `KM`) uppercase; check consistency with `profile` (`EN/ZH/KM`) | - | - | - | - | - | - | - | - | - | |
-| 5.4 | `specialty` enum values (`Temples`, `Nature`, `Food`, `History`, `Adventure`) documented | - | - | - | - | - | - | - | - | - | |
-| 5.5 | `gender` enum includes `PreferNotToSay` | - | - | - | - | - | - | - | - | - | |
-| 5.6 | **Functional requirements**: guide booking scenarios mapped | - | - | - | - | - | - | - | - | - | |
-| 5.7 | **NFRs documented**: availability check SLA, guide assignment logic | - | - | - | - | - | - | - | - | - | |
-| 5.8 | **CRUD check: Guides** — Read (list + detail + availability) only public | - | - | - | - | - | - | - | - | - | |
-| 5.9 | **CRUD check: Bookings** — Create, Read, Update, Delete — **MISSING** | - | - | - | - | - | - | - | - | - | |
-| 5.10 | **Operation flow**: search guides → filter by language/specialty → view profile → check availability → book guide → payment | - | - | - | - | - | - | - | - | - | |
-| 5.11 | **Production**: guide booking conflict detection, calendar sync | - | - | - | - | - | - | - | - | - | |
-| 5.12 | Missing: booking creation endpoints? | - | - | - | - | - | - | - | - | - | |
-| 5.13 | Cross-check: `GuideDetail` schema aligned with `admin` `CreateGuideDto` | - | - | - | - | - | - | - | - | - | |
+| 5.1 | OpenAPI syntax valid | x | x | x | x | x | x | x | x | x | Valid YAML; parseable OpenAPI 3.0.3 |
+| 5.2 | **Every endpoint has a `description` field** | x | x | x | x | x | x | x | x | x | Added descriptions to all 7 endpoints |
+| 5.3 | `language` query enum (`EN`, `ZH`, `KM`) uppercase; check consistency with `profile` (`EN/ZH/KM`) | x | x | x | x | x | x | x | x | x | `EN, ZH, KM` consistent with profile; `Accept-Language` header uses lowercase `en, zh, km` — cross-cutting CC-2 |
+| 5.4 | `specialty` enum values (`Temples`, `Nature`, `Food`, `History`, `Adventure`) documented | x | x | x | x | x | x | x | x | x | Added `description` to specialties property; enum items consistent with requirements |
+| 5.5 | `gender` enum includes `PreferNotToSay` | x | x | x | x | x | x | x | x | x | `[Male, Female, Other, PreferNotToSay]` |
+| 5.6 | **Functional requirements**: guide booking scenarios mapped | x | x | x | x | x | x | x | x | x | All 4 user stories have matching endpoints; US-F33-03 (book guide) → POST /guides/{guideId}/bookings |
+| 5.7 | **NFRs documented**: availability check SLA, guide assignment logic | x | x | x | x | x | x | x | x | x | Added NFR table to architecture.md; `x-nfr-*` extensions added to api.yaml |
+| 5.8 | **CRUD check: Guides** — Read (list + detail + availability) only public | x | x | x | x | x | x | x | x | x | Public Read only; admin CRUD lives in `admin` module |
+| 5.9 | **CRUD check: Bookings** — Create, Read, Update, Delete | x | x | x | x | x | x | x | x | x | Added POST, GET, PATCH, POST /cancel endpoints |
+| 5.10 | **Operation flow**: search guides → filter by language/specialty → view profile → check availability → book guide → payment | x | x | x | x | x | x | x | x | x | Documented in architecture.md |
+| 5.11 | **Production**: guide booking conflict detection, calendar sync | x | x | x | x | x | x | x | x | x | Conflict detection via overlap SQL + pessimistic lock; calendar sync planned v1.2 |
+| 5.12 | Missing: booking creation endpoints? | x | x | x | x | x | x | x | x | x | Added full booking CRUD: POST, GET, PATCH, POST /cancel |
+| 5.13 | Cross-check: `GuideDetail` schema aligned with `admin` `CreateGuideDto` | x | x | x | x | x | x | x | x | x | Aligned: `photo_url` → `profile_picture`; added `price_per_hour_usd`, `certifications` |
 
 ### 06 — Explore — Historical Places (`explore-places/`)
 
 | # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
 |---|------|----|----|----|----|----|----|----|----|----|-------|
-| 6.1 | OpenAPI syntax valid | - | - | - | - | - | - | - | - | - | |
-| 6.2 | **Every endpoint has a `description` field** | - | - | - | - | - | - | - | - | - | |
-| 6.3 | All endpoints present and documented | - | - | - | - | - | - | - | - | - | |
-| 6.4 | **Functional requirements**: place discovery, detail, navigation requirements mapped | - | - | - | - | - | - | - | - | - | |
-| 6.5 | **NFRs documented**: map tile caching, geo-query performance | - | - | - | - | - | - | - | - | - | |
-| 6.6 | **CRUD check: Places** — Create (admin), Read (list + detail), Update (admin), Delete (admin) | - | - | - | - | - | - | - | - | - | |
-| 6.7 | **Operation flow**: browse map → filter places → view place detail → get directions → save to trip | - | - | - | - | - | - | - | - | - | |
-| 6.8 | **Production**: geo-spatial indexing, image CDN, mobile bandwidth optimization | - | - | - | - | - | - | - | - | - | |
-| 6.9 | Place schema fields consistent with `trip-discovery` search results | - | - | - | - | - | - | - | - | - | |
-| 6.10 | Cross-check: integration with `offline-maps` for place coordinates | - | - | - | - | - | - | - | - | - | |
+| 6.1 | OpenAPI syntax valid | x | x | x | x | x | x | x | x | x | Valid YAML; parseable OpenAPI 3.0.3 |
+| 6.2 | **Every endpoint has a `description` field** | x | x | x | x | x | x | x | x | x | Added to all 6 endpoints |
+| 6.3 | All endpoints present and documented | x | x | x | x | x | x | x | x | x | 4 core + 2 new: /related, /nearby-trips |
+| 6.4 | **Functional requirements**: place discovery, detail, navigation requirements mapped | x | x | x | x | x | x | x | x | x | US-F80-01/02/03, US-F82-01/02 all covered |
+| 6.5 | **NFRs documented**: map tile caching, geo-query performance | x | x | x | x | x | x | x | x | x | NFR table added to architecture.md |
+| 6.6 | **CRUD check: Places** — Create (admin), Read (list + detail), Update (admin), Delete (admin) | x | x | x | x | x | x | x | x | x | Public Read in this module; admin CRUD lives in `admin` module |
+| 6.7 | **Operation flow**: browse map → filter places → view place detail → get directions → save to trip | x | x | x | x | x | x | x | x | x | Documented in architecture.md |
+| 6.8 | **Production**: geo-spatial indexing, image CDN, mobile bandwidth optimization | x | x | x | x | x | x | x | x | x | PostGIS GIST index, CDN, rate limit, cache TTL documented |
+| 6.9 | Place schema fields consistent with `trip-discovery` search results | x | x | x | x | x | x | x | x | x | Aligned: trip-discovery search places now matches PlaceSummary fields |
+| 6.10 | Cross-check: integration with `offline-maps` for place coordinates | x | x | x | x | x | x | x | x | x | lat/lng number format consistent with offline-maps planned schema |
 
 ### 07 — Festival Calendar & Event Alerts (`festivals/`)
 
@@ -179,7 +178,7 @@
 | 8.14 | **Operation flow**: create booking → create payment intent → client confirms → Stripe webhook → update status → OR generate QR → scan → confirm | - | - | - | - | - | - | - | - | - | |
 | 8.15 | **Production**: Stripe signature verification, webhook idempotency, PCI-DSS scope minimization | - | - | - | - | - | - | - | - | - | |
 | 8.16 | **Production**: rate limit on payment intent (3/min/user), refund audit trail | - | - | - | - | - | - | - | - | - | |
-| 8.17 | Cross-check: QR response schema aligned with `ai-chat` `/ai-tools/payments/qr` | - | - | - | - | - | - | - | - | - | |
+| 8.17 | Cross-check: QR response schema aligned with `vibe-booking` `/ai-tools/payments/qr` | - | - | - | - | - | - | - | - | - | |
 | 8.18 | Cross-check: discount code schema aligned with `admin` `/admin/discounts` | - | - | - | - | - | - | - | - | - | |
 
 ### 09 — Emergency & Safety System (`emergency/`)
@@ -263,20 +262,6 @@
 | 13.9 | **Production**: CDN for translation files, versioned bundles, missing key fallback | - | - | - | - | - | - | - | - | - | |
 | 13.10 | Cross-check: fallback language strategy described | - | - | - | - | - | - | - | - | - | |
 
-### 14 — AI Budget Planner (`budget-planner/`)
-
-| # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
-|---|------|----|----|----|----|----|----|----|----|----|-------|
-| 14.1 | OpenAPI syntax valid | - | - | - | - | - | - | - | - | - | |
-| 14.2 | **Every endpoint has a `description` field** | - | - | - | - | - | - | - | - | - | |
-| 14.3 | Budget estimate endpoint schema complete | - | - | - | - | - | - | - | - | - | |
-| 14.4 | **Functional requirements**: budget estimation, breakdown, currency conversion mapped | - | - | - | - | - | - | - | - | - | |
-| 14.5 | **NFRs documented**: estimation response time, price data freshness, currency rate TTL | - | - | - | - | - | - | - | - | - | |
-| 14.6 | **CRUD check**: budget is computed on-demand — no persistent resource; stateless OK | - | - | - | - | - | - | - | - | - | |
-| 14.7 | **Operation flow**: enter trip details → AI estimates budget → view breakdown → adjust parameters → save to trip | - | - | - | - | - | - | - | - | - | |
-| 14.8 | **Production**: cache budget estimates, rate limit AI calls, fallback pricing data | - | - | - | - | - | - | - | - | - | |
-| 14.9 | Cross-check: aligned with `ai-chat` `/ai-tools/budget/estimate` | - | - | - | - | - | - | - | - | - | |
-
 ### 15 — My Trip — Booking Management (`my-trip/`)
 
 | # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
@@ -288,11 +273,11 @@
 | 15.5 | Cancel endpoint documented with refund policy | - | - | - | - | - | - | - | - | - | |
 | 15.6 | **Functional requirements**: view bookings, cancel, reschedule, view history mapped | - | - | - | - | - | - | - | - | - | |
 | 15.7 | **NFRs documented**: booking list load time, real-time status updates | - | - | - | - | - | - | - | - | - | |
-| 15.8 | **CRUD check: Bookings** — Create (via `ai-chat` or checkout), Read (list + detail), Update (reschedule?), Delete (cancel) | - | - | - | - | - | - | - | - | - | |
+| 15.8 | **CRUD check: Bookings** — Create (via `vibe-booking` or checkout), Read (list + detail), Update (reschedule?), Delete (cancel) | - | - | - | - | - | - | - | - | - | |
 | 15.9 | **Operation flow**: view my trips → select booking → view details → cancel/reschedule → view refund status | - | - | - | - | - | - | - | - | - | |
 | 15.10 | **Production**: booking status real-time sync, cancellation deadline enforcement, refund async processing | - | - | - | - | - | - | - | - | - | |
 | 15.11 | Cross-check: booking schema aligned with `admin` `/admin/bookings` | - | - | - | - | - | - | - | - | - | |
-| 15.12 | Cross-check: booking creation aligned with `ai-chat` `/ai-tools/bookings` | - | - | - | - | - | - | - | - | - | |
+| 15.12 | Cross-check: booking creation aligned with `vibe-booking` `/ai-tools/bookings` | - | - | - | - | - | - | - | - | - | |
 
 ### 16 — User Profile & Account Settings (`profile/`)
 
@@ -376,7 +361,7 @@ These must be completed after all per-module tasks are done.
 | CC-11 | **Every endpoint in every module has a `description` field** | - | - | Not just `summary`; describe behavior, side effects, business rules |
 | CC-12 | **All modules have `requirements.md` and endpoints map to user stories** | - | - | |
 | CC-13 | **All modules define NFRs: response time SLA, availability target, rate limits** | - | - | |
-| CC-14 | **All booking-related modules have complete CRUD + full operation flows** | - | - | `transportation`, `hotel-booking`, `tour-guide` missing booking endpoints |
+| CC-14 | **All booking-related modules have complete CRUD + full operation flows** | - | - | `tour-guide` now complete; check `payments` booking CRUD |
 | CC-15 | **All state-changing endpoints specify idempotency key support** | - | - | `Idempotency-Key` header for POST/PATCH |
 | CC-16 | **All modules define caching strategy** | - | - | Cache TTL, invalidation rules, CDN usage |
 | CC-17 | **All modules define observability: logging, metrics, alerting** | - | - | |
@@ -390,17 +375,17 @@ These must be completed after all per-module tasks are done.
 
 | Metric | Count |
 |--------|-------|
-| Total modules | 17 |
-| Total validation tasks | ~260 |
-| Phase 1 (Structural) tasks | ~17 |
-| Phase 2 (Design Quality) tasks | ~17 |
-| Phase 3 (Security) tasks | ~17 |
-| Phase 4 (Integration) tasks | ~17 |
-| Phase 5 (Functional/NFR) tasks | ~17 |
-| Phase 6 (CRUD Completeness) tasks | ~17 |
-| Phase 7 (Operation Flows) tasks | ~17 |
-| Phase 8 (Production Standards) tasks | ~17 |
-| Phase 9 (Sign-off) tasks | 17 |
+| Total modules | 16 |
+| Total validation tasks | ~250 |
+| Phase 1 (Structural) tasks | ~16 |
+| Phase 2 (Design Quality) tasks | ~16 |
+| Phase 3 (Security) tasks | ~16 |
+| Phase 4 (Integration) tasks | ~16 |
+| Phase 5 (Functional/NFR) tasks | ~16 |
+| Phase 6 (CRUD Completeness) tasks | ~16 |
+| Phase 7 (Operation Flows) tasks | ~16 |
+| Phase 8 (Production Standards) tasks | ~16 |
+| Phase 9 (Sign-off) tasks | 16 |
 | Cross-cutting tasks | 20 |
 
 ---

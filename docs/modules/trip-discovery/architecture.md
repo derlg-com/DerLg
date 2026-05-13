@@ -167,4 +167,60 @@ async search(query: string, locale: string) {
 
 ---
 
+## Operation Flow: Browse → Book Journey
+
+End-to-end user journey through the Trip Discovery module:
+
+```
+1. [User opens app] ──> [GET /v1/trips?featured=true]
+                              │
+                              ▼
+2. [Browse home screen] ──> [Tap category filter]
+                              │
+                              ▼
+3. [GET /v1/trips?category=X&sort=featured]
+                              │
+                              ▼
+4. [Tap trip card] ──> [GET /v1/trips/{slug}]
+                              │
+                              ▼
+5. [View detail page] ──> [Scroll to "You might also like"]
+                              │
+                              ▼
+6. [GET /v1/trips/{slug}/related]
+                              │
+                              ▼
+7. [Scroll to reviews] ──> [GET /v1/trips/{tripId}/reviews]
+                              │
+                              ▼
+8. [Tap heart icon] ──> [POST /v1/users/me/favorites/{tripId}]
+                              │
+                              ▼
+9. [Tap share button] ──> [POST /v1/trips/{slug}/share]
+                              │
+                              ▼
+10. [Tap Book Now] ──> [Navigate to booking flow]
+```
+
+---
+
+## Non-Functional Requirements (NFRs)
+
+| NFR | Target | Implementation |
+|-----|--------|----------------|
+| Search response time | < 500ms p95 | Meilisearch + Redis cache; autocomplete cached 1 min |
+| Trip list response time | < 200ms p95 | PostgreSQL indexed queries + Redis cache (5 min TTL) |
+| Trip detail response time | < 150ms p95 | Redis cache (10 min TTL); ISR for SSR pages |
+| Cache hit ratio | > 80% | Featured trips and category lists cached with long TTL |
+| Rate limit — search | 30 requests / min / IP | Redis-backed sliding window; 429 on exceed |
+| Rate limit — reviews | 5 requests / min / user | Prevent spam; applies to POST/PATCH/DELETE |
+| Rate limit — favorites | 60 requests / min / user | Toggle-heavy endpoint; generous but bounded |
+| Max results per type (search) | 50 per entity type | `limit` parameter capped at 50 |
+| Max favorites per user | 100 | Hard limit enforced at API layer |
+| CDN | Trip images served via CDN | Cover and gallery images use `cdn.derlg.com` with automatic WebP conversion |
+| Image optimization | Responsive sizes | CDN serves `?w=400`, `?w=800`, `?w=1200` based on device |
+| Availability | 99.9% uptime | Trip discovery is the primary conversion surface; monitored with alerting |
+
+---
+
 *Aligned with PRD section 7.3 and `.kiro/specs/frontend-nextjs-implementation/requirements.md`.*

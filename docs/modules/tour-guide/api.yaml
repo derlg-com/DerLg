@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: DerLg — Tour Guide API
   version: 1.0.0
-  description: Guide directory, profiles, and guide booking.
+  description: Guide directory, profiles, availability, and guide booking.
 
 servers:
   - url: http://localhost:3001/v1
@@ -12,57 +12,78 @@ paths:
   /guides:
     get:
       summary: List tour guides with filtering
+      description: |
+        Browse and filter verified tour guides. Supports filtering by language,
+        specialty, location, gender, verification status, and price range.
+        Results are paginated (20 per page, max 50) and sortable.
+        Public endpoint — no authentication required.
       tags: [Guides]
+      x-nfr-cache-ttl: 300
+      x-nfr-response-time-sla: 300ms
       parameters:
         - $ref: '#/components/parameters/AcceptLanguage'
         - name: language
           in: query
+          description: Filter by spoken language
           schema:
             type: string
             enum: [EN, ZH, KM]
         - name: specialty
           in: query
+          description: Filter by guide specialty area
           schema:
             type: string
             enum: [Temples, Nature, Food, History, Adventure]
         - name: location
           in: query
+          description: Filter by province or city name
           schema:
             type: string
         - name: gender
           in: query
+          description: Filter by guide gender
           schema:
             type: string
             enum: [Male, Female, Other, PreferNotToSay]
         - name: is_verified
           in: query
+          description: Filter to only verified guides (background check passed)
           schema:
             type: boolean
         - name: min_price
           in: query
+          description: Minimum price per day in USD
           schema:
             type: number
+            minimum: 0
         - name: max_price
           in: query
+          description: Maximum price per day in USD
           schema:
             type: number
+            minimum: 0
         - name: sort
           in: query
+          description: Sort order for results
           schema:
             type: string
             enum: [recommended, rating_desc, price_asc, price_desc]
             default: recommended
         - name: page
           in: query
+          description: Page number (1-based)
           schema:
             type: integer
             default: 1
+            minimum: 1
         - name: limit
           in: query
+          description: Items per page (max 50)
           schema:
             type: integer
             default: 20
             maximum: 50
+            minimum: 1
       responses:
         '200':
           description: Paginated list of guides
@@ -70,11 +91,13 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [success, data]
                 properties:
                   success:
                     type: boolean
                   data:
                     type: object
+                    required: [items, total, page, limit]
                     properties:
                       items:
                         type: array
@@ -86,26 +109,39 @@ paths:
                         type: integer
                       limit:
                         type: integer
+        '400':
+          description: Invalid query parameters
+        '500':
+          description: Internal server error
 
   /guides/{id}:
     get:
       summary: Get guide profile detail
+      description: |
+        Get detailed information for a specific tour guide including full profile,
+        photo gallery, bio, experience, languages, specialties, and current status.
+        Reviews from past travelers are included with verified-booking badges.
+        Public endpoint — no authentication required.
       tags: [Guides]
+      x-nfr-cache-ttl: 300
+      x-nfr-response-time-sla: 200ms
       parameters:
         - $ref: '#/components/parameters/AcceptLanguage'
         - name: id
           in: path
           required: true
+          description: Guide UUID
           schema:
             type: string
             format: uuid
       responses:
         '200':
-          description: Guide profile
+          description: Guide profile detail
           content:
             application/json:
               schema:
                 type: object
+                required: [success, data]
                 properties:
                   success:
                     type: boolean
@@ -113,42 +149,56 @@ paths:
                     $ref: '#/components/schemas/GuideDetail'
         '404':
           description: Guide not found
+        '500':
+          description: Internal server error
 
   /guides/{id}/availability:
     get:
       summary: Check guide availability for date range
+      description: |
+        Check if a specific guide is available for the given date range.
+        Returns availability status, estimated price (daily rate x number of days),
+        and any conflicting bookings. Uses an overlap check against confirmed,
+        pending payment, and hold statuses. Response time SLA < 200ms.
       tags: [Guides]
+      x-nfr-response-time-sla: 200ms
+      x-nfr-overbooking-protection: overlap check against CONFIRMED, PENDING_PAYMENT, HOLD
       parameters:
         - name: id
           in: path
           required: true
+          description: Guide UUID
           schema:
             type: string
             format: uuid
         - name: start_date
           in: query
           required: true
+          description: Start date of the desired booking period (ISO 8601)
           schema:
             type: string
             format: date
         - name: end_date
           in: query
           required: true
+          description: End date of the desired booking period (ISO 8601)
           schema:
             type: string
             format: date
       responses:
         '200':
-          description: Availability and pricing
+          description: Availability status and pricing estimate
           content:
             application/json:
               schema:
                 type: object
+                required: [success, data]
                 properties:
                   success:
                     type: boolean
                   data:
                     type: object
+                    required: [is_available]
                     properties:
                       is_available:
                         type: boolean
@@ -156,66 +206,427 @@ paths:
                         type: number
                       days:
                         type: integer
+                      conflicting_bookings:
+                        type: array
+                        items:
+                          type: object
+                          required: [start_date, end_date]
+                          properties:
+                            start_date:
+                              type: string
+                              format: date
+                            end_date:
+                              type: string
+                              format: date
+        '400':
+          description: Invalid date range or missing required parameters
+        '404':
+          description: Guide not found
+        '500':
+          description: Internal server error
+
+  /guides/{guideId}/bookings:
+    post:
+      summary: Create a guide booking
+      description: |
+        Create a tour guide booking with a temporary hold.
+        The booking is placed in HOLD status for 15 minutes while the user
+        completes payment. If payment is not received within the hold period,
+        the booking automatically expires and the guide's dates are released.
+        Requires authentication. Supports linking to an existing trip booking.
+      tags: [Bookings]
+      x-nfr-hold-ttl: 900
+      x-idempotency-key: true
+      x-nfr-response-time-sla: 500ms
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: guideId
+          in: path
+          required: true
+          description: Guide UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGuideBookingRequest'
+      responses:
+        '201':
+          description: Booking created with hold
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/GuideBooking'
+        '400':
+          description: Invalid booking data or invalid date range
+        '401':
+          description: Unauthorized — valid JWT required
+        '403':
+          description: Guide is suspended or inactive
+        '409':
+          description: Guide not available for selected dates
+        '500':
+          description: Internal server error
+
+  /guides/{guideId}/bookings/{bookingId}:
+    get:
+      summary: Get guide booking detail
+      description: |
+        Get detailed information for a specific guide booking.
+        Returns booking details including guide information, dates, pricing,
+        special requests, linked trip booking, and current status.
+        Guide contact details are revealed 24 hours before the booking start date.
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: guideId
+          in: path
+          required: true
+          description: Guide UUID
+          schema:
+            type: string
+            format: uuid
+        - name: bookingId
+          in: path
+          required: true
+          description: Booking UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/GuideBooking'
+        '401':
+          description: Unauthorized — valid JWT required
+        '404':
+          description: Booking or guide not found
+        '500':
+          description: Internal server error
+
+    patch:
+      summary: Update a guide booking
+      description: |
+        Update an existing guide booking before it is confirmed.
+        Allows modifying dates, special requests, or linked trip booking.
+        Changes are subject to guide availability and may affect pricing.
+        Confirmed bookings cannot be modified — use cancel instead.
+      tags: [Bookings]
+      x-idempotency-key: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: guideId
+          in: path
+          required: true
+          description: Guide UUID
+          schema:
+            type: string
+            format: uuid
+        - name: bookingId
+          in: path
+          required: true
+          description: Booking UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGuideBookingRequest'
+      responses:
+        '200':
+          description: Booking updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/GuideBooking'
+        '400':
+          description: Invalid update or guide no longer available
+        '401':
+          description: Unauthorized — valid JWT required
+        '403':
+          description: Cannot modify a confirmed booking
+        '404':
+          description: Booking or guide not found
+        '409':
+          description: Guide not available for new dates
+        '500':
+          description: Internal server error
+
+  /guides/{guideId}/bookings/{bookingId}/cancel:
+    post:
+      summary: Cancel a guide booking
+      description: |
+        Cancel a guide booking. Refund amount depends on the cancellation
+        policy and how close to the start date the cancellation occurs.
+        Returns refund details if applicable.
+      tags: [Bookings]
+      x-idempotency-key: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: guideId
+          in: path
+          required: true
+          description: Guide UUID
+          schema:
+            type: string
+            format: uuid
+        - name: bookingId
+          in: path
+          required: true
+          description: Booking UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Booking cancelled with refund details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    required: [refund_amount_usd, refund_percentage]
+                    properties:
+                      refund_amount_usd:
+                        type: number
+                      refund_percentage:
+                        type: integer
+                      refund_method:
+                        type: string
+        '400':
+          description: Cannot cancel — within non-refundable window
+        '401':
+          description: Unauthorized — valid JWT required
+        '403':
+          description: Not authorized to cancel this booking
+        '404':
+          description: Booking or guide not found
+        '500':
+          description: Internal server error
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   parameters:
     AcceptLanguage:
       name: Accept-Language
       in: header
       required: false
+      description: Preferred language for localized content
       schema:
         type: string
+        enum: [en, zh, km]
         default: en
 
   schemas:
     GuideSummary:
       type: object
+      required: [id, name, profile_picture, languages, specialties, location, price_per_day_usd]
       properties:
         id:
           type: string
           format: uuid
         name:
           type: string
-        photo_url:
+        profile_picture:
           type: string
           format: uri
+          description: Primary profile photo URL
         languages:
           type: array
+          description: Languages spoken by the guide
           items:
             type: string
             enum: [EN, ZH, KM]
         specialties:
           type: array
+          description: Guide specialty areas (e.g., Temples, Nature, Food)
           items:
             type: string
             enum: [Temples, Nature, Food, History, Adventure]
         location:
           type: string
+          description: Primary province or city
         gender:
           type: string
+          description: Guide gender
+          enum: [Male, Female, Other, PreferNotToSay]
         price_per_day_usd:
           type: number
+          description: Daily rate in USD
+        price_per_hour_usd:
+          type: number
+          description: Hourly rate in USD (for short bookings)
         is_verified:
           type: boolean
+          description: Background check passed
         rating_average:
           type: number
+          description: Average rating from verified bookings (1-5)
         rating_count:
           type: integer
+          description: Total number of reviews
 
     GuideDetail:
       allOf:
         - $ref: '#/components/schemas/GuideSummary'
         - type: object
+          required: [bio, experience_years, status]
           properties:
             bio:
               type: string
+              description: Translated biography of the guide
             experience_years:
               type: integer
+              description: Years of guiding experience
+            certifications:
+              type: array
+              description: Professional certifications (e.g., tour guide license)
+              items:
+                type: string
             gallery_image_urls:
               type: array
+              description: Up to 10 gallery images
               items:
                 type: string
                 format: uri
             status:
               type: string
+              description: Current guide account status
               enum: [ACTIVE, INACTIVE, SUSPENDED]
+
+    CreateGuideBookingRequest:
+      type: object
+      required: [start_date, end_date]
+      properties:
+        start_date:
+          type: string
+          format: date
+          description: Booking start date (inclusive)
+        end_date:
+          type: string
+          format: date
+          description: Booking end date (inclusive)
+        linked_trip_booking_id:
+          type: string
+          format: uuid
+          description: Optional link to an existing trip package booking
+        special_requests:
+          type: string
+          description: Special requests (dietary, accessibility, interests)
+          maxLength: 1000
+
+    UpdateGuideBookingRequest:
+      type: object
+      properties:
+        start_date:
+          type: string
+          format: date
+          description: New booking start date (inclusive)
+        end_date:
+          type: string
+          format: date
+          description: New booking end date (inclusive)
+        linked_trip_booking_id:
+          type: string
+          format: uuid
+          description: Optional link to an existing trip package booking
+        special_requests:
+          type: string
+          description: Special requests (dietary, accessibility, interests)
+          maxLength: 1000
+
+    GuideBooking:
+      type: object
+      required: [id, guide_id, guide_name, start_date, end_date, status, total_price_usd, days]
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+          description: Human-readable booking reference (e.g., GDE-ABC123)
+        guide_id:
+          type: string
+          format: uuid
+        guide_name:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        days:
+          type: integer
+          description: Total number of days booked
+        special_requests:
+          type: string
+        linked_trip_booking_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          description: Booking lifecycle status
+          enum: [HOLD, PENDING_PAYMENT, CONFIRMED, CANCELLED, EXPIRED]
+        total_price_usd:
+          type: number
+          description: Total price = daily rate x number of days
+        hold_expires_at:
+          type: string
+          format: date-time
+          description: Hold expiry timestamp (15 minutes from creation)
+        created_at:
+          type: string
+          format: date-time
