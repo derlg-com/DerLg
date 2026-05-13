@@ -1,4 +1,4 @@
-# AI Travel Concierge Chat
+# Vibe Booking (AI Travel Concierge)
 
 > **Feature ID:** F10–F16  
 > **Status:** Planned  
@@ -21,4 +21,4 @@ DerLg's core differentiator: a conversational AI concierge powered by LangGraph 
 - [Product PRD — AI Travel Concierge](../../product/prd.md#72-ai-travel-concierge--vibe-booking-f10f16)
 - `.kiro/specs/agentic-llm-chatbot/`
 - `.kiro/specs/vibe-booking/`
-- Related modules: [`trip-discovery`](../trip-discovery/), [`payments`](../payments/), [`budget-planner`](../budget-planner/)
+- Related modules: [`trip-discovery`](../trip-discovery/), [`payments`](../payments/)

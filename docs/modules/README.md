@@ -8,7 +8,7 @@
 
 | # | Feature | Folder | Status |
 |---|---------|--------|--------|
-| 01 | AI Travel Concierge Chat | [`ai-chat/`](./ai-chat/) | Planned |
+| 01 | Vibe Booking (AI Travel Concierge) | [`vibe-booking/`](./vibe-booking/) | Planned |
 | 02 | Trip Discovery & Smart Suggestions | [`trip-discovery/`](./trip-discovery/) | Planned |
 | 03 | Transportation Booking | [`transportation/`](./transportation/) | Planned |
 | 04 | Hotel Booking | [`hotel-booking/`](./hotel-booking/) | Planned |
@@ -21,7 +21,6 @@
 | 11 | Loyalty & Bonus Points | [`loyalty/`](./loyalty/) | Planned |
 | 12 | Offline Maps | [`offline-maps/`](./offline-maps/) | Planned |
 | 13 | Multi-Language Support | [`multilanguage/`](./multilanguage/) | Planned |
-| 14 | AI Budget Planner | [`budget-planner/`](./budget-planner/) | Planned |
 | 15 | My Trip — Booking Management | [`my-trip/`](./my-trip/) | Planned |
 | 16 | User Profile & Account Settings | [`profile/`](./profile/) | Planned |
 

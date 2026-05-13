@@ -291,8 +291,7 @@ This architecture describes the system at a high level. For deeper detail, refer
 
 | Feature | Location |
 |---------|----------|
-| AI Chat | `docs/modules/ai-chat/README.md` |
-| Budget Planner | `docs/modules/budget-planner/README.md` |
+| Vibe Booking | `docs/modules/vibe-booking/README.md` |
 | Emergency | `docs/modules/emergency/README.md` |
 | Explore Places | `docs/modules/explore-places/README.md` |
 | Festivals | `docs/modules/festivals/README.md` |

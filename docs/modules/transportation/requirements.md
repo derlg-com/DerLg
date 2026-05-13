@@ -24,7 +24,7 @@
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
 | `id` | UUID | PK | |
-| `type` | VARCHAR(50) | NOT NULL | Van, Bus, TukTuk, PrivateCar |
+| `type` | VARCHAR(50) | NOT NULL | VAN, BUS, TUK_TUK, PRIVATE_CAR |
 | `name` | VARCHAR(255) | NOT NULL | e.g., "Comfort Van — Toyota HiAce" |
 | `capacity` | INTEGER | NOT NULL | Max passengers |
 | `price_per_day_usd` | DECIMAL(10,2) | | NULL if distance-based only |
