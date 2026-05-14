@@ -24,7 +24,7 @@
 ## Booking Status Flow
 
 ```
-[HOLD] ──15m timeout──▶ [EXPIRED]
+[HOLD] ──15m timeout──▶ [EXPIRED]dont 
    │
    │ Payment initiated
    ▼

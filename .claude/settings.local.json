@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(node *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "PowerShell(Move-Item *)",
+      "Bash(Get-ChildItem -Path backend/context -Recurse)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }
