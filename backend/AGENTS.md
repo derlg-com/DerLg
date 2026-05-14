@@ -8,12 +8,13 @@
 
 When starting work on the backend, read these files **in this order**:
 
-1. `context/guides/CONSTITUTION.md` — Rules all backend code must follow
-2. `context/guides/CODE-STANDARD.md` — How we write code (formatting, patterns, NestJS conventions)
-3. `context/guides/TECH-STACK.md` — Exact package versions and configs
-4. `context/plans/ROADMAP.md` — Current phase and what comes next
-5. `context/specs/SCHEMA.md` — Database schema (Prisma)
-6. `context/specs/API-CONTRACT.md` — All endpoints as TypeScript contracts
+1. `context/guides/MISSION.md` — Why this backend exists and what success looks like
+2. `context/guides/CONSTITUTION.md` — Rules all backend code must follow
+3. `context/guides/CODE-STANDARD.md` — How we write code (formatting, patterns, NestJS conventions)
+4. `context/guides/TECH-STACK.md` — Exact package versions and configs
+5. `context/plans/ROADMAP.md` — Current phase and what comes next
+6. `context/specs/SCHEMA.md` — Database schema (Prisma)
+7. `context/specs/API-CONTRACT.md` — All endpoints as TypeScript contracts
 
 Then read the relevant domain specs for the task at hand.
 
@@ -27,6 +28,7 @@ All spec files are in `backend/context/` organized by category.
 
 | File | Purpose | When to Read |
 |------|---------|-------------|
+| `guides/MISSION.md` | Purpose, success criteria, scope vs. out-of-scope, definition of done, target state | Before any implementation — understand the "why" |
 | `guides/CONSTITUTION.md` | Immutable rules: module structure, dependency DAG, API envelope, auth strategy, naming conventions, testing gates | Before any implementation |
 | `guides/CODE-STANDARD.md` | Code style: Prettier/ESLint config, import order, TypeScript patterns, NestJS patterns, DTO rules, git practices, PR checklist, security checklist | Before writing code, during code review |
 | `guides/TECH-STACK.md` | Exact versions for every package, env var list, Docker images, external services, version pinning policy | Before installing packages, debugging version issues |
@@ -44,6 +46,7 @@ All spec files are in `backend/context/` organized by category.
 
 | File | Purpose | When to Read |
 |------|---------|-------------|
+| `plans/IMPLEMENTATION-ROADMAP.md` | **Primary task index:** 7 tracks, ~60 tasks, dependency graph, week-by-week execution, spec references per task | **Start here** when picking next work |
 | `plans/ROADMAP.md` | 13 sequential phases with deliverables, milestone summary, dependency graph, decision log, risk register | When planning work, estimating timelines |
 | `plans/TEST-PLAN.md` | Test strategy: levels, coverage gates, 9 critical E2E flows, unit/integration patterns, property-based tests, CI pipeline | When writing tests, estimating test effort |
 | `plans/SEED-SPEC.md` | Seed data: 5 users, 5 guides, 3 hotels, 8 places, 5 trips, vehicles, discount codes, festivals, seed order | When setting up local dev, writing E2E tests, demo prep |
