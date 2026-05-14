@@ -3,7 +3,9 @@
     "allow": [
       "Bash(node *)",
       "Bash(python *)",
-      "PowerShell(Move-Item *)"
+      "PowerShell(Move-Item *)",
+      "Bash(Get-ChildItem -Path backend/context -Recurse)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }
