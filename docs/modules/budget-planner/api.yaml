@@ -1,0 +1,89 @@
+openapi: 3.0.3
+info:
+  title: DerLg — AI Budget Planner API
+  version: 1.0.0
+  description: Budget estimation endpoints (accessed via AI service tools).
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /ai-tools/budget/estimate:
+    post:
+      summary: Estimate trip budget (AI tool)
+      tags: [AI Tools]
+      security:
+        - serviceKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [location, days, travelers]
+              properties:
+                location:
+                  type: string
+                  description: Province or area in Cambodia
+                days:
+                  type: integer
+                  minimum: 1
+                travelers:
+                  type: integer
+                  minimum: 1
+                tier:
+                  type: string
+                  enum: [budget, mid-range, luxury]
+                  default: mid-range
+                currency:
+                  type: string
+                  enum: [USD, KHR, CNY]
+                  default: USD
+      responses:
+        '200':
+          description: Budget estimate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/BudgetEstimate'
+
+components:
+  securitySchemes:
+    serviceKey:
+      type: apiKey
+      in: header
+      name: X-Service-Key
+
+  schemas:
+    BudgetEstimate:
+      type: object
+      properties:
+        total_min_usd:
+          type: number
+        total_max_usd:
+          type: number
+        currency:
+          type: string
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+                enum: [accommodation, transportation, meals, entry_fees, guide, miscellaneous]
+              min_usd:
+                type: number
+              max_usd:
+                type: number
+              description:
+                type: string
+        tier:
+          type: string
+          enum: [budget, mid-range, luxury]
