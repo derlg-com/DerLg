@@ -394,7 +394,7 @@ The booking flow is a special case where content transitions follow a strict sta
 ```
 USER SAYS "Book it"
         ↓
-AI calls: createBooking(tool_call_id="call_book_001")
+AI calls: create_booking_hold(tool_call_id="call_book_001")
         ↓
 Frontend receives:
   content_type: "booking_summary"
@@ -406,7 +406,7 @@ ContentStage renders: BookingSummary card
 USER CLICKS "Confirm"
         ↓
 Frontend sends action via WebSocket
-AI calls: validateBooking + createBookingHold
+AI calls: check_availability + create_booking_hold
         ↓
 Frontend receives:
   content_type: "qr_payment"

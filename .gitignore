@@ -7,7 +7,14 @@ node_modules/
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
+vibe-booking/.venv/
+vibe-booking/__pycache__/
+vibe-booking/models/__pycache__/
+vibe-booking/agent/__pycache__/
+vibe-booking/agent/models/__pycache__/
+vibe-booking/agent/prompts/__pycache__/
+vibe-booking/.hypothesis/
+vibe-booking/.pytest_cache/
 # Build outputs
 /dist
 /build

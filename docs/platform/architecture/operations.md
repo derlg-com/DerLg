@@ -147,9 +147,9 @@ services:
     depends_on: [backend]
 
   ai-agent:
-    build: ./llm_agentic_chatbot
+    build: ./vibe-booking
     ports: ["8000:8000"]
-    volumes: ["./llm_agentic_chatbot:/app"]
+    volumes: ["./vibe-booking:/app"]
     command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
     depends_on: [backend, redis]
 ```
@@ -166,7 +166,7 @@ services:
    ```bash
    cp frontend/.env.example frontend/.env.local
    cp backend/.env.example backend/.env
-   cp llm_agentic_chatbot/.env.example llm_agentic_chatbot/.env
+   cp vibe-booking/.env.example vibe-booking/.env
    ```
 
 3. **Generate secrets**
