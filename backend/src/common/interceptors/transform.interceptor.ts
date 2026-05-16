@@ -8,6 +8,10 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { ApiResponse } from '../types/api-response.type';
 
+/**
+ * Wraps every successful controller response into the standard
+ * `{ success: true, data }` envelope. Skips if already wrapped.
+ */
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<
   T,

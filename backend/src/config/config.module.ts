@@ -2,6 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
 
+/**
+ * Loads and validates environment variables at startup.
+ * Missing required vars cause immediate process exit with code 1.
+ */
 @Module({
   imports: [
     NestConfigModule.forRoot({

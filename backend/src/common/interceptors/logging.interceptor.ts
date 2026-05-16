@@ -9,6 +9,10 @@ import { tap } from 'rxjs/operators';
 import { Logger } from 'nestjs-pino';
 import { Request, Response } from 'express';
 
+/**
+ * Logs every HTTP request with method, URL, status code,
+ * response time, and correlation ID via Pino.
+ */
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   constructor(private readonly logger: Logger) {}

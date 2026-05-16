@@ -9,6 +9,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 
+/** Root module. Imports all shared infrastructure and configures global services. */
 @Module({
   imports: [
     ConfigModule,

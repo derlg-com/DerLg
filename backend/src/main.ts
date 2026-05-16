@@ -8,6 +8,10 @@ import { PrismaFilter } from './common/filters/prisma.filter';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
+/**
+ * Bootstraps the NestJS application with global pipes, filters,
+ * interceptors, security headers, CORS, and the /v1 route prefix.
+ */
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));

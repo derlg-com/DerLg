@@ -3,6 +3,10 @@ import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
+/**
+ * Protects routes by validating the JWT Bearer token.
+ * Routes marked with `@Public()` bypass this check entirely.
+ */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(private reflector: Reflector) {

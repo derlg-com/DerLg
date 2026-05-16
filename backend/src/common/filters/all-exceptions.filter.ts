@@ -9,6 +9,10 @@ import {
 import { Response } from 'express';
 import { ErrorCode } from '../errors/error-codes';
 
+/**
+ * Catches any unhandled exception. Logs the full stack server-side
+ * and returns a safe generic error to the client.
+ */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);

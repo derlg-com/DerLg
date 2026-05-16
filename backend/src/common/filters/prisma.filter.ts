@@ -3,6 +3,10 @@ import { Response } from 'express';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { ErrorCode } from '../errors/error-codes';
 
+/**
+ * Maps Prisma database errors to standardized HTTP responses.
+ * P2002 (unique constraint) → 409, P2025 (not found) → 404.
+ */
 @Catch(PrismaClientKnownRequestError)
 export class PrismaFilter implements ExceptionFilter {
   catch(exception: PrismaClientKnownRequestError, host: ArgumentsHost): void {

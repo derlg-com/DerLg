@@ -3,6 +3,10 @@ import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { JwtPayload } from '../strategies/jwt.strategy';
 
+/**
+ * Enforces role-based access control. Reads `@Roles()` metadata
+ * and checks the JWT payload role field.
+ */
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}

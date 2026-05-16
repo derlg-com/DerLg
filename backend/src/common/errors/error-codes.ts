@@ -1,3 +1,7 @@
+/**
+ * Tree-shakeable registry of all error codes in the system.
+ * Use `ErrorCode.SOME_CODE` in code and the `ErrorCode` type for signatures.
+ */
 export const ErrorCode = {
   // Generic
   NOT_FOUND: 'NOT_FOUND',

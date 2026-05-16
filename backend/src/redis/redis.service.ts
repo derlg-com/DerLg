@@ -2,6 +2,10 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
+/**
+ * Typed wrapper around ioredis. Connects via REDIS_URL or individual
+ * host/port config. Gracefully closes on application shutdown.
+ */
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   private readonly client: Redis;
