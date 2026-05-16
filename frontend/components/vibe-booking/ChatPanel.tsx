@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
-import { useChatStore } from '@/stores/chat.store'
+import { useVibeBookingStore } from '@/stores/vibe-booking.store'
 
 interface Props {
   onSend: (text: string) => void
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function ChatPanel({ onSend }: Props) {
-  const { messages, isTyping, connectionStatus } = useChatStore()
+  const { messages, isTyping, connectionStatus } = useVibeBookingStore()
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -27,7 +27,6 @@ export default function ChatPanel({ onSend }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
         <span className="font-semibold text-sm">DerLg AI Concierge</span>
         <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
@@ -37,16 +36,17 @@ export default function ChatPanel({ onSend }: Props) {
         </span>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
               msg.role === 'user'
                 ? 'bg-primary text-primary-foreground'
+                : msg.type === 'error'
+                ? 'bg-destructive/10 text-destructive'
                 : 'bg-muted text-foreground'
             }`}>
-              {msg.text}
+              {msg.content}
             </div>
           </div>
         ))}
@@ -60,7 +60,6 @@ export default function ChatPanel({ onSend }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <form onSubmit={handleSubmit} className="px-4 py-3 border-t border-border flex gap-2">
         <input
           value={input}

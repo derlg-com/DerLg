@@ -1,7 +1,5 @@
 'use client'
 
-import { useChatStore } from '@/stores/chat.store'
-import { useContentStore } from '@/stores/content.store'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import ChatPanel from '@/components/vibe-booking/ChatPanel'
 import ContentStage from '@/components/vibe-booking/ContentStage'
