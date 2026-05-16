@@ -882,7 +882,7 @@ _For any_ input where none of the 30 bug conditions hold (all isBugCondition fun
 
 ### Changes Required
 
-Assuming our root cause analysis is correct, the fixes will be implemented across multiple files in the `llm_agentic_chatbot/` directory:
+Assuming our root cause analysis is correct, the fixes will be implemented across multiple files in the `vibe-booking/` directory:
 
 **File**: `agent/state_machine.py` (LangGraph state machine)
 
@@ -1080,7 +1080,7 @@ The testing strategy follows a three-phase approach:
 
 **Test Structure:**
 ```
-llm_agentic_chatbot/tests/
+vibe-booking/tests/
 ├── conftest.py                    # Shared fixtures
 ├── unit/
 │   ├── test_discovery_stage.py   # Bug 1.1-1.4
@@ -1917,11 +1917,11 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - 'llm_agentic_chatbot/**'
+      - 'vibe-booking/**'
   pull_request:
     branches: [main, develop]
     paths:
-      - 'llm_agentic_chatbot/**'
+      - 'vibe-booking/**'
 
 jobs:
   test:
@@ -1954,13 +1954,13 @@ jobs:
       
       - name: Install dependencies
         run: |
-          cd llm_agentic_chatbot
+          cd vibe-booking
           pip install -r requirements.txt
           pip install pytest pytest-asyncio pytest-cov pytest-mock hypothesis fakeredis freezegun
       
       - name: Run unit tests
         run: |
-          cd llm_agentic_chatbot
+          cd vibe-booking
           pytest tests/unit/ -v --cov=agent --cov-report=xml --cov-report=term
       
       - name: Run integration tests
@@ -1969,29 +1969,29 @@ jobs:
           BACKEND_URL: http://mock-backend:3001
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          cd llm_agentic_chatbot
+          cd vibe-booking
           pytest tests/integration/ -v
       
       - name: Run property-based tests
         run: |
-          cd llm_agentic_chatbot
+          cd vibe-booking
           pytest tests/property/ -v --hypothesis-show-statistics
       
       - name: Run regression tests
         run: |
-          cd llm_agentic_chatbot
+          cd vibe-booking
           pytest tests/regression/ -v
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          file: ./llm_agentic_chatbot/coverage.xml
+          file: ./vibe-booking/coverage.xml
           flags: ai-agent
           name: ai-agent-coverage
       
       - name: Check coverage threshold
         run: |
-          cd llm_agentic_chatbot
+          cd vibe-booking
           coverage report --fail-under=80
 ```
 

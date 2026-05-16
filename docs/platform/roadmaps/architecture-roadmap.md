@@ -31,11 +31,11 @@
 
 - [x] **Directory Naming**
   - [x] `structure.md` references `docs/architectures/` but actual directory was `docs/architechture/` → now consolidated under `docs/platform/` → **Verified: `docs/platform/architecture/` is correct; old typo folder does not exist**
-  - [x] `structure.md` references `llm_agentic_chatbot/` but no such directory exists yet → note as planned vs. actual → **Documented as planned directory**
+  - [x] `structure.md` references `vibe-booking/` but no such directory exists yet → note as planned vs. actual → **Documented as planned directory**
 
 - [x] **Scope Confirmation**
   - [x] Confirm which third-party services are committed vs. aspirational (e.g. OpenWeatherMap, Google Maps API) → **Resolved: OpenStreetMap + Leaflet committed; Google Maps aspirational; OpenWeatherMap aspirational**
-  - [x] Confirm AI agent directory name and location → **Resolved: `llm_agentic_chatbot/` at repo root**
+  - [x] Confirm AI agent directory name and location → **Resolved: `vibe-booking/` at repo root**
 
 ---
 

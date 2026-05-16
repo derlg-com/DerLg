@@ -18,7 +18,7 @@ The user describes their travel needs in natural language; the AI curates and re
 - **Dock Position:** Snapped alignment of the Chat Panel (`left`, `right`, `center`, `floating`).
 - **Booking Hold:** A 15-minute reservation timer during which inventory is reserved pending payment.
 - **AI Agent:** The Python FastAPI + LangGraph service communicating via WebSocket.
-- **Tool Result:** Data returned by the AI agent after calling a backend tool (e.g., `getTripSuggestions`).
+- **Tool Result:** Data returned by the AI agent after calling a backend tool (e.g., `search_trips`).
 - **Content Item:** A single rendered unit on the Content Stage (e.g., one set of trip cards, one map view).
 - **Message Type:** The `type` field in an AI response payload that determines which renderer to use (`trip_cards`, `hotel_cards`, `map_view`, etc.).
 
@@ -95,7 +95,7 @@ The user describes their travel needs in natural language; the AI curates and re
 
 #### Acceptance Criteria
 
-1. WHEN the AI agent calls a tool (e.g., `getTripSuggestions`), THE Frontend_App SHALL display a Streaming Indicator on the Content Stage (pulsing dot + localized text: "Finding the best options...").
+1. WHEN the AI agent calls a tool (e.g., `search_trips`), THE Frontend_App SHALL display a Streaming Indicator on the Content Stage (pulsing dot + localized text: "Finding the best options...").
 2. WHEN tool results arrive via WebSocket, THE Content Item SHALL appear on the Content Stage immediately, even if the AI is still composing its text response.
 3. WHEN trip data streams in incrementally, trip cards SHALL render as soon as the first trip object is available, with subsequent trips appending to the grid.
 4. WHEN hotel data is loading, THE Content Stage SHALL show skeleton loading placeholders (shimmer effect) that are replaced by actual cards when data arrives.
@@ -110,7 +110,7 @@ The user describes their travel needs in natural language; the AI curates and re
 
 #### Acceptance Criteria
 
-1. WHEN the user says "book this" or clicks a "Book Now" action button in chat or on a Content Item, THE AI agent SHALL call the `createBooking` tool.
+1. WHEN the user says "book this" or clicks a "Book Now" action button in chat or on a Content Item, THE AI agent SHALL call the `create_booking_hold` tool to create a 15-minute `RESERVED` booking hold.
 2. THE Content Stage SHALL display a Booking Summary Card showing:
    - Trip/hotel/transport name and thumbnail image.
    - Travel dates (check-in / check-out or start / end).
@@ -118,13 +118,13 @@ The user describes their travel needs in natural language; the AI curates and re
    - Price breakdown: subtotal, taxes, discounts applied, loyalty points redeemed, total.
    - Cancellation policy text (e.g., "Free cancellation up to 7 days before").
 3. A "Confirm Booking" button SHALL appear prominently on the Booking Summary Card.
-4. WHEN the user clicks "Confirm Booking", THE Frontend_App SHALL send a confirmation action via WebSocket and transition the booking state to `HOLDING`.
+4. WHEN the user clicks "Confirm Booking", THE AI agent SHALL send a `requires_payment` WebSocket message: `{ type: "requires_payment", booking_id, amount_usd, methods: ["stripe", "bakong"] }`. THE Frontend_App SHALL render the payment UI and transition booking state to `HOLDING`.
 5. WHEN booking is in `HOLDING` state, THE Content Stage SHALL display a 15-minute countdown timer (Booking Hold) with text: "Your spot is held for [MM:SS]. Complete payment to confirm."
 6. THE Content Stage SHALL then display Payment Options:
    - Stripe Card Form (card number, expiry, CVC) with 3D Secure support.
    - QR Code Payment (Bakong/ABA) with a large scannable QR image.
 7. WHEN the user selects a payment method and submits, THE Frontend_App SHALL call the appropriate payment API and display a "Processing..." state.
-8. THE Frontend_App SHALL listen for WebSocket `payment_confirmed` events and Stripe webhook callbacks.
+8. THE Frontend_App SHALL subscribe to the SSE stream `GET /v1/events/payments` (Bearer JWT) to receive real-time payment status updates. After payment completes, THE Frontend_App SHALL send `{ type: "payment_completed", booking_id }` to the AI agent via WebSocket so the agent can resume the conversation with confirmation details.
 9. WHEN payment succeeds, THE Content Stage SHALL transition to Booking Confirmed state showing:
    - Success animation (checkmark).
    - Booking reference number (`DLG-YYYY-NNNN`).
@@ -143,7 +143,7 @@ The user describes their travel needs in natural language; the AI curates and re
 
 #### Acceptance Criteria
 
-1. WHEN the user asks about payment status (e.g., "Is my payment done?", "Payment status?"), THE AI agent SHALL call the `checkPaymentStatus` tool.
+1. WHEN the user asks about payment status (e.g., "Is my payment done?", "Payment status?"), THE Frontend_App SHALL poll the SSE stream `GET /v1/events/payments` or call `GET /v1/bookings/{id}` for the latest status. The AI agent SHALL display a Payment Status Card on the Content Stage based on the current booking state.
 2. THE Content Stage SHALL display a Payment Status Card showing:
    - Status badge with color:
      - `PENDING` — yellow badge with clock icon.
@@ -154,7 +154,7 @@ The user describes their travel needs in natural language; the AI curates and re
    - Amount paid in user's preferred currency (USD/KHR/CNY).
    - Timestamp of last status update.
    - Receipt download button (visible only if status is `SUCCEEDED`).
-3. IF status is `PENDING`, a "Refresh Status" button SHALL trigger a new `checkPaymentStatus` call and show a loading spinner.
+3. IF status is `PENDING`, a "Refresh Status" button SHALL re-poll `GET /v1/bookings/{id}` and show a loading spinner.
 4. IF status is `FAILED`, a "Retry Payment" button SHALL restart the payment flow from the Booking Summary Card.
 5. IF status is `SUCCEEDED`, a "View Booking" button SHALL navigate to the My Trips page.
 6. The chat SHALL summarize the status in one line (e.g., "Your payment of $189 is confirmed!").

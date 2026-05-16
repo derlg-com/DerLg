@@ -10,7 +10,7 @@ inclusion: always
 derlg/
 ├── frontend/              # Next.js 14 application
 ├── backend/               # NestJS API server
-├── llm_agentic_chatbot/   # Python AI agent service
+├── vibe-booking/          # Python AI agent service
 ├── docs/                  # Technical documentation
 │   ├── architectures/     # System design documents
 │   ├── backend/           # Backend API specifications
@@ -101,10 +101,10 @@ backend/
 └── test/                  # E2E tests
 ```
 
-## AI Agent Structure (`llm_agentic_chatbot/`)
+## AI Agent Structure (`vibe-booking/`)
 
 ```
-llm_agentic_chatbot/
+vibe-booking/
 ├── src/
 │   ├── main.py            # FastAPI application
 │   ├── agent/
