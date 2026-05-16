@@ -1,0 +1,96 @@
+{
+  "module": "festivals",
+  "description": "Tools for discovering Cambodia's cultural festivals and events. The Vibe Booking AI agent uses these to recommend trips that align with upcoming festivals and help users plan around cultural events.",
+  "baseUrl": "http://localhost:3001/v1",
+  "tools": [
+    {
+      "name": "list_festivals",
+      "description": "List upcoming Cambodia cultural festivals and events. Use when the user asks about events, festivals, or wants to plan a trip around a cultural experience. Supports filtering by month, year, province, and category (Religious, Cultural, National, Regional).",
+      "method": "GET",
+      "path": "/festivals",
+      "auth": false,
+      "parameters": {
+        "query": {
+          "month": {
+            "type": "integer",
+            "description": "Filter by month (1–12)",
+            "required": false
+          },
+          "year": {
+            "type": "integer",
+            "description": "Filter by year",
+            "required": false
+          },
+          "province": {
+            "type": "string",
+            "description": "Filter by Cambodia province",
+            "required": false
+          },
+          "category": {
+            "type": "string",
+            "enum": ["Religious", "Cultural", "National", "Regional"],
+            "description": "Festival category filter",
+            "required": false
+          },
+          "upcoming": {
+            "type": "boolean",
+            "description": "Show only upcoming festivals (default: true)",
+            "required": false
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number (default: 1)",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page (default: 20)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Paginated list of FestivalSummary objects with id, slug, name, start_date, end_date, location, category, is_featured"
+    },
+    {
+      "name": "get_festival_detail",
+      "description": "Get full details of a specific festival including description, history, travel tips, GPS coordinates, and any associated discount code for trip bookings during the festival period.",
+      "method": "GET",
+      "path": "/festivals/{slug}",
+      "auth": false,
+      "parameters": {
+        "path": {
+          "slug": {
+            "type": "string",
+            "description": "Festival slug (from list_festivals)",
+            "required": true
+          }
+        }
+      },
+      "returns": "FestivalDetail with description, history, travel_tips, latitude, longitude, discount_code (code, discount_percentage, valid_until)"
+    },
+    {
+      "name": "get_festival_related_trips",
+      "description": "Get trip packages that are related to or themed around a specific festival. Use to recommend bookable trips to the user when they show interest in a cultural event.",
+      "method": "GET",
+      "path": "/festivals/{slug}/related-trips",
+      "auth": false,
+      "parameters": {
+        "path": {
+          "slug": {
+            "type": "string",
+            "description": "Festival slug",
+            "required": true
+          }
+        },
+        "query": {
+          "limit": {
+            "type": "integer",
+            "description": "Max trips to return (default: 4)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Array of trip objects related to the festival"
+    }
+  ]
+}

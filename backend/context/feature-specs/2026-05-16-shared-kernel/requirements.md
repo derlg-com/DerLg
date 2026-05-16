@@ -6,11 +6,11 @@
 
 ## Scope
 
-Implement **all 13 tasks** from Track 1 of `context/plans/IMPLEMENTATION-ROADMAP.md`:
+Implement **all 13 tasks** from Phase 1 of `context/plans/roadmap.md`:
 
 | Task | What | Why |
 |------|------|-----|
-| 1.1 | `ConfigModule` with Joi validation | Fail-fast env validation at startup per `CONSTITUTION.md` §10.4 |
+| 1.1 | `ConfigModule` with Zod validation | Fail-fast env validation at startup per `CONSTITUTION.md` §10.4 |
 | 1.2 | `PrismaModule` global singleton | One PrismaClient instance, lifecycle-aware, graceful disconnect |
 | 1.3 | `RedisModule` + `RedisService` (ioredis) | Caching, session storage, booking holds, rate-limit backend |
 | 1.4 | Global `ValidationPipe` | DTO validation with `class-validator` / `class-transformer` |
@@ -29,7 +29,7 @@ Implement **all 13 tasks** from Track 1 of `context/plans/IMPLEMENTATION-ROADMAP
 ## Decisions
 
 1. **All error codes upfront** — The `ErrorCodes` const object includes all ~100 codes from `ERROR-REGISTRY.md` now, even domain-specific ones (BKNG_*, PAY_*, etc.). This prevents future PRs from touching the shared registry and avoids merge conflicts. Implemented as a tree-shakeable const object per `CODE-STANDARD.md` §2.3, not a TS enum.
-2. **Dependencies installed in this branch** — New packages (Pino, passport-jwt, @nestjs/throttler, helmet, joi) are installed as part of implementation, not a separate PR. See `TECH-STACK.md` for exact versions.
+2. **Dependencies installed in this branch** — New packages (Pino, passport-jwt, @nestjs/throttler, helmet, zod) are installed as part of implementation, not a separate PR. See `TECH-STACK.md` for exact versions.
 3. **Parallel implementation** — Tasks are grouped into work streams that can run in parallel via subagents:
    - **Stream A:** Config + Prisma + Redis (infra modules)
    - **Stream B:** Pipes + Filters + Interceptors (request/response pipeline)
