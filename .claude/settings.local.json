@@ -5,7 +5,18 @@
       "Bash(python *)",
       "PowerShell(Move-Item *)",
       "Bash(Get-ChildItem -Path backend/context -Recurse)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "WebSearch",
+      "Bash(Get-ChildItem *)",
+      "Bash(npm run *)",
+      "Bash(npx prisma *)",
+      "Bash(npx prisma@6 generate)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(git branch *)",
+      "Bash(findstr shared-kernel *)",
+      "Bash(git checkout *)",
+      "Bash(npm install *)",
+      "Bash(git add *)"
     ]
   }
 }

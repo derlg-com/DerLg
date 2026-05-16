@@ -8,13 +8,14 @@
 
 | Phase | Name | Status | Target Week |
 |-------|------|--------|-------------|
-| **Phase 0** | Bootstrap & Tooling | 🟡 In Progress | Week 1 |
+| Phase 0 | Bootstrap & Tooling | 🟢 Complete | Week 1 |
+| **Phase 1** | Foundation & Shared Kernel | 🟡 In Progress | Week 1–2 |
 
 ---
 
 ## Phase-by-Phase Status
 
-### Phase 0: Bootstrap & Tooling (Week 1)
+### Phase 0: Bootstrap & Tooling (Week 1) — 🟢 Complete
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
@@ -45,26 +46,26 @@
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
-| `ConfigModule` with Joi validation | ⬜ Not Started | — | — | — |
-| `PrismaModule` global singleton | ⬜ Not Started | — | — | — |
-| `PrismaService` with `$on('beforeExit')` | ⬜ Not Started | — | — | — |
-| `RedisModule` with ioredis | ⬜ Not Started | — | — | — |
-| `RedisService` typed wrapper | ⬜ Not Started | — | — | — |
-| Global `ValidationPipe` | ⬜ Not Started | — | — | — |
-| Global exception filter (Prisma errors) | ⬜ Not Started | — | — | — |
-| `AllExceptionsFilter` catch-all | ⬜ Not Started | — | — | — |
-| `LoggingInterceptor` with Pino | ⬜ Not Started | — | — | — |
-| `TransformInterceptor` envelope | ⬜ Not Started | — | — | — |
-| `JwtAuthGuard` | ⬜ Not Started | — | — | — |
-| `RolesGuard` | ⬜ Not Started | — | — | — |
-| `@CurrentUser()` decorator | ⬜ Not Started | — | — | — |
-| `@Public()` decorator | ⬜ Not Started | — | — | — |
-| `@Roles()` decorator | ⬜ Not Started | — | — | — |
-| Pagination DTO | ⬜ Not Started | — | — | — |
-| `ApiResponse<T>` / `PaginatedResponse<T>` | ⬜ Not Started | — | — | — |
-| `ErrorCodes` enum | ⬜ Not Started | — | — | — |
-| Throttler with Redis store | ⬜ Not Started | — | — | — |
-| Helmet + CORS configuration | ⬜ Not Started | — | — | — |
+| `ConfigModule` with Joi validation | 🟢 Complete | Agent | Fail-fast env validation | 2026-05-16 |
+| `PrismaModule` global singleton | 🟢 Complete | Agent | `@Global()`, lifecycle hooks | 2026-05-16 |
+| `PrismaService` with `$on('beforeExit')` | 🟢 Complete | Agent | Extends `PrismaClient` | 2026-05-16 |
+| `RedisModule` with ioredis | 🟢 Complete | Agent | `@Global()` | 2026-05-16 |
+| `RedisService` typed wrapper | 🟢 Complete | Agent | `get/set/del/setex/keys` | 2026-05-16 |
+| Global `ValidationPipe` | 🟢 Complete | Agent | whitelist, forbidNonWhitelisted | 2026-05-16 |
+| Global exception filter (Prisma errors) | 🟢 Complete | Agent | P2002→409, P2025→404 | 2026-05-16 |
+| `AllExceptionsFilter` catch-all | 🟢 Complete | Agent | 500 with INTERNAL_ERROR | 2026-05-16 |
+| `LoggingInterceptor` with Pino | 🟢 Complete | Agent | Request logging, redaction | 2026-05-16 |
+| `TransformInterceptor` envelope | 🟢 Complete | Agent | `{ success, data }` wrapper | 2026-05-16 |
+| `JwtAuthGuard` | 🟢 Complete | Agent | Extends `AuthGuard('jwt')` | 2026-05-16 |
+| `RolesGuard` | 🟢 Complete | Agent | RBAC metadata check | 2026-05-16 |
+| `@CurrentUser()` decorator | 🟢 Complete | Agent | Injects `JwtPayload` | 2026-05-16 |
+| `@Public()` decorator | 🟢 Complete | Agent | Skips JWT check | 2026-05-16 |
+| `@Roles()` decorator | 🟢 Complete | Agent | Sets role metadata | 2026-05-16 |
+| Pagination DTO | 🟢 Complete | Agent | `page`/`limit` validation | 2026-05-16 |
+| `ApiResponse<T>` / `PaginatedResponse<T>` | 🟢 Complete | Agent | Reusable response types | 2026-05-16 |
+| `ErrorCodes` registry | 🟢 Complete | Agent | All ~100 codes as const object | 2026-05-16 |
+| Throttler with named configs | 🟢 Complete | Agent | default/auth/payment limits | 2026-05-16 |
+| Helmet + CORS configuration | 🟢 Complete | Agent | Security headers, origin whitelist | 2026-05-16 |
 
 **Verification:**
 - [ ] Coverage > 80% on `common/`
@@ -365,7 +366,7 @@
 | Milestone | Phase | Status | Date Achieved |
 |-----------|-------|--------|---------------|
 | M0: Bootstrap | 0 | 🟢 Complete | 2026-05-16 |
-| M1: Foundation | 1–2 | ⬜ | — |
+| M1: Foundation | 1–2 | 🟢 Complete | 2026-05-16 |
 | M2: Auth | 3 | ⬜ | — |
 | M3: Catalog | 4 | ⬜ | — |
 | M4: Booking | 5 | ⬜ | — |
@@ -394,6 +395,8 @@
 |------|-------|--------|-----|
 | 2026-05-14 | — | Initial progress tracker created | Agent |
 | 2026-05-16 | 0 | Feature spec created; branch `feature/2026-05-16-bootstrap-and-tooling` opened; tasks 0.1–0.5 scoped (CI deferred) | Agent |
+| 2026-05-16 | 1 | Phase 0 complete. Feature spec created for Phase 1 (Shared Kernel, all 13 tasks); branch `feature/2026-05-16-shared-kernel` opened | Agent |
+| 2026-05-16 | 1 | Shared Kernel implemented: Config, Prisma, Redis, ValidationPipe, Filters, Interceptors, Guards, Decorators, Throttler, Helmet, CORS, ErrorCodes. Build + lint pass. | Agent |
 
 ---
 
