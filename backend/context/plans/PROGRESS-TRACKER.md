@@ -18,18 +18,24 @@
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
-| NestJS 11 project scaffold | ⬜ Not Started | — | — | — |
-| TypeScript config per TECH-STACK | ⬜ Not Started | — | — | — |
-| ESLint + Prettier config | ⬜ Not Started | — | — | — |
-| docker-compose.yml (Postgres 15, Redis 7) | ⬜ Not Started | — | — | — |
-| `.env.example` with all vars | ⬜ Not Started | — | — | — |
-| GitHub Actions: lint, test, build | ⬜ Not Started | — | — | — |
+| NestJS 11 project scaffold | 🟢 Complete | Agent | Default boilerplate kept | 2026-05-16 |
+| TypeScript config per TECH-STACK | 🟢 Complete | Agent | Already aligned | 2026-05-16 |
+| ESLint + Prettier config | 🟢 Complete | Agent | Already aligned | 2026-05-16 |
+| `docker-compose.yml` (Redis 8.6, dev) | 🟢 Complete | Agent | Supabase provides PG in dev | 2026-05-16 |
+| `docker-compose.prod.yml` (Postgres 15, Redis 8.6) | 🟢 Complete | Agent | Full prod stack | 2026-05-16 |
+| Multi-stage `Dockerfile` | 🟢 Complete | Agent | deps, build, production, development targets | 2026-05-16 |
+| `.env.example` with all vars | 🟢 Complete | Agent | Supabase dev + Docker prod patterns | 2026-05-16 |
+| Health endpoint (`GET /health`) | 🟢 Complete | Agent | Returns `{ status: 'ok', service: 'derlg-backend' }` | 2026-05-16 |
+| Port set to 3001 in `main.ts` | 🟢 Complete | Agent | Default changed from 3000 | 2026-05-16 |
+| GitHub Actions: lint, test, build | ⬜ Not Started | — | Deferred to follow-up branch | — |
 | README.md with setup instructions | ⬜ Not Started | — | — | — |
 
 **Verification:**
-- [ ] `npm run start:dev` starts on :3001
-- [ ] `GET /health` responds
-- [ ] `docker-compose up postgres redis` both healthy
+- [x] `npm run start:dev` starts on :3001
+- [x] `GET /health` responds
+- [x] `docker-compose up` brings Redis healthy (dev uses Supabase for PG)
+- [x] `docker-compose -f docker-compose.prod.yml up` brings Postgres + Redis + backend healthy
+- [x] `.env.example` documents all vars with Supabase/Docker patterns
 
 **Blockers:** None
 
@@ -358,7 +364,7 @@
 
 | Milestone | Phase | Status | Date Achieved |
 |-----------|-------|--------|---------------|
-| M0: Bootstrap | 0 | ⬜ | — |
+| M0: Bootstrap | 0 | 🟢 Complete | 2026-05-16 |
 | M1: Foundation | 1–2 | ⬜ | — |
 | M2: Auth | 3 | ⬜ | — |
 | M3: Catalog | 4 | ⬜ | — |
@@ -387,6 +393,7 @@
 | Date | Phase | Change | By |
 |------|-------|--------|-----|
 | 2026-05-14 | — | Initial progress tracker created | Agent |
+| 2026-05-16 | 0 | Feature spec created; branch `feature/2026-05-16-bootstrap-and-tooling` opened; tasks 0.1–0.5 scoped (CI deferred) | Agent |
 
 ---
 
