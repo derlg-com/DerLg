@@ -9,7 +9,7 @@
 
 ## Introduction
 
-The Vibe Booking AI Agent is a Python FastAPI microservice that powers DerLg's conversational booking experience. It runs a LangGraph + Claude Sonnet agent, communicates with the Next.js frontend via WebSocket, and calls the NestJS backend via HTTP tool endpoints (`/v1/ai-tools/*`).
+The Vibe Booking AI Agent is a Python FastAPI microservice that powers DerLg's conversational booking experience. It runs a LangGraph + NVIDIA gpt-oss-120b agent, communicates with the Next.js frontend via WebSocket, and calls the NestJS backend via HTTP tool endpoints (`/v1/ai-tools/*`).
 
 The agent **never writes to the database directly** and **never executes payments**. All mutations go through backend tool endpoints authenticated with `X-Service-Key`. Payment is handled by the frontend after the agent sends a `requires_payment` message.
 
@@ -123,7 +123,7 @@ The agent **never writes to the database directly** and **never executes payment
 
 ### Requirement 6: Tool Calling — Available Tools
 
-**User Story:** As a developer, I want all agent tools defined so that Claude knows what functions it can call.
+**User Story:** As a developer, I want all agent tools defined so that NVIDIA gpt-oss-120b knows what functions it can call.
 
 #### Acceptance Criteria
 
@@ -204,7 +204,7 @@ The AI Agent **CANNOT**:
 1. The AI Agent SHALL support English (`en`), Chinese (`zh`), and Khmer (`km`)
 2. The locale SHALL be passed in the WebSocket connection or first message
 3. The AI Agent SHALL pass `Accept-Language` to all backend tool calls
-4. WHEN locale is `km`, the AI Agent SHALL always use the Anthropic client (best Khmer support)
+4. WHEN locale is `km`, the AI Agent SHALL always use the NVIDIA client (best Khmer support)
 5. The AI Agent SHALL respond in the user's preferred language
 
 ---
@@ -264,7 +264,7 @@ The AI Agent **CANNOT**:
 3. The `docker-compose.yml` SHALL include the `ai-agent` service with context `./vibe-booking`
 4. The AI Agent SHALL expose port `8000`
 5. The AI Agent SHALL include a `HEALTHCHECK` in the production Dockerfile
-6. The AI Agent SHALL support Railway deployment via `railway.json`
+6. The AI Agent SHALL support production deployment via Docker on a VPS
 
 ---
 

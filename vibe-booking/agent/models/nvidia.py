@@ -1,4 +1,6 @@
 import asyncio
+import json
+import time
 import httpx
 from agent.models.client import ModelClient, ModelResponse, ContentBlock
 from config.settings import settings
@@ -6,17 +8,15 @@ from utils.logging import logger
 
 
 class NvidiaClient(ModelClient):
-    """NVIDIA NIM API client using OpenAI-compatible endpoint."""
-
-    BASE_URL = "https://integrate.api.nvidia.com/v1"
-    MODEL = "nvidia/gpt-oss-120b"
+    """NVIDIA NIM API client (OpenAI-compatible endpoint)."""
 
     def __init__(self) -> None:
         self._client = httpx.AsyncClient(
-            base_url=self.BASE_URL,
+            base_url=settings.nvidia_base_url,
             headers={"Authorization": f"Bearer {settings.nvidia_api_key}"},
             timeout=60.0,
         )
+        self._model = settings.model_llm
 
     async def create_message(
         self,
@@ -26,16 +26,26 @@ class NvidiaClient(ModelClient):
         max_tokens: int = 2048,
     ) -> ModelResponse:
         payload = {
-            "model": self.MODEL,
+            "model": self._model,
             "messages": [{"role": "system", "content": system}, *messages],
             "tools": self._convert_tools(tools),
             "max_tokens": max_tokens,
         }
         for attempt in range(2):
             try:
+                t0 = time.monotonic()
                 resp = await self._client.post("/chat/completions", json=payload)
                 resp.raise_for_status()
-                return self._parse(resp.json())
+                data = resp.json()
+                usage = data.get("usage", {})
+                logger.info(
+                    "llm_call",
+                    model=self._model,
+                    prompt_tokens=usage.get("prompt_tokens"),
+                    completion_tokens=usage.get("completion_tokens"),
+                    latency_ms=round((time.monotonic() - t0) * 1000),
+                )
+                return self._parse(data)
             except Exception as exc:
                 if attempt == 1:
                     raise
@@ -66,7 +76,6 @@ class NvidiaClient(ModelClient):
         if message.get("content"):
             blocks.append(ContentBlock(type="text", text=message["content"]))
         for tc in message.get("tool_calls", []):
-            import json
             blocks.append(ContentBlock(
                 type="tool_use",
                 id=tc["id"],

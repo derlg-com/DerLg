@@ -23,10 +23,10 @@ async def lifespan(app: FastAPI):
 
 
 def _validate_startup() -> None:
-    if settings.model_backend == "nvidia" and not settings.nvidia_api_key:
-        raise RuntimeError("NVIDIA_API_KEY is required when MODEL_BACKEND=nvidia")
-    if settings.model_backend == "ollama" and not settings.ollama_base_url:
-        raise RuntimeError("OLLAMA_BASE_URL is required when MODEL_BACKEND=ollama")
+    if not settings.use_ollama and not settings.nvidia_api_key:
+        raise RuntimeError("NVIDIA_API_KEY is required")
+    if settings.use_ollama and not settings.ollama_base_url:
+        raise RuntimeError("OLLAMA_BASE_URL is required when USE_OLLAMA=true")
 
 
 app = FastAPI(title="DerLg Vibe Booking AI Agent", lifespan=lifespan)
@@ -41,4 +41,4 @@ app.add_middleware(
 app.add_middleware(LoggingMiddleware)
 
 app.include_router(health_router)
-app.add_api_websocket_route("/ws/{session_id}", websocket_endpoint)
+app.add_api_websocket_route("/ws/chat", websocket_endpoint)

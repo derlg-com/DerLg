@@ -14,7 +14,6 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
   const ws = useRef<WebSocket | null>(null)
   const retries = useRef(0)
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const store = useVibeBookingStore()
 
   const send = useCallback((msg: WsOutbound) => {
@@ -24,17 +23,20 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
   }, [])
 
   const connect = useCallback(() => {
-    const sid = store.sessionId ?? uuid()
-    if (!store.sessionId) store.setSessionId(sid)
-
     store.setConnectionStatus('connecting')
-    const socket = new WebSocket(`${AI_WS_URL}/ws/${sid}`)
+    // Single /ws/chat endpoint — session_id sent in auth message for reconnect
+    const socket = new WebSocket(`${AI_WS_URL}/ws/chat`)
     ws.current = socket
 
     socket.onopen = () => {
       retries.current = 0
       store.setConnectionStatus('connected')
-      send({ type: 'auth', user_id: userId, preferred_language: language })
+      send({
+        type: 'auth',
+        user_id: userId,
+        preferred_language: language,
+        ...(store.sessionId ? { session_id: store.sessionId } : {}),
+      } as WsOutbound)
     }
 
     socket.onmessage = (event) => {
@@ -54,6 +56,11 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
         case 'agent_message': {
           store.setTyping(false)
           store.setStreaming(false)
+
+          // Server returns session_id on first connect — persist for reconnect
+          if (data.session_id && !store.sessionId) {
+            store.setSessionId(data.session_id)
+          }
 
           const msgId = uuid()
           store.addMessage({
@@ -149,7 +156,12 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
   }, [store, send])
 
   const sendAction = useCallback((actionType: string, itemId?: string, payload?: Record<string, unknown>) => {
-    send({ type: 'user_action', action_type: actionType, item_id: itemId, payload })
+    if (actionType === 'payment_completed') {
+      // Per architecture doc: frontend signals payment done via WS
+      send({ type: 'payment_completed', ...payload } as unknown as WsOutbound)
+    } else {
+      send({ type: 'user_action', action_type: actionType, item_id: itemId, payload })
+    }
   }, [send])
 
   return { sendMessage, sendAction }

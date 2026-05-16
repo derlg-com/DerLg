@@ -1,34 +1,36 @@
 version: "3.9"
 
+# Production deployment on VPS — shared derlg-network with backend and frontend
 services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     volumes:
       - redis_data:/data
+    command: redis-server --appendonly yes
     networks:
       - derlg-network
 
   ai-agent:
+    image: derlg/ai-agent:latest
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - "8000:8000"
+    env_file: .env
     environment:
-      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
-      NVIDIA_BASE_URL: ${NVIDIA_BASE_URL:-https://integrate.api.nvidia.com/v1}
-      MODEL_LLM: ${MODEL_LLM:-openai/gpt-oss-120b}
-      USE_OLLAMA: ${USE_OLLAMA:-false}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      BACKEND_URL: http://backend:3001
-      AI_SERVICE_KEY: ${AI_SERVICE_KEY}
       REDIS_URL: redis://redis:6379/0
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-      SENTRY_DSN: ${SENTRY_DSN:-}
+      BACKEND_URL: http://backend:3001
     depends_on:
       - redis
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     networks:
       - derlg-network
 

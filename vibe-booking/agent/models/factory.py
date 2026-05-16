@@ -9,7 +9,7 @@ def get_model_client(session: ConversationState | None = None) -> ModelClient:
         from agent.models.nvidia import NvidiaClient
         return NvidiaClient()
 
-    if settings.model_backend == "ollama":
+    if settings.use_ollama:
         from agent.models.ollama import OllamaClient
         return OllamaClient()
 

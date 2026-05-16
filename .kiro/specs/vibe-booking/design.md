@@ -7,7 +7,7 @@
 
 ## Overview
 
-The AI Agent is a Python FastAPI microservice that powers DerLg's "Vibe Booking" feature. It orchestrates a LangGraph + Claude Sonnet conversation, communicates with the frontend via WebSocket, and calls the NestJS backend via HTTP tool endpoints.
+The AI Agent is a Python FastAPI microservice that powers DerLg's "Vibe Booking" feature. It orchestrates a LangGraph + NVIDIA gpt-oss-120b conversation, communicates with the frontend via WebSocket, and calls the NestJS backend via HTTP tool endpoints.
 
 ### Core Design Principles
 
@@ -46,7 +46,7 @@ The AI Agent is a Python FastAPI microservice that powers DerLg's "Vibe Booking"
 │         ┌────────────────┬────────────────┐                            │
 │         ▼                ▼                ▼                            │
 │  ┌──────────┐     ┌──────────┐     ┌──────────┐                       │
-│  │ Claude   │     │ Tool     │     │ Session  │                       │
+│  │ gpt-oss-120b   │     │ Tool     │     │ Session  │                       │
 │  │ (LLM)    │     │ Executor │     │ Store    │                       │
 │  └──────────┘     └────┬─────┘     └──────────┘                       │
 │                        │ HTTP + X-Service-Key                          │
@@ -76,7 +76,7 @@ vibe-booking/
 │   ├── websocket/
 │   │   └── chat_handler.py        # WebSocket endpoint + connection manager
 │   ├── services/
-│   │   ├── claude_client.py       # Anthropic API client (ModelClient impl)
+│   │   ├── gpt-oss-120b_client.py       # NVIDIA API client (ModelClient impl)
 │   │   ├── redis_client.py        # Redis connection + session persistence
 │   │   └── backend_client.py      # httpx client for /v1/ai-tools/* calls
 │   └── models/
@@ -191,7 +191,7 @@ Headers:
 
 | Node | Responsibility |
 |------|---------------|
-| `call_llm` | Send conversation + tools to Claude; receive response |
+| `call_llm` | Send conversation + tools to gpt-oss-120b; receive response |
 | `execute_tools` | Run tool calls in parallel via `asyncio.gather`; call backend |
 | `format_response` | Convert AI text + tool results into typed WS message |
 
@@ -285,12 +285,12 @@ TOOL_DISPATCH = {
 ### Tool Call Flow
 
 ```
-AI Agent ──send conversation + tools──► Claude API
-Claude ──► tool_use: search_trips(params)
+AI Agent ──send conversation + tools──► gpt-oss-120b API
+gpt-oss-120b ──► tool_use: search_trips(params)
 AI Agent ──GET /v1/ai-tools/trips?...──► Backend (X-Service-Key)
 Backend ──► 200 OK { trips: [...] }
-AI Agent ──tool_result: trips──► Claude
-Claude ──► Natural-language response
+AI Agent ──tool_result: trips──► gpt-oss-120b
+gpt-oss-120b ──► Natural-language response
 ```
 
 ### Parallel Execution
@@ -365,8 +365,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "info"
 
     # LLM
-    ANTHROPIC_API_KEY: str
-    CLAUDE_MODEL: str = "claude-sonnet-4-5-20251001"
+    NVIDIA_API_KEY: str
+    NVIDIA_MODEL: str = "gpt-oss-120b"
 
     # Backend
     BACKEND_URL: str                  # e.g. http://backend:3001
@@ -395,7 +395,7 @@ ai-agent:
     dockerfile: Dockerfile.dev
   container_name: derlg-ai-agent
   environment:
-    ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    NVIDIA_API_KEY: ${NVIDIA_API_KEY}
     BACKEND_URL: http://backend:3001
     AI_SERVICE_KEY: ${AI_SERVICE_KEY}
     REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
