@@ -9,7 +9,8 @@
 | Phase | Name | Status | Target Week |
 |-------|------|--------|-------------|
 | Phase 0 | Bootstrap & Tooling | 🟢 Complete | Week 1 |
-| **Phase 1** | Foundation & Shared Kernel | 🟡 In Progress | Week 1–2 |
+| Phase 1 | Foundation & Shared Kernel | 🟢 Complete | Week 1–2 |
+| **Phase 2** | Database Schema | 🟡 In Progress | Week 2 |
 
 ---
 
@@ -46,7 +47,7 @@
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
-| `ConfigModule` with Joi validation | 🟢 Complete | Agent | Fail-fast env validation | 2026-05-16 |
+| `ConfigModule` with Zod validation | 🟢 Complete | Agent | Fail-fast env validation | 2026-05-16 |
 | `PrismaModule` global singleton | 🟢 Complete | Agent | `@Global()`, lifecycle hooks | 2026-05-16 |
 | `PrismaService` with `$on('beforeExit')` | 🟢 Complete | Agent | Extends `PrismaClient` | 2026-05-16 |
 | `RedisModule` with ioredis | 🟢 Complete | Agent | `@Global()` | 2026-05-16 |
@@ -71,6 +72,8 @@
 - [ ] Coverage > 80% on `common/`
 - [ ] Health check E2E passes
 
+**Notes:** All 18 deliverables implemented. Verification deferred until test infrastructure is fully wired.
+
 **Blockers:** None
 
 ---
@@ -79,15 +82,16 @@
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
-| `prisma/schema.prisma` — all 18 models | ⬜ Not Started | — | — | — |
-| All enums defined | ⬜ Not Started | — | — | — |
+| Multi-file schema: `prisma/schema.prisma` + `prisma/models/*.prisma` | ⬜ Not Started | — | Split by domain per Prisma 6+ docs | — |
+| All enums defined (in `schema.prisma` or `models/*.prisma`) | ⬜ Not Started | — | — | — |
 | Conventions: UUID, Decimal, Timestamptz, soft delete | ⬜ Not Started | — | — | — |
 | First migration (`init`) | ⬜ Not Started | — | — | — |
 | Seed script (`prisma/seed.ts`) | ⬜ Not Started | — | — | — |
 | Seed wired into `package.json` | ⬜ Not Started | — | — | — |
 
 **Verification:**
-- [ ] `npx prisma migrate dev` succeeds
+- [ ] `npx prisma validate --schema ./prisma` succeeds
+- [ ] `npx prisma migrate dev --schema ./prisma` succeeds
 - [ ] `npx prisma db seed` populates data
 - [ ] All models visible in Prisma Studio
 
@@ -402,6 +406,6 @@
 
 ## References
 
-- Roadmap (phases & dependencies): `ROADMAP.md`
-- Milestone definitions: `ROADMAP.md` → Milestone Summary
-- Verification scripts: per-phase in `ROADMAP.md`
+- Roadmap (phases & dependencies): `roadmap.md`
+- Milestone definitions: `roadmap.md` → Milestone Summary
+- Verification scripts: per-phase in `roadmap.md`

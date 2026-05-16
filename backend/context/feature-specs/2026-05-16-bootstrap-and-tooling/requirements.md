@@ -6,7 +6,7 @@
 
 ## Scope
 
-This branch delivers the foundational tooling and local development environment for the DerLg backend. It covers **Tasks 0.1 through 0.5** from `IMPLEMENTATION-ROADMAP.md`.
+This branch delivers the foundational tooling and local development environment for the DerLg backend. It covers **Tasks 0.1 through 0.5** from `roadmap.md`.
 
 **In scope:**
 - TypeScript strictness and module resolution alignment
@@ -74,7 +74,7 @@ Production:
 - `backend/context/guides/CONSTITUTION.md` — Immutable rules (module structure, API envelope, auth strategy)
 - `backend/context/guides/CODE-STANDARD.md` — Prettier/ESLint config, import order, git practices
 - `backend/context/guides/TECH-STACK.md` — Exact package versions, env var list, Docker images
-- `backend/context/plans/IMPLEMENTATION-ROADMAP.md` — Task index and dependency graph
+- `backend/context/plans/roadmap.md` — Task index and dependency graph
 - `backend/context/plans/TEST-PLAN.md` — Test strategy and coverage gates
 
 ---

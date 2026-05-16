@@ -9,9 +9,10 @@
 > **Parallel-safe with Group 4.** Groups 2 and 3 depend on this.
 
 ### 1.1 ConfigModule — Environment Validation
-- Install `@nestjs/config`, `joi`
-- Create `src/config/config.module.ts` with `ConfigModule.forRoot({ isGlobal: true, validationSchema: ... })`
-- Joi schema validates all required env vars from `TECH-STACK.md` §Environment Variables
+- Install `@nestjs/config`, `zod`
+- Create `src/config/env.validation.ts` with Zod schema
+- Create `src/config/config.module.ts` with `ConfigModule.forRoot({ isGlobal: true, validate: ... })`
+- Zod schema validates all required env vars from `TECH-STACK.md` §Environment Variables
 - Missing required var → `process.exit(1)` with clear error message
 - Export `ConfigService` wrapper for typed access
 
@@ -213,7 +214,7 @@ Exact versions from `TECH-STACK.md`:
 
 ```bash
 # Core
-npm install @nestjs/config@^11.0.0 joi
+npm install @nestjs/config@^11.0.0 zod
 
 # Validation
 npm install class-validator@^0.14.0 class-transformer@^0.5.0
