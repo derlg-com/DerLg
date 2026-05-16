@@ -72,6 +72,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str) -> None:
             if not content:
                 continue
 
+            # Rate limiting: 10 messages per minute per session (Req 16.7)
+            from utils.redis import check_rate_limit
+            if not await check_rate_limit(session_id):
+                await websocket.send_json({"type": "error", "payload": {"message": "Too many messages. Please wait a moment."}})
+                continue
+
             await websocket.send_json({"type": "typing_start"})
             try:
                 response = await run_agent(session, content)

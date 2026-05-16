@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - derlg-network
+
+  ai-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      MODEL_BACKEND: ${MODEL_BACKEND:-nvidia}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      BACKEND_URL: http://backend:3001
+      AI_SERVICE_KEY: ${AI_SERVICE_KEY}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    depends_on:
+      - redis
+    networks:
+      - derlg-network
+
+networks:
+  derlg-network:
+    driver: bridge

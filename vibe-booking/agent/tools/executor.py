@@ -4,6 +4,7 @@ import httpx
 from agent.session.state import ConversationState, AgentState
 from config.settings import settings
 from utils.logging import logger
+from utils.circuit_breaker import backend_breaker
 
 TOOL_TIMEOUT = 15.0
 
@@ -13,16 +14,24 @@ async def _call_backend(
     endpoint: str,
     payload: dict,
 ) -> dict:
+    if backend_breaker.is_open:
+        raise RuntimeError("Backend service is temporarily unavailable. Please try again in a moment.")
+
     headers = {
         "X-Service-Key": settings.ai_service_key,
         "Accept-Language": session.preferred_language,
         "Content-Type": "application/json",
     }
     url = f"{settings.backend_url}/v1/ai-tools/{endpoint}"
-    async with httpx.AsyncClient(timeout=TOOL_TIMEOUT) as client:
-        resp = await client.post(url, json=payload, headers=headers)
-        resp.raise_for_status()
-        return resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=TOOL_TIMEOUT) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            backend_breaker.record_success()
+            return resp.json()
+    except Exception:
+        backend_breaker.record_failure()
+        raise
 
 
 async def _execute_single(
