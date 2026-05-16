@@ -1,16 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Public } from './common/decorators/public.decorator';
 
+/** Root controller. Only exposes the health check endpoint. */
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
-
+  /** Public health check for load balancers and monitoring. */
   @Get('health')
+  @Public()
   getHealth(): { status: string; service: string } {
     return { status: 'ok', service: 'derlg-backend' };
   }
