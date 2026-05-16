@@ -12,9 +12,10 @@ When starting work on the backend, read these files **in this order**:
 2. `context/guides/CONSTITUTION.md` — Rules all backend code must follow
 3. `context/guides/CODE-STANDARD.md` — How we write code (formatting, patterns, NestJS conventions)
 4. `context/guides/TECH-STACK.md` — Exact package versions and configs
-5. `context/plans/ROADMAP.md` — Current phase and what comes next
-6. `context/specs/SCHEMA.md` — Database schema (Prisma)
-7. `context/specs/API-CONTRACT.md` — All endpoints as TypeScript contracts
+5. `context/guides/SUPABASE-WORKFLOW.md` — Prisma + Supabase commands and workflows
+6. `context/plans/ROADMAP.md` — Current phase and what comes next
+7. `context/specs/SCHEMA.md` — Database schema (Prisma)
+8. `context/specs/API-CONTRACT.md` — All endpoints as TypeScript contracts
 
 Then read the relevant domain specs for the task at hand.
 
@@ -32,6 +33,7 @@ All spec files are in `backend/context/` organized by category.
 | `guides/CONSTITUTION.md` | Immutable rules: module structure, dependency DAG, API envelope, auth strategy, naming conventions, testing gates | Before any implementation |
 | `guides/CODE-STANDARD.md` | Code style: Prettier/ESLint config, import order, TypeScript patterns, NestJS patterns, DTO rules, git practices, PR checklist, security checklist | Before writing code, during code review |
 | `guides/TECH-STACK.md` | Exact versions for every package, env var list, Docker images, external services, version pinning policy | Before installing packages, debugging version issues |
+| `guides/SUPABASE-WORKFLOW.md` | Prisma + Supabase commands: migrate, seed, studio, troubleshooting, daily workflow | When running any Prisma command against Supabase |
 
 ### `context/specs/` — What We Build (domain specs)
 
