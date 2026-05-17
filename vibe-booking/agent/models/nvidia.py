@@ -54,17 +54,9 @@ class NvidiaClient(ModelClient):
         raise RuntimeError("unreachable")
 
     def _convert_tools(self, tools: list[dict]) -> list[dict]:
-        return [
-            {
-                "type": "function",
-                "function": {
-                    "name": t["name"],
-                    "description": t.get("description", ""),
-                    "parameters": t.get("input_schema", {}),
-                },
-            }
-            for t in tools
-        ]
+        # ALL_TOOLS entries are already in OpenAI function format:
+        # {"type": "function", "function": {"name": ..., "description": ..., "parameters": ...}}
+        return tools
 
     def _parse(self, data: dict) -> ModelResponse:
         choice = data["choices"][0]
