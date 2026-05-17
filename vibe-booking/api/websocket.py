@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import uuid
 from datetime import datetime, timezone
 from fastapi import WebSocket, WebSocketDisconnect
@@ -12,6 +13,23 @@ from utils.redis import get_redis, check_rate_limit
 
 active_connections: dict[str, WebSocket] = {}
 session_manager = SessionManager()
+
+# Patterns that indicate prompt injection or script injection attempts
+_INJECTION_PATTERNS = re.compile(
+    r"(<script|javascript:|on\w+=|</?\w+\s*>|"
+    r"ignore previous|disregard.*instructions|you are now|"
+    r"system prompt|forget.*rules)",
+    re.IGNORECASE,
+)
+_MAX_CONTENT_LENGTH = 2000
+
+
+def _sanitize_input(text: str) -> str:
+    """Strip, truncate, and reject obvious injection patterns (R10.4)."""
+    text = text.strip()[:_MAX_CONTENT_LENGTH]
+    if _INJECTION_PATTERNS.search(text):
+        return ""
+    return text
 
 WELCOME = {
     "EN": "Welcome to DerLg! I'm your Cambodia travel concierge. Tell me about your dream trip.",
@@ -136,7 +154,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 continue
 
             if msg_type == "user_message":
-                content = str(msg.get("content", "")).strip()[:2000]  # sanitize length
+                content = _sanitize_input(str(msg.get("content", "")))
                 if not content:
                     continue
 

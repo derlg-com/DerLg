@@ -7,20 +7,30 @@ node_modules/
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+# Python virtual environment
 vibe-booking/.venv/
-vibe-booking/__pycache__/
-vibe-booking/models/__pycache__/
-vibe-booking/agent/__pycache__/
-vibe-booking/agent/models/__pycache__/
-vibe-booking/agent/prompts/__pycache__/
+
+# Python cache & compiled files
+vibe-booking/**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python test & coverage artifacts
 vibe-booking/.hypothesis/
 vibe-booking/.pytest_cache/
+.coverage
+htmlcov/
+
+# Python packaging
+*.egg-info/
+vibe-booking/dist/
+vibe-booking/build/
 # Build outputs
 /dist
 /build
 /.next/
 /out/
-
 # Logs
 logs
 *.log

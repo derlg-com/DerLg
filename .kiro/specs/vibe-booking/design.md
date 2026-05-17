@@ -1,6 +1,6 @@
 # Design: Vibe Booking — AI Travel Concierge (AI Agent Service)
 
-> **Source of truth:** `docs/modules/vibe-booking/architecture.md`, `docs/modules/ai-chat/architecture.md`, `docs/platform/architecture/realtime-and-ai.md`
+> **Source of truth:** `.kiro/specs/vibe-booking/design.md` (this file)
 > **Service directory:** `vibe-booking/`
 
 ---
@@ -475,4 +475,4 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--worker
 
 ---
 
-*Reference: `docs/modules/vibe-booking/architecture.md`, `docs/modules/ai-chat/architecture.md`, `docs/platform/architecture/realtime-and-ai.md`*
+*Reference: `docs/platform/architecture/realtime-and-ai.md`, `docs/product/prd.md`*
