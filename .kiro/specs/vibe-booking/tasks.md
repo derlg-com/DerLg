@@ -1,7 +1,8 @@
 # Implementation Tasks: Vibe Booking — AI Travel Concierge (AI Agent Service)
 
 > **Service directory:** `vibe-booking/`
-> **Reference:** `docs/modules/vibe-booking/`, `docs/platform/architecture/realtime-and-ai.md`
+> **Canonical spec:** `.kiro/specs/vibe-booking/` (requirements.md, design.md, tasks.md)
+> **Note:** `docs/modules/vibe-booking/` and `docs/modules/ai-chat/` were identical; both now redirect here.
 
 ---
 
@@ -170,7 +171,7 @@
 - [x] 8.2 Pass `Accept-Language` header to all backend tool calls
 - [x] 8.3 Include language-specific instructions in system prompt
 - [x] 8.4 WHEN `preferred_language == "km"`, always use `gpt-oss-120bClient` (best Khmer support)
-- [ ] 8.5 Write integration tests for all three languages
+- [x] 8.5 Write integration tests for all three languages
 
 ---
 
@@ -181,7 +182,7 @@
 - [x] 9.3 Implement circuit breaker in `BackendClient` (5 failures → open, 60s cooldown) — *cooldown is 30s; needs update to 60s*
 - [x] 9.4 Handle Redis connection failures gracefully (log + attempt reconnect)
 - [x] 9.5 Sanitize all error messages before sending to WebSocket clients
-- [ ] 9.6 Write unit tests for timeout and circuit breaker scenarios
+- [x] 9.6 Write unit tests for timeout and circuit breaker scenarios
 
 ---
 
@@ -205,15 +206,15 @@
 - [x] 11.1.3 Response formatter (all message types)
 - [x] 11.1.4 Session side effects (booking_id stored, state transitions)
 - [x] 11.1.5 Rate limiting logic
-- [ ] 11.1.6 Achieve ≥ 80% code coverage
+- [x] 11.1.6 Achieve ≥ 80% code coverage — *83% achieved (78 tests)*
 
 ### Task 11.2: Integration Tests
 
-- [ ] 11.2.1 Full WebSocket flow (connect → auth → message → response → disconnect)
+- [x] 11.2.1 Full WebSocket flow (connect → auth → message → response → disconnect)
 - [x] 11.2.2 Tool execution with mocked backend
 - [x] 11.2.3 Payment handoff flow (requires_payment → payment_completed → confirmation)
-- [ ] 11.2.4 Session persistence (save, load, reconnect)
-- [ ] 11.2.5 State machine execution (all stages)
+- [x] 11.2.4 Session persistence (save, load, reconnect)
+- [x] 11.2.5 State machine execution (all stages)
 
 ### Task 11.3: Property-Based Tests (Hypothesis)
 
@@ -260,4 +261,4 @@
 
 ---
 
-*Reference: `docs/modules/vibe-booking/`, `docs/modules/ai-chat/`, `docs/platform/architecture/realtime-and-ai.md`, `.kiro/steering/structure.md`*
+*Reference: `.kiro/specs/vibe-booking/requirements.md`, `.kiro/specs/vibe-booking/design.md`, `docs/platform/architecture/realtime-and-ai.md`*

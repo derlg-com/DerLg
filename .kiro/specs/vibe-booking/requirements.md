@@ -1,6 +1,6 @@
 # Requirements: Vibe Booking — AI Travel Concierge (AI Agent Service)
 
-> **Source of truth:** `docs/modules/vibe-booking/`, `docs/modules/ai-chat/`, `docs/platform/architecture/realtime-and-ai.md`
+> **Source of truth:** `.kiro/specs/vibe-booking/requirements.md` (this file)
 > **Feature IDs:** F10–F16
 > **Scope:** MVP
 > **Service directory:** `vibe-booking/`
@@ -296,4 +296,4 @@ The AI Agent **CANNOT**:
 
 ---
 
-*Reference: `docs/modules/vibe-booking/requirements.md`, `docs/modules/ai-chat/requirements.md`, `docs/platform/architecture/realtime-and-ai.md`*
+*Reference: `docs/platform/architecture/realtime-and-ai.md`, `docs/product/prd.md`*

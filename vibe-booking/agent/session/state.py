@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 import json
 from pydantic import BaseModel, field_validator
 
@@ -17,10 +17,15 @@ class AgentState(str, Enum):
 
 class ConversationState(BaseModel):
     session_id: str
+    conversation_id: str = ""          # R4.1 — logical conversation ID (may differ from session_id)
     user_id: str = ""
     state: AgentState = AgentState.DISCOVERY
     messages: list[dict] = []
     preferred_language: str = "EN"
+    intent: Optional[str] = None       # R4.1 — detected intent: plan | book | ask | emergency
+    pending_tool_calls: list[dict] = [] # R4.1 — tool calls awaiting results
+    last_action: Optional[str] = None  # R4.1 — last agent action taken
+    context: dict[str, Any] = {}       # R4.1 — arbitrary session context (dates, budget, etc.)
     suggested_trip_ids: list[str] = []
     selected_trip_id: str = ""
     selected_trip_name: str = ""
@@ -45,3 +50,4 @@ class ConversationState(BaseModel):
     @classmethod
     def from_json(cls, data: str) -> "ConversationState":
         return cls.model_validate_json(data)
+
