@@ -1,0 +1,26 @@
+# =============================================================================
+# DerLg Backend — Development Docker Compose
+# =============================================================================
+# Development uses Supabase for PostgreSQL, so this file only provides Redis.
+# Run: docker-compose up -d
+# =============================================================================
+
+version: "3.9"
+
+services:
+  redis:
+    image: redis:8.6-alpine
+    container_name: derlg-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - derlg-dev
+
+networks:
+  derlg-dev:
+    driver: bridge

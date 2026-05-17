@@ -1,0 +1,508 @@
+{
+  "_meta": {
+    "name": "DerLg Vibe Booking — AI Agent Tool Registry",
+    "version": "1.0.0",
+    "description": "All backend API tools available to the Vibe Booking LangGraph AI agent. Tools are grouped by module. Each tool includes method, path, auth requirements, parameters, and what it returns.",
+    "baseUrl": "http://localhost:3001/v1",
+    "auth": {
+      "user": "Bearer JWT in Authorization header (15-min expiry)",
+      "service": "X-Service-Key header (internal AI-to-backend calls)"
+    },
+    "modules": [
+      "trip-discovery",
+      "hotel-booking",
+      "transportation",
+      "tour-guide",
+      "explore-places",
+      "vibe-booking-ai",
+      "bookings",
+      "payments",
+      "loyalty",
+      "emergency",
+      "festivals",
+      "user-profile"
+    ]
+  },
+
+  "tools": {
+
+    "trip_discovery": [
+      {
+        "name": "list_trips",
+        "description": "Browse curated Cambodia trip packages. Use when the user asks about travel itineraries or tours. Filter by category (Temples, Nature, Culture, Adventure, Food), location, price, or duration.",
+        "method": "GET",
+        "path": "/trips",
+        "auth": false,
+        "query_params": ["featured", "category", "location", "min_price", "max_price", "duration_days", "sort", "page", "limit"]
+      },
+      {
+        "name": "get_trip_detail",
+        "description": "Get full trip details including daily itinerary, included/excluded items, meeting point, and cancellation policy. Use when the user selects a trip or wants deeper info.",
+        "method": "GET",
+        "path": "/trips/{slug}",
+        "auth": false,
+        "path_params": ["slug"]
+      },
+      {
+        "name": "get_related_trips",
+        "description": "Get trips in the same category/location as a given trip. Use for 'You might also like' recommendations.",
+        "method": "GET",
+        "path": "/trips/{slug}/related",
+        "auth": false,
+        "path_params": ["slug"],
+        "query_params": ["limit"]
+      },
+      {
+        "name": "global_search",
+        "description": "Full-text search across trips, places, hotels, and guides. Use for general user queries. Returns grouped results by entity type.",
+        "method": "GET",
+        "path": "/search",
+        "auth": false,
+        "query_params": ["q", "type", "page", "limit"]
+      },
+      {
+        "name": "get_trip_reviews",
+        "description": "Get paginated reviews and average rating for a trip. Verified reviews include a badge.",
+        "method": "GET",
+        "path": "/trips/{tripId}/reviews",
+        "auth": false,
+        "path_params": ["tripId"],
+        "query_params": ["page", "limit"]
+      },
+      {
+        "name": "get_user_favorite_trips",
+        "description": "Get the authenticated user's saved/wishlisted trips for personalized recommendations.",
+        "method": "GET",
+        "path": "/users/me/favorites",
+        "auth": true,
+        "query_params": ["page", "limit"]
+      }
+    ],
+
+    "hotel_booking": [
+      {
+        "name": "list_hotels",
+        "description": "Search hotels in Cambodia by location, price, star rating, or amenities. Returns paginated summaries with pricing.",
+        "method": "GET",
+        "path": "/hotels",
+        "auth": false,
+        "query_params": ["location", "min_price", "max_price", "star_rating", "amenities", "sort", "page", "limit"]
+      },
+      {
+        "name": "get_hotel_detail",
+        "description": "Get full hotel details including all room types, gallery, policies, and check-in/check-out times.",
+        "method": "GET",
+        "path": "/hotels/{slug}",
+        "auth": false,
+        "path_params": ["slug"]
+      },
+      {
+        "name": "check_hotel_room_availability",
+        "description": "Check real-time availability and total price for a room. Always call before creating a hotel booking.",
+        "method": "GET",
+        "path": "/hotels/{hotelId}/rooms/{roomId}/availability",
+        "auth": false,
+        "path_params": ["hotelId", "roomId"],
+        "query_params": ["check_in_date", "check_out_date", "guests_adults"],
+        "required_query": ["check_in_date", "check_out_date", "guests_adults"]
+      },
+      {
+        "name": "create_hotel_booking",
+        "description": "Create a hotel booking with 15-minute hold (HOLD status). Use after confirming availability and user consent. Requires auth.",
+        "method": "POST",
+        "path": "/hotels/{hotelId}/bookings",
+        "auth": true,
+        "path_params": ["hotelId"],
+        "body_required": ["room_id", "check_in_date", "check_out_date", "guests_adults"],
+        "body_optional": ["guests_children", "special_requests"]
+      },
+      {
+        "name": "get_hotel_booking",
+        "description": "Get hotel booking details and current status (HOLD | PENDING_PAYMENT | CONFIRMED | CANCELLED | EXPIRED).",
+        "method": "GET",
+        "path": "/hotels/{hotelId}/bookings/{bookingId}",
+        "auth": true,
+        "path_params": ["hotelId", "bookingId"]
+      },
+      {
+        "name": "cancel_hotel_booking",
+        "description": "Cancel a hotel booking. Refund based on cancellation policy. Confirm with user before calling.",
+        "method": "POST",
+        "path": "/hotels/{hotelId}/bookings/{bookingId}/cancel",
+        "auth": true,
+        "path_params": ["hotelId", "bookingId"],
+        "body_optional": ["reason"]
+      }
+    ],
+
+    "transportation": [
+      {
+        "name": "list_vehicles",
+        "description": "Search transportation vehicles (VAN, BUS, TUK_TUK, PRIVATE_CAR). Filter by type, capacity, AC, and date range.",
+        "method": "GET",
+        "path": "/transportation/vehicles",
+        "auth": false,
+        "query_params": ["type", "capacity", "has_ac", "start_date", "end_date", "sort", "page", "limit"]
+      },
+      {
+        "name": "get_vehicle_detail",
+        "description": "Get full vehicle details including specs, photos, and pricing. Driver info revealed 24h before booking.",
+        "method": "GET",
+        "path": "/transportation/vehicles/{id}",
+        "auth": false,
+        "path_params": ["id"]
+      },
+      {
+        "name": "check_vehicle_availability",
+        "description": "Check vehicle availability for a date range and get a price estimate. Always call before booking.",
+        "method": "GET",
+        "path": "/transportation/vehicles/{id}/availability",
+        "auth": false,
+        "path_params": ["id"],
+        "query_params": ["start_date", "end_date"],
+        "required_query": ["start_date", "end_date"]
+      },
+      {
+        "name": "create_transportation_booking",
+        "description": "Book a vehicle with 15-minute hold. Requires pickup and dropoff locations. Requires auth.",
+        "method": "POST",
+        "path": "/transportation/bookings",
+        "auth": true,
+        "body_required": ["vehicle_id", "start_date", "end_date", "pickup_location", "dropoff_location"],
+        "body_optional": ["stops", "estimated_distance_km"]
+      },
+      {
+        "name": "list_transportation_bookings",
+        "description": "List the user's transportation bookings. Filter by status.",
+        "method": "GET",
+        "path": "/transportation/bookings",
+        "auth": true,
+        "query_params": ["status", "page", "limit"]
+      },
+      {
+        "name": "get_transportation_booking",
+        "description": "Get details of a specific transport booking. Driver info revealed 24h before start date.",
+        "method": "GET",
+        "path": "/transportation/bookings/{id}",
+        "auth": true,
+        "path_params": ["id"]
+      },
+      {
+        "name": "cancel_transportation_booking",
+        "description": "Cancel transport booking. Tiered refund: 100% if ≥7 days, 50% if 1–7 days, 0% if <24h before.",
+        "method": "PATCH",
+        "path": "/transportation/bookings/{id}/cancel",
+        "auth": true,
+        "path_params": ["id"]
+      }
+    ],
+
+    "tour_guide": [
+      {
+        "name": "list_guides",
+        "description": "Browse verified tour guides. Filter by language (EN/ZH/KM), specialty, location, gender, verification, and price. Key for finding Chinese-speaking guides.",
+        "method": "GET",
+        "path": "/guides",
+        "auth": false,
+        "query_params": ["language", "specialty", "location", "gender", "is_verified", "min_price", "max_price", "sort", "page", "limit"]
+      },
+      {
+        "name": "get_guide_detail",
+        "description": "Get a guide's full profile including bio, experience, certifications, gallery, and verified reviews.",
+        "method": "GET",
+        "path": "/guides/{id}",
+        "auth": false,
+        "path_params": ["id"]
+      },
+      {
+        "name": "check_guide_availability",
+        "description": "Check guide availability for a date range and get price estimate (daily rate × days). Always call before booking.",
+        "method": "GET",
+        "path": "/guides/{id}/availability",
+        "auth": false,
+        "path_params": ["id"],
+        "query_params": ["start_date", "end_date"],
+        "required_query": ["start_date", "end_date"]
+      },
+      {
+        "name": "create_guide_booking",
+        "description": "Book a guide with 15-minute hold. Contact details revealed 24h before start. Requires auth.",
+        "method": "POST",
+        "path": "/guides/{guideId}/bookings",
+        "auth": true,
+        "path_params": ["guideId"],
+        "body_required": ["start_date", "end_date"],
+        "body_optional": ["linked_trip_booking_id", "special_requests"]
+      },
+      {
+        "name": "get_guide_booking",
+        "description": "Get details of a specific guide booking and its current status.",
+        "method": "GET",
+        "path": "/guides/{guideId}/bookings/{bookingId}",
+        "auth": true,
+        "path_params": ["guideId", "bookingId"]
+      },
+      {
+        "name": "cancel_guide_booking",
+        "description": "Cancel a guide booking. Refund depends on cancellation policy and timing. Confirm with user first.",
+        "method": "POST",
+        "path": "/guides/{guideId}/bookings/{bookingId}/cancel",
+        "auth": true,
+        "path_params": ["guideId", "bookingId"],
+        "body_optional": ["reason"]
+      }
+    ],
+
+    "explore_places": [
+      {
+        "name": "list_places",
+        "description": "Browse Cambodia places of interest by category (Temple, Museum, Nature, Market, Beach, Mountain) and province.",
+        "method": "GET",
+        "path": "/places",
+        "auth": false,
+        "query_params": ["category", "province", "sort", "page", "limit"]
+      },
+      {
+        "name": "get_place_detail",
+        "description": "Get full place details including description, visitor tips, dress code, opening hours, and GPS coordinates.",
+        "method": "GET",
+        "path": "/places/{slug}",
+        "auth": false,
+        "path_params": ["slug"]
+      },
+      {
+        "name": "get_nearby_places_by_coordinates",
+        "description": "Find places near GPS coordinates within a radius. Use when user shares location or asks 'what is near me?'",
+        "method": "GET",
+        "path": "/places/nearby",
+        "auth": false,
+        "query_params": ["lat", "lng", "radius", "category", "limit"],
+        "required_query": ["lat", "lng"]
+      },
+      {
+        "name": "get_trips_visiting_place",
+        "description": "Get trip packages that include a specific place in their itinerary.",
+        "method": "GET",
+        "path": "/places/{slug}/nearby-trips",
+        "auth": false,
+        "path_params": ["slug"],
+        "query_params": ["limit"]
+      }
+    ],
+
+    "vibe_booking_ai_tools": {
+      "_note": "These endpoints use X-Service-Key auth (internal AI-to-backend). Not user-facing JWT.",
+      "tools": [
+        {
+          "name": "ai_search_trips",
+          "description": "AI-native semantic trip search using a natural language query. Prefer this over list_trips when the user's intent needs semantic matching (e.g., 'relaxing beach trip under $200').",
+          "method": "POST",
+          "path": "/ai-tools/search/trips",
+          "auth": "serviceKey",
+          "body_required": ["query", "locale"],
+          "body_optional": ["user_id", "max_results"]
+        },
+        {
+          "name": "ai_create_booking_hold",
+          "description": "Create a multi-item booking hold (TRIP + HOTEL + TRANSPORT + GUIDE) from the AI chat in one call. Use after user confirms intent to book.",
+          "method": "POST",
+          "path": "/ai-tools/bookings",
+          "auth": "serviceKey",
+          "body_required": ["user_id", "items"],
+          "body_optional": ["currency"]
+        },
+        {
+          "name": "ai_generate_payment_qr",
+          "description": "Generate BAKONG or ABA QR payment from the chat. Display qr_image_url to the user for scanning.",
+          "method": "POST",
+          "path": "/ai-tools/payments/qr",
+          "auth": "serviceKey",
+          "body_required": ["booking_id", "provider"]
+        },
+        {
+          "name": "ai_estimate_budget",
+          "description": "Estimate total trip budget from a natural language query. Returns min/max with category breakdown (accommodation, transport, meals, entry_fees, guide, misc).",
+          "method": "POST",
+          "path": "/ai-tools/budget/estimate",
+          "auth": "serviceKey",
+          "body_required": ["query", "locale"],
+          "body_optional": ["currency"]
+        }
+      ]
+    },
+
+    "bookings": [
+      {
+        "name": "create_booking",
+        "description": "Unified booking creation endpoint for any item type (TRIP, HOTEL, TRANSPORT, GUIDE). Creates a 15-minute hold. Use for multi-item bookings.",
+        "method": "POST",
+        "path": "/bookings",
+        "auth": true,
+        "body_required": ["items", "currency"],
+        "body_optional": ["guest_email"]
+      },
+      {
+        "name": "list_bookings",
+        "description": "List all bookings for the authenticated user. Filter by upcoming, past, cancelled, or all.",
+        "method": "GET",
+        "path": "/bookings",
+        "auth": true,
+        "query_params": ["status", "page", "limit"]
+      },
+      {
+        "name": "get_booking_detail",
+        "description": "Get full booking details including all items, total price, hold expiry, and cancellation info.",
+        "method": "GET",
+        "path": "/bookings/{id}",
+        "auth": true,
+        "path_params": ["id"]
+      },
+      {
+        "name": "cancel_booking",
+        "description": "Cancel any booking. Always confirm with the user before calling — cancellation may be irreversible.",
+        "method": "POST",
+        "path": "/bookings/{id}/cancel",
+        "auth": true,
+        "path_params": ["id"],
+        "body_optional": ["reason"]
+      },
+      {
+        "name": "get_booking_qr",
+        "description": "Get the QR code for a confirmed booking (for check-in at hotel, tour, or transport pickup).",
+        "method": "GET",
+        "path": "/bookings/{id}/qr",
+        "auth": true,
+        "path_params": ["id"]
+      }
+    ],
+
+    "payments": [
+      {
+        "name": "create_payment_intent",
+        "description": "Create a Stripe payment intent for card-based payment. Supports discount codes and loyalty point redemption.",
+        "method": "POST",
+        "path": "/payments/intent",
+        "auth": true,
+        "body_required": ["booking_id", "payment_method"],
+        "body_optional": ["currency", "discount_code", "loyalty_points_to_redeem"]
+      },
+      {
+        "name": "generate_payment_qr",
+        "description": "Generate a BAKONG or ABA QR code for payment. Display qr_image_url in the conversation for user to scan.",
+        "method": "POST",
+        "path": "/payments/qr",
+        "auth": true,
+        "body_required": ["booking_id", "provider"]
+      },
+      {
+        "name": "get_payment_status",
+        "description": "Poll payment status after QR scan or card submission. Status: PENDING | SUCCEEDED | FAILED | REFUNDED.",
+        "method": "GET",
+        "path": "/payments/{id}/status",
+        "auth": true,
+        "path_params": ["id"]
+      },
+      {
+        "name": "validate_discount_code",
+        "description": "Validate a promo/discount code and calculate discount amount before applying. Returns is_valid, discount_amount_usd, and user-facing message.",
+        "method": "POST",
+        "path": "/discount-codes/validate",
+        "auth": false,
+        "body_required": ["code", "booking_value_usd"],
+        "body_optional": ["item_types"]
+      }
+    ],
+
+    "loyalty": [
+      {
+        "name": "get_loyalty_balance",
+        "description": "Get the user's loyalty points balance, USD equivalent, and expiry warnings. Use before checkout.",
+        "method": "GET",
+        "path": "/loyalty/balance",
+        "auth": true
+      },
+      {
+        "name": "calculate_loyalty_redemption",
+        "description": "Preview how much discount X points gives against a booking subtotal. Points must be multiples of 100, min 100.",
+        "method": "POST",
+        "path": "/loyalty/redeem",
+        "auth": true,
+        "body_required": ["points", "subtotal_usd"]
+      },
+      {
+        "name": "get_loyalty_transactions",
+        "description": "Get loyalty points transaction history (EARNED, REDEEMED, ADJUSTED, EXPIRED).",
+        "method": "GET",
+        "path": "/loyalty/transactions",
+        "auth": true,
+        "query_params": ["type", "page", "limit"]
+      }
+    ],
+
+    "emergency": [
+      {
+        "name": "send_sos_alert",
+        "description": "Send SOS alert with GPS coordinates to DerLg support. Use ONLY for real emergencies (SOS, MEDICAL, THEFT, LOST). Triggers push + SMS to support team.",
+        "method": "POST",
+        "path": "/emergency/alerts",
+        "auth": true,
+        "body_required": ["type", "latitude", "longitude"],
+        "body_optional": ["accuracy_meters", "notes"]
+      },
+      {
+        "name": "get_emergency_contacts",
+        "description": "Look up Police, Hospital, Fire, and Tourist Police contacts for a Cambodia province or GPS location.",
+        "method": "GET",
+        "path": "/emergency/contacts",
+        "auth": false,
+        "query_params": ["province", "lat", "lng"]
+      },
+      {
+        "name": "create_location_share",
+        "description": "Create a shareable live location link for safety (24h or 72h duration). Returns a URL to share with family/friends.",
+        "method": "POST",
+        "path": "/location-shares",
+        "auth": true,
+        "body_required": ["expires_in_hours"]
+      }
+    ],
+
+    "festivals": [
+      {
+        "name": "list_festivals",
+        "description": "List upcoming Cambodia cultural festivals. Filter by month, year, province, or category (Religious, Cultural, National, Regional).",
+        "method": "GET",
+        "path": "/festivals",
+        "auth": false,
+        "query_params": ["month", "year", "province", "category", "upcoming", "page", "limit"]
+      },
+      {
+        "name": "get_festival_detail",
+        "description": "Get festival details including description, history, travel tips, and any associated discount code.",
+        "method": "GET",
+        "path": "/festivals/{slug}",
+        "auth": false,
+        "path_params": ["slug"]
+      },
+      {
+        "name": "get_festival_related_trips",
+        "description": "Get bookable trip packages themed around a specific festival.",
+        "method": "GET",
+        "path": "/festivals/{slug}/related-trips",
+        "auth": false,
+        "path_params": ["slug"],
+        "query_params": ["limit"]
+      }
+    ],
+
+    "user_profile": [
+      {
+        "name": "get_current_user_profile",
+        "description": "Get the authenticated user's profile: name, preferred language (EN/ZH/KM), student_status, loyalty_balance, and emergency contacts. Call at conversation start for personalization.",
+        "method": "GET",
+        "path": "/users/me",
+        "auth": true
+      }
+    ]
+  }
+}

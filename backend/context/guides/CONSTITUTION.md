@@ -321,7 +321,7 @@ All AI tool endpoints:
 - NestJS `onApplicationShutdown` hook
 
 ### 10.4 Environment Validation
-- All env vars validated at startup via `ConfigModule` + `Joi` or `class-validator`
+- All env vars validated at startup via `ConfigModule` + `Zod` or `class-validator`
 - Missing required vars → process exits with code 1 and clear error message
 - No fallback defaults for secrets or database URLs
 
@@ -335,7 +335,7 @@ This constitution changes by **explicit amendment only**:
 2. Review against existing modules for impact
 3. Update this document
 4. Update affected modules
-5. Record amendment in decision log (see `docs/platform/backend/ROADMAP.md`)
+5. Record amendment in decision log (see `context/plans/roadmap.md`)
 
 **What requires amendment:**
 - Adding a new module dependency rule

@@ -1,0 +1,192 @@
+{
+  "module": "trip-discovery",
+  "description": "Tools for discovering, searching, and reviewing Cambodia trip packages. The Vibe Booking AI agent uses these tools to help users explore curated trips, find itineraries matching their interests, and manage reviews.",
+  "baseUrl": "http://localhost:3001/v1",
+  "tools": [
+    {
+      "name": "list_trips",
+      "description": "Browse and filter Cambodia trip packages. Use when the user asks about travel packages, itineraries, or tours. Supports filtering by category (Temples, Nature, Culture, Adventure, Food), location, price range, and duration.",
+      "method": "GET",
+      "path": "/trips",
+      "auth": false,
+      "parameters": {
+        "query": {
+          "featured": {
+            "type": "boolean",
+            "description": "Return only featured/highlighted trips",
+            "required": false
+          },
+          "category": {
+            "type": "string",
+            "enum": ["Temples", "Nature", "Culture", "Adventure", "Food"],
+            "description": "Trip category filter",
+            "required": false
+          },
+          "location": {
+            "type": "string",
+            "description": "Province or area (e.g., 'Siem Reap', 'Kampot')",
+            "required": false
+          },
+          "min_price": {
+            "type": "number",
+            "description": "Minimum trip price in USD",
+            "required": false
+          },
+          "max_price": {
+            "type": "number",
+            "description": "Maximum trip price in USD",
+            "required": false
+          },
+          "duration_days": {
+            "type": "integer",
+            "description": "Filter by exact trip duration in days",
+            "required": false
+          },
+          "sort": {
+            "type": "string",
+            "enum": ["featured", "price_asc", "price_desc", "duration_asc", "rating_desc"],
+            "description": "Sort order (default: featured)",
+            "required": false
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number (default: 1)",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page (max 50, default: 20)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Paginated list of trips with id, slug, name, category, location, duration_days, price_usd, rating_average, is_featured"
+    },
+    {
+      "name": "get_trip_detail",
+      "description": "Get full details of a specific trip including daily itinerary, included/excluded items, meeting point, cancellation policy, and maximum guest capacity. Use when the user wants to know more about a trip before booking.",
+      "method": "GET",
+      "path": "/trips/{slug}",
+      "auth": false,
+      "parameters": {
+        "path": {
+          "slug": {
+            "type": "string",
+            "description": "URL-friendly trip identifier (from list_trips)",
+            "required": true
+          }
+        }
+      },
+      "returns": "Full trip details with itinerary_days, included_items, excluded_items, meeting_point, cancellation_policy, max_guests, status"
+    },
+    {
+      "name": "get_related_trips",
+      "description": "Get trips related to a specific trip (same category and location). Use for 'You might also like' recommendations after a user views a trip.",
+      "method": "GET",
+      "path": "/trips/{slug}/related",
+      "auth": false,
+      "parameters": {
+        "path": {
+          "slug": {
+            "type": "string",
+            "description": "Trip slug",
+            "required": true
+          }
+        },
+        "query": {
+          "limit": {
+            "type": "integer",
+            "description": "Maximum related trips to return (max 8, default: 4)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Array of related TripSummary objects"
+    },
+    {
+      "name": "global_search",
+      "description": "Perform a full-text search across trips, places, hotels, and guides simultaneously. Use when the user types a general search query or destination name. Returns grouped results by entity type.",
+      "method": "GET",
+      "path": "/search",
+      "auth": false,
+      "parameters": {
+        "query": {
+          "q": {
+            "type": "string",
+            "description": "Search query string (1–100 characters)",
+            "required": true
+          },
+          "type": {
+            "type": "string",
+            "enum": ["all", "trip", "place", "hotel", "guide"],
+            "description": "Restrict search to a specific entity type (default: all)",
+            "required": false
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number (default: 1)",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page (max 50, default: 20)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Grouped search results: trips, places, hotels, guides — each with items array and total count"
+    },
+    {
+      "name": "get_trip_reviews",
+      "description": "Get paginated reviews for a specific trip including average rating. Reviews include a verified badge when the reviewer has a confirmed booking. Use to help users make informed decisions about a trip.",
+      "method": "GET",
+      "path": "/trips/{tripId}/reviews",
+      "auth": false,
+      "parameters": {
+        "path": {
+          "tripId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Trip UUID",
+            "required": true
+          }
+        },
+        "query": {
+          "page": {
+            "type": "integer",
+            "description": "Page number (default: 1)",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Reviews per page (max 50, default: 10)",
+            "required": false
+          }
+        }
+      },
+      "returns": "items (reviews with user_name, rating, text, is_verified), total, averageRating"
+    },
+    {
+      "name": "get_user_favorite_trips",
+      "description": "Get the authenticated user's saved/wishlisted trips. Use to personalize recommendations or show the user their saved trips.",
+      "method": "GET",
+      "path": "/users/me/favorites",
+      "auth": true,
+      "parameters": {
+        "query": {
+          "page": {
+            "type": "integer",
+            "description": "Page number (default: 1)",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page (max 50, default: 20)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Paginated list of favorite TripSummary objects"
+    }
+  ]
+}

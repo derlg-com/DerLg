@@ -74,7 +74,7 @@ The DerLg backend is the central nervous system of a Cambodia travel booking pla
 
 ## Definition of Done (Backend v1.0)
 
-All Phase 0–13 milestones from `ROADMAP.md` are complete, plus:
+All Phase 0–13 milestones from `roadmap.md` are complete, plus:
 
 - [ ] E2E test suite passes end-to-end for: register → book → pay → cancel → refund
 - [ ] Load test: 100 concurrent bookings with zero overbooking
@@ -114,4 +114,4 @@ Admin monitors via dashboard
 
 - Constitution (rules): `CONSTITUTION.md`
 - Tech stack: `TECH-STACK.md`
-- Roadmap: `plans/ROADMAP.md`
+- Roadmap: `plans/roadmap.md`
