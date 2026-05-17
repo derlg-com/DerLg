@@ -162,13 +162,13 @@ ALL_TOOLS = [
 
 # Maps tool name → (HTTP method, backend path)
 TOOL_DISPATCH: dict[str, tuple[str, str]] = {
-    "search_trips":         ("POST", "ai-tools/search/trips"),
-    "search_hotels":        ("GET",  "hotels"),
-    "search_guides":        ("GET",  "guides"),
-    "check_availability":   ("GET",  "ai-tools/availability"),
-    "create_booking_hold":  ("POST", "ai-tools/bookings"),
-    "get_weather":          ("GET",  "ai-tools/weather"),
-    "get_emergency_contacts": ("GET", "emergency/contacts"),
-    "send_sos_alert":       ("POST", "emergency/alerts"),
-    "get_user_loyalty":     ("GET",  "loyalty/balance"),
+    "search_trips":           ("POST", "ai-tools/search/trips"),
+    "search_hotels":          ("GET",  "ai-tools/hotels"),
+    "search_guides":          ("GET",  "ai-tools/guides"),
+    "check_availability":     ("GET",  "ai-tools/availability"),
+    "create_booking_hold":    ("POST", "ai-tools/bookings"),
+    "get_weather":            ("GET",  "ai-tools/weather"),
+    "get_emergency_contacts": ("GET",  "ai-tools/emergency-contacts"),
+    "send_sos_alert":         ("POST", "ai-tools/sos"),
+    "get_user_loyalty":       ("GET",  "ai-tools/loyalty"),
 }

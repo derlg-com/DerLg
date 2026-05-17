@@ -172,7 +172,20 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                         await websocket.send_json(response)
                     else:
                         await websocket.send_json({"type": "typing_end"})
-                        await websocket.send_json({"type": "agent_message", "state": session.state.value, **response})
+                        # Wrap response in agent_message to avoid 'type' collision (RFE: frontend expects content_payload)
+                        resp_type = response.pop("type", "text")
+                        resp_text = response.pop("text", "")
+                        await websocket.send_json({
+                            "type": "agent_message",
+                            "text": resp_text,
+                            "content_payload": {
+                                "type": resp_type,
+                                "data": response,
+                                "actions": [],
+                                "metadata": {},
+                            },
+                            "state": session.state.value,
+                        })
                 except Exception as exc:
                     logger.error("agent_error", session_id=session_id, error=str(exc))
                     await websocket.send_json({"type": "typing_end"})
@@ -183,7 +196,19 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 session.payment_status = "CONFIRMED"
                 await session_manager.save(session)
                 response = await run_agent(session, f"Payment completed for booking {booking_id}. Please confirm.")
-                await websocket.send_json({"type": "agent_message", "state": session.state.value, **response})
+                resp_type = response.pop("type", "text")
+                resp_text = response.pop("text", "")
+                await websocket.send_json({
+                    "type": "agent_message",
+                    "text": resp_text,
+                    "content_payload": {
+                        "type": resp_type,
+                        "data": response,
+                        "actions": [],
+                        "metadata": {},
+                    },
+                    "state": session.state.value,
+                })
 
     except WebSocketDisconnect:
         pass

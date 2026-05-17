@@ -226,7 +226,7 @@
 
 ## Phase 12: Integration with Backend and Frontend
 
-- [ ] 12.1 Verify all 9 `/v1/ai-tools/*` backend endpoints are implemented and accept `X-Service-Key`
+- [x] 12.1 Verify all 9 `/v1/ai-tools/*` backend endpoints are implemented and accept `X-Service-Key` — *implemented in `backend/src/ai-tools/`*
 - [ ] 12.2 Test each tool end-to-end with the running backend
 - [ ] 12.3 Verify frontend can connect to `ws://localhost:8000/ws/chat`
 - [ ] 12.4 Test `requires_payment` → frontend payment UI → `payment_completed` → confirmation flow
