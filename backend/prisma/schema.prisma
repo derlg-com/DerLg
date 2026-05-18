@@ -36,6 +36,10 @@ enum UserRole {
   guide
   admin
   student // granted after verification (F62)
+  super_admin
+  operations_manager
+  fleet_manager
+  support_agent
 
   @@map("user_role")
 }
@@ -883,8 +887,10 @@ model EmergencyAlert {
 
   // Relations
   user            User                 @relation(fields: [userId], references: [id])
+  driverId        String?              @map("driver_id") @db.Uuid
 
   @@index([userId])
+  @@index([driverId])
   @@index([status])
   @@index([alertType])
   @@index([createdAt])

@@ -1,3 +1,4 @@
+vibe-booking-frontend/
 # Dependencies
 node_modules/
 .pnp
@@ -15,7 +16,7 @@ vibe-booking/**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
-
+.playwright-mcp/
 # Python test & coverage artifacts
 vibe-booking/.hypothesis/
 vibe-booking/.pytest_cache/
