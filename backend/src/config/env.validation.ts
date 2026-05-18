@@ -25,6 +25,9 @@ export const envSchema = z.object({
   RESEND_API_KEY: z.string().default(''),
   FCM_SERVER_KEY: z.string().default(''),
   EXCHANGE_RATE_API_KEY: z.string().default(''),
+  GOOGLE_CLIENT_ID: z.string().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().default(''),
+  FRONTEND_URL: z.string().default('http://localhost:3000'),
 });
 
 export type Env = z.infer<typeof envSchema>;

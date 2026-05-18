@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsNumber, IsDateString, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsDateString,
+  IsIn,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SearchTripsDto {

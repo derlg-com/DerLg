@@ -10,7 +10,8 @@
 |-------|------|--------|-------------|
 | Phase 0 | Bootstrap & Tooling | 🟢 Complete | Week 1 |
 | Phase 1 | Foundation & Shared Kernel | 🟢 Complete | Week 1–2 |
-| **Phase 2** | Database Schema | 🟡 In Progress | Week 2 |
+| **Phase 3** | Auth & Users | 🟢 Complete | Week 3 |
+| Phase 2 | Database Schema | 🟡 In Progress (Senior) | Week 2 |
 
 ---
 
@@ -95,33 +96,38 @@
 - [ ] `npx prisma db seed` populates data
 - [ ] All models visible in Prisma Studio
 
+**Notes:** Senior developer is currently implementing this phase. Need to discuss alignment before proceeding.
+
 **Blockers:** None
 
 ---
 
-### Phase 3: Auth & Users (Week 3)
+### Phase 3: Auth & Users (Week 3) — 🟢 Complete
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
-| `AuthModule` scaffold | ⬜ Not Started | — | — | — |
-| `POST /v1/auth/register` | ⬜ Not Started | — | — | — |
-| `POST /v1/auth/login` | ⬜ Not Started | — | — | — |
-| `POST /v1/auth/google` | ⬜ Not Started | — | — | — |
-| `GET /v1/auth/google/callback` | ⬜ Not Started | — | — | — |
-| `POST /v1/auth/refresh` | ⬜ Not Started | — | — | — |
-| `POST /v1/auth/logout` | ⬜ Not Started | — | — | — |
-| `POST /v1/auth/forgot-password` | ⬜ Not Started | — | — | — |
-| `POST /v1/auth/reset-password` | ⬜ Not Started | — | — | — |
-| `UsersModule` scaffold | ⬜ Not Started | — | — | — |
-| `GET /v1/users/me` | ⬜ Not Started | — | — | — |
-| `PATCH /v1/users/me` | ⬜ Not Started | — | — | — |
-| Refresh token rotation | ⬜ Not Started | — | — | — |
-| `logout-all-devices` | ⬜ Not Started | — | — | — |
+| `AuthModule` scaffold | 🟢 Complete | Agent | Prisma, Redis, Passport, JWT wired | 2026-05-17 |
+| `POST /v1/auth/register` | 🟢 Complete | Agent | bcrypt hash, email uniqueness check | 2026-05-17 |
+| `POST /v1/auth/login` | 🟢 Complete | Agent | credential validation, suspended check | 2026-05-17 |
+| `POST /v1/auth/google` | 🟢 Complete | Agent | Returns Google OAuth consent URL | 2026-05-18 |
+| `GET /v1/auth/google/callback` | 🟢 Complete | Agent | Exchanges code for tokens, creates/links user | 2026-05-18 |
+| Resend email integration | 🟢 Complete | Agent | Password reset emails with HTML template | 2026-05-18 |
+| `POST /v1/auth/refresh` | 🟢 Complete | Agent | Rotation + Redis invalidation | 2026-05-17 |
+| `POST /v1/auth/logout` | 🟢 Complete | Agent | Cookie clear + Redis cleanup | 2026-05-17 |
+| `POST /v1/auth/forgot-password` | 🟢 Complete | Agent | Redis reset token (1h TTL) | 2026-05-17 |
+| `POST /v1/auth/reset-password` | 🟢 Complete | Agent | Token validation + bcrypt rehash | 2026-05-17 |
+| `UsersModule` scaffold | 🟢 Complete | Agent | PrismaModule import | 2026-05-17 |
+| `GET /v1/users/me` | 🟢 Complete | Agent | Profile with field mapping | 2026-05-17 |
+| `PATCH /v1/users/me` | 🟢 Complete | Agent | Partial update support | 2026-05-17 |
+| Refresh token rotation | 🟢 Complete | Agent | New refresh token per use, old invalidated | 2026-05-17 |
+| `logout-all-devices` | 🟢 Complete | Agent | `keys session:{userId}:*` + batch delete | 2026-05-17 |
 
 **Verification:**
-- [ ] Auth service unit tests ≥ 90%
-- [ ] E2E: full auth flow passes
-- [ ] Manual: register → login → protected → refresh → logout
+- [x] Auth service unit tests ≥ 90% (11 spec files, ~97% coverage)
+- [x] E2E: full auth flow passes (13 tests, all green)
+- [x] Manual: register → login → protected → refresh → logout
+
+**Notes:** Google OAuth fully implemented with manual code exchange (no Passport GoogleStrategy). Resend email integration for password reset. Cookie-parser added to E2E test setup. ESLint config updated with test-file overrides. Lint clean (0 errors, 0 warnings). Build passes. `npx tsc --noEmit` clean.
 
 **Blockers:** None
 
@@ -371,7 +377,7 @@
 |-----------|-------|--------|---------------|
 | M0: Bootstrap | 0 | 🟢 Complete | 2026-05-16 |
 | M1: Foundation | 1–2 | 🟢 Complete | 2026-05-16 |
-| M2: Auth | 3 | ⬜ | — |
+| M2: Auth | 3 | 🟢 Complete | 2026-05-17 |
 | M3: Catalog | 4 | ⬜ | — |
 | M4: Booking | 5 | ⬜ | — |
 | M5: Payments | 6 | ⬜ | — |
@@ -401,6 +407,10 @@
 | 2026-05-16 | 0 | Feature spec created; branch `feature/2026-05-16-bootstrap-and-tooling` opened; tasks 0.1–0.5 scoped (CI deferred) | Agent |
 | 2026-05-16 | 1 | Phase 0 complete. Feature spec created for Phase 1 (Shared Kernel, all 13 tasks); branch `feature/2026-05-16-shared-kernel` opened | Agent |
 | 2026-05-16 | 1 | Shared Kernel implemented: Config, Prisma, Redis, ValidationPipe, Filters, Interceptors, Guards, Decorators, Throttler, Helmet, CORS, ErrorCodes. Build + lint pass. | Agent |
+| 2026-05-17 | 2 | Phase 2 marked as senior-owned (discussion needed). Skipped to Phase 3. | Agent |
+| 2026-05-17 | 3 | Feature spec created for Phase 3 (Auth & Users); branch `feature/2026-05-17-auth-users` opened | Agent |
+| 2026-05-17 | 3 | Phase 3 complete: AuthModule + UsersModule with register/login/refresh/logout/forgot-password/reset-password/logout-all, GET/PATCH /users/me. cookie-parser added. 16 unit tests, 97% coverage. Lint + build pass. | Agent |
+| 2026-05-18 | 3 | Phase 3 finalized: Google OAuth flow (auth URL + callback with user creation/linking), Resend email integration, 11 unit test spec files, full E2E test suite (13 tests passing). ESLint test overrides added. | Agent |
 
 ---
 

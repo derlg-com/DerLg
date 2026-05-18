@@ -21,7 +21,13 @@
       "Bash(git push *)",
       "Bash(npm uninstall *)",
       "Bash(C:\\\\Users\\\\yeakk\\\\Desktop\\\\DerLg\\\\backend)",
-      "Bash(npm *)"
+      "Bash(npm *)",
+      "Bash(npx jest *)",
+      "Bash(npx tsc *)",
+      "Bash(docker-compose up *)",
+      "Bash(docker compose *)",
+      "Bash(Select-String -Pattern 'PASS|FAIL|✓|✕|Tests:' -Context 0,5)",
+      "PowerShell(npx jest --config ./test/jest-e2e.json --runInBand test/auth.e2e-spec.ts --verbose 2>$null)"
     ]
   }
 }
