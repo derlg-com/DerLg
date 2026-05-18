@@ -40,6 +40,14 @@ enum UserRole {
   @@map("user_role")
 }
 
+enum UserStatus {
+  active
+  inactive
+  suspended
+
+  @@map("user_status")
+}
+
 enum BookingStatus {
   reserved        // hold active, payment pending (F35)
   confirmed       // payment received (F36)
@@ -212,12 +220,18 @@ model User {
   role                UserRole  @default(user)
   preferredLanguage   SupportedLanguage @default(en) @map("preferred_language")
 
+  // Auth
+  passwordHash        String?   @map("password_hash") // null for OAuth-only users
+
   // Profile (F05)
   fullName            String?   @map("full_name")
   phone               String?
   avatarUrl           String?   @map("avatar_url")
   emergencyContactName  String? @map("emergency_contact_name")
   emergencyContactPhone String? @map("emergency_contact_phone")
+
+  // Status
+  status              UserStatus @default(active) @map("status")
 
   // Loyalty (F60)
   loyaltyPoints       Int       @default(0) @map("loyalty_points")

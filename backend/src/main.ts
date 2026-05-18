@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { PrismaFilter } from './common/filters/prisma.filter';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -28,6 +29,8 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new PrismaFilter(), new AllExceptionsFilter());
 
   app.useGlobalInterceptors(new LoggingInterceptor(app.get(Logger)));
+
+  app.use(cookieParser());
 
   app.use(
     helmet({
