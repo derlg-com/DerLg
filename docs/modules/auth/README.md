@@ -9,7 +9,8 @@
 This module provides the entire authentication layer for DerLg. Every other module depends on it. It handles email/password registration, Google OAuth, JWT access tokens, refresh token rotation, logout (single device and all devices), and password reset via email.
 
 **Feature ID:** F01–F06  
-**Backend Module:** `src/auth/`  
+**Backend Module:** `src/modules/auth/`  
+**Pattern:** Clean Architecture / Use-Case Pattern  
 **Depends on:** Foundation (Phase 1), Database Schema (Phase 2)  
 **Blocks:** Every other feature module (all require auth)
 
@@ -20,7 +21,7 @@ This module provides the entire authentication layer for DerLg. Every other modu
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Spec | ✅ Complete | This document |
-| Backend | 🟡 In Progress | Phase 3 — `feature/2026-05-17-auth-users` |
+| Backend | ✅ Complete | Implemented with Use-Case pattern |
 | Frontend | ⬜ Not Started | — |
 | E2E Tests | ⬜ Not Started | — |
 
@@ -30,7 +31,7 @@ This module provides the entire authentication layer for DerLg. Every other modu
 
 - [`api.yaml`](./api.yaml) — OpenAPI contract
 - [`requirements.md`](./requirements.md) — User stories & acceptance criteria
-- [`architecture.md`](./architecture.md) — Auth flow, token strategy, security decisions
+- [`architecture.md`](./architecture.md) — Auth flow, token strategy, use cases
 - Backend spec: [`backend/context/specs/API-CONTRACT.md`](../../backend/context/specs/API-CONTRACT.md) §1
 - Backend schema: [`backend/context/specs/SCHEMA.md`](../../backend/context/specs/SCHEMA.md) — `User`, `RefreshToken` models
 
@@ -40,20 +41,21 @@ This module provides the entire authentication layer for DerLg. Every other modu
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/v1/auth/register` | Public | Register with email + password |
-| POST | `/v1/auth/login` | Public | Login, receive access token + refresh cookie |
-| POST | `/v1/auth/google` | Public | Initiate Google OAuth 2.0 flow |
-| GET | `/v1/auth/google/callback` | Public | OAuth callback, create/link user |
-| POST | `/v1/auth/refresh` | Refresh cookie | Exchange refresh token for new access token |
-| POST | `/v1/auth/logout` | Bearer JWT + cookie | Invalidate current session |
-| POST | `/v1/auth/logout-all` | Bearer JWT | Invalidate all user sessions |
-| POST | `/v1/auth/forgot-password` | Public | Send password reset email (Resend) |
-| POST | `/v1/auth/reset-password` | Public | Reset password with token |
+| POST | `/auth/register` | Public | Register with email + password |
+| POST | `/auth/login` | Public | Login, receive access token + refresh cookie |
+| POST | `/auth/google` | Public | Initiate Google OAuth 2.0 flow (returns URL) |
+| GET | `/auth/google/callback` | Public | OAuth callback, create/link user |
+| POST | `/auth/refresh` | Refresh cookie | Exchange refresh token for new access token |
+| POST | `/auth/logout` | Bearer JWT + cookie | Invalidate current session |
+| POST | `/auth/logout-all` | Bearer JWT | Invalidate all user sessions |
+| POST | `/auth/forgot-password` | Public | Send password reset email (Resend) |
+| POST | `/auth/reset-password` | Public | Reset password with token |
 
 ---
 
 ## Architecture Decisions
 
+- **Use-Case Pattern:** Controllers are thin; business logic is encapsulated in `use-cases/`.
 - **Custom JWT (not Supabase Auth):** Backend controls token lifecycle, enables multi-device logout.
 - **Refresh tokens in Redis:** Instant revocation for logout-all-devices.
 - **bcrypt cost factor 12:** Security/performance balance.

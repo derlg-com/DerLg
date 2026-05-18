@@ -49,36 +49,32 @@
 
 ## Data Model
 
-### `users` Table
+### `users` Table (PostgreSQL)
 
 | Column | Type | Constraints | Notes |
 |--------|------|-------------|-------|
 | `id` | UUID | PK | |
 | `email` | VARCHAR(255) | UNIQUE, NOT NULL | Case-insensitive |
-| `password_hash` | VARCHAR(255) | | Null for OAuth-only users |
-| `name` | VARCHAR(255) | | |
+| `passwordHash` | VARCHAR(255) | | Null for OAuth-only users |
+| `fullName` | VARCHAR(255) | | |
 | `phone` | VARCHAR(20) | | E.164 format |
-| `avatar_url` | TEXT | | |
-| `role` | VARCHAR(20) | DEFAULT 'USER' | USER, STUDENT, GUIDE, ADMIN |
-| `status` | VARCHAR(20) | DEFAULT 'ACTIVE' | ACTIVE, INACTIVE, SUSPENDED |
-| `gender` | VARCHAR(20) | | MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY |
-| `date_of_birth` | DATE | | |
-| `nationality` | VARCHAR(100) | | |
-| `is_verified` | BOOLEAN | DEFAULT false | Email verification (deferred) |
-| `loyalty_points` | INTEGER | DEFAULT 0 | |
-| `created_at` | TIMESTAMPTZ | DEFAULT now() | |
-| `updated_at` | TIMESTAMPTZ | DEFAULT now() | |
-| `deleted_at` | TIMESTAMPTZ | | Soft delete |
+| `avatarUrl` | TEXT | | |
+| `role` | VARCHAR(20) | DEFAULT 'user' | user, student, guide, admin |
+| `status` | VARCHAR(20) | DEFAULT 'active' | active, inactive, suspended |
+| `supabaseUid` | UUID | UNIQUE | Links to Supabase Auth if needed |
+| `loyaltyPoints` | INTEGER | DEFAULT 0 | |
+| `createdAt` | TIMESTAMPTZ | DEFAULT now() | |
+| `updatedAt` | TIMESTAMPTZ | DEFAULT now() | |
+| `deletedAt` | TIMESTAMPTZ | | Soft delete |
 
-### `refresh_tokens` Table
+### Session Storage (Redis)
 
-| Column | Type | Constraints | Notes |
-|--------|------|-------------|-------|
-| `id` | UUID | PK | |
-| `token` | VARCHAR(512) | UNIQUE, NOT NULL | JWT refresh token |
-| `user_id` | UUID | FK → users | |
-| `expires_at` | TIMESTAMPTZ | NOT NULL | |
-| `created_at` | TIMESTAMPTZ | DEFAULT now() | |
+Refresh tokens are stored in Redis to enable fast lookups, automatic expiration, and instant revocation (e.g., logout from all devices).
+
+| Key Pattern | Value | TTL | Purpose |
+|-------------|-------|-----|---------|
+| `session:{userId}:{tokenId}` | JWT Refresh Token | 7 days | Active user session |
+| `password_reset:{token}` | userId | 1 hour | Password reset request |
 
 ---
 
