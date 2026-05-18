@@ -1,0 +1,415 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Authentication & Authorization API
+  version: 1.0.0
+  description: Authentication endpoints for email/password registration, login, Google OAuth, token refresh, logout, and password reset.
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Create a new user account with email and password. Returns access token and sets refresh token cookie.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created successfully
+          headers:
+            Set-Cookie:
+              description: refresh_token cookie (httpOnly, Secure, SameSite=Strict, 7d)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: Invalid input (password too short, malformed email)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      summary: Login with email and password
+      description: Authenticate and receive access token (body) and refresh token (httpOnly cookie).
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: refresh_token cookie (httpOnly, Secure, SameSite=Strict, 7d)
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Account suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/google:
+    post:
+      summary: Initiate Google OAuth login
+      description: Returns the Google OAuth 2.0 consent screen URL for the client to redirect to.
+      tags: [Auth]
+      responses:
+        '200':
+          description: OAuth URL generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthUrlResponse'
+
+  /auth/google/callback:
+    get:
+      summary: Google OAuth callback
+      description: Handles the OAuth callback from Google. Exchanges code for user info, creates or links user account, and issues tokens.
+      tags: [Auth]
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from Google
+      responses:
+        '200':
+          description: OAuth login successful
+          headers:
+            Set-Cookie:
+              description: refresh_token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: OAuth failed or invalid code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Exchange a valid refresh token (from cookie) for a new access token. Rotates the refresh token — old one is invalidated, new one is set as cookie.
+      tags: [Auth]
+      parameters:
+        - name: Cookie
+          in: header
+          required: true
+          schema:
+            type: string
+          description: refresh_token cookie
+      responses:
+        '200':
+          description: New access token issued
+          headers:
+            Set-Cookie:
+              description: Rotated refresh_token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      summary: Logout current device
+      description: Invalidate the current refresh token and clear the cookie. Other device sessions remain active.
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Cookie
+          in: header
+          required: true
+          schema:
+            type: string
+          description: refresh_token cookie
+      responses:
+        '200':
+          description: Logout successful
+          headers:
+            Set-Cookie:
+              description: Clears refresh_token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+
+  /auth/logout-all:
+    post:
+      summary: Logout from all devices
+      description: Invalidate all refresh tokens for the current user across all devices. Clears cookie on current device.
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All sessions invalidated
+          headers:
+            Set-Cookie:
+              description: Clears refresh_token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+
+  /auth/forgot-password:
+    post:
+      summary: Request password reset email
+      description: Send a password reset email to the provided address. Returns silent success even if email not found (prevents enumeration).
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent (or silent success)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/reset-password:
+    post:
+      summary: Reset password with token
+      description: Validate a password reset token and update the user's password.
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                  description: Reset token from email
+                newPassword:
+                  type: string
+                  minLength: 8
+                  description: New password (minimum 8 characters)
+      responses:
+        '200':
+          description: Password updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token JWT obtained from login/register/OAuth/refresh
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          minLength: 8
+          description: Password (minimum 8 characters)
+        name:
+          type: string
+          maxLength: 255
+          description: Full name (optional)
+        phone:
+          type: string
+          description: Phone number in E.164 format (optional)
+
+    RegisterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/UserSummary'
+            accessToken:
+              type: string
+              description: JWT access token (15 minutes)
+        message:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              description: JWT access token (15 minutes)
+            expiresIn:
+              type: integer
+              example: 900
+              description: Seconds until expiry
+        message:
+          type: string
+
+    OAuthUrlResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uri
+              description: Google OAuth consent screen URL
+
+    RefreshResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            expiresIn:
+              type: integer
+              example: 900
+        message:
+          type: string
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [USER, STUDENT, GUIDE, ADMIN]
+        createdAt:
+          type: string
+          format: date-time
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: AUTH_INVALID_CREDENTIALS
+            message:
+              type: string

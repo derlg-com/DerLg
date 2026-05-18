@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from './config/config.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { RedisModule } from './redis/redis.module';
+import { PrismaModule } from './modules/prisma/prisma.module';
+import { RedisModule } from './modules/redis/redis.module';
 import { CommonModule } from './common/common.module';
-import { AiToolsModule } from './ai-tools/ai-tools.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { AiToolsModule } from './modules/ai-tools/ai-tools.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -17,6 +19,8 @@ import { ConfigService } from '@nestjs/config';
     PrismaModule,
     RedisModule,
     CommonModule,
+    AuthModule,
+    UsersModule,
     AiToolsModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

@@ -8,7 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ServiceKeyGuard } from '../common/guards/service-key.guard';
+import { ServiceKeyGuard } from '../../common/guards/service-key.guard';
 import { AiToolsService } from './ai-tools.service';
 import {
   SearchTripsDto,
@@ -56,12 +56,18 @@ export class AiToolsController {
 
   @Get('weather')
   getWeather(@Query() dto: GetWeatherDto) {
-    return { success: true, data: this.service.getWeather(dto.location, dto.date) };
+    return {
+      success: true,
+      data: this.service.getWeather(dto.location, dto.date),
+    };
   }
 
   @Get('emergency-contacts')
   getEmergencyContacts(@Query() dto: GetEmergencyContactsDto) {
-    return { success: true, data: this.service.getEmergencyContacts(dto.location) };
+    return {
+      success: true,
+      data: this.service.getEmergencyContacts(dto.location),
+    };
   }
 
   @Post('sos')
@@ -72,6 +78,9 @@ export class AiToolsController {
 
   @Get('loyalty')
   async getUserLoyalty(@Query() dto: GetUserLoyaltyDto) {
-    return { success: true, data: await this.service.getUserLoyalty(dto.user_id) };
+    return {
+      success: true,
+      data: await this.service.getUserLoyalty(dto.user_id),
+    };
   }
 }

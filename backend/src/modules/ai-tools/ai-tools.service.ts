@@ -82,7 +82,9 @@ export class AiToolsService {
     const date = new Date(dto.date);
 
     if (dto.item_type === 'trip') {
-      const trip = await this.prisma.trip.findUnique({ where: { id: dto.item_id } });
+      const trip = await this.prisma.trip.findUnique({
+        where: { id: dto.item_id },
+      });
       if (!trip) throw new NotFoundException('Trip not found');
       const booked = await this.prisma.bookingItem.count({
         where: {
@@ -91,7 +93,10 @@ export class AiToolsService {
           booking: { status: { in: ['reserved', 'confirmed'] } },
         },
       });
-      return { available: booked < trip.maxCapacity, remaining: trip.maxCapacity - booked };
+      return {
+        available: booked < trip.maxCapacity,
+        remaining: trip.maxCapacity - booked,
+      };
     }
 
     if (dto.item_type === 'guide') {
@@ -128,20 +133,27 @@ export class AiToolsService {
     const reference = `DLG-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000 + 10000)}`;
 
     let unitPrice = 0;
-    let bookingType: 'trip_package' | 'hotel_room' | 'tour_guide' = 'trip_package';
+    let bookingType: 'trip_package' | 'hotel_room' | 'tour_guide' =
+      'trip_package';
 
     if (dto.item_type === 'trip') {
-      const trip = await this.prisma.trip.findUnique({ where: { id: dto.item_id } });
+      const trip = await this.prisma.trip.findUnique({
+        where: { id: dto.item_id },
+      });
       if (!trip) throw new NotFoundException('Trip not found');
       unitPrice = Number(trip.basePriceUsd);
       bookingType = 'trip_package';
     } else if (dto.item_type === 'hotel') {
-      const room = await this.prisma.hotelRoom.findUnique({ where: { id: dto.item_id } });
+      const room = await this.prisma.hotelRoom.findUnique({
+        where: { id: dto.item_id },
+      });
       if (!room) throw new NotFoundException('Hotel room not found');
       unitPrice = Number(room.priceUsd);
       bookingType = 'hotel_room';
     } else {
-      const guide = await this.prisma.guide.findUnique({ where: { id: dto.item_id } });
+      const guide = await this.prisma.guide.findUnique({
+        where: { id: dto.item_id },
+      });
       if (!guide) throw new NotFoundException('Guide not found');
       unitPrice = Number(guide.pricePerDayUsd);
       bookingType = 'tour_guide';
@@ -225,7 +237,10 @@ export class AiToolsService {
         status: 'triggered',
       },
     });
-    return { sent: true, message: 'SOS alert triggered. Emergency services notified.' };
+    return {
+      sent: true,
+      message: 'SOS alert triggered. Emergency services notified.',
+    };
   }
 
   async getUserLoyalty(userId: string) {

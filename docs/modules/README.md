@@ -8,6 +8,7 @@
 
 | # | Feature | Folder | Status |
 |---|---------|--------|--------|
+| 00 | Auth & Authentication | [`auth/`](./auth/) | Spec Complete |
 | 01 | Vibe Booking (AI Travel Concierge) | [`vibe-booking/`](./vibe-booking/) | Planned |
 | 02 | Trip Discovery & Smart Suggestions | [`trip-discovery/`](./trip-discovery/) | Planned |
 | 03 | Transportation Booking | [`transportation/`](./transportation/) | Planned |

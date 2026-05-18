@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { JwtPayload } from '../strategies/jwt.strategy';
+import { JwtPayload } from '../../modules/auth/strategies/jwt.strategy';
 
 /**
  * Enforces role-based access control. Reads `@Roles()` metadata

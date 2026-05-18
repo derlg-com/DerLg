@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { JwtPayload } from '../strategies/jwt.strategy';
+import { JwtPayload } from '../../modules/auth/strategies/jwt.strategy';
 
 /** Injects the decoded JWT payload into a controller method parameter. */
 export const CurrentUser = createParamDecorator(
