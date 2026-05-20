@@ -14,9 +14,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Currently working on** | _none — Group 6 complete, awaiting human review_ |
-| **Last completed group** | Group 6 — TransportationModule (2026-05-20) |
-| **Next group** | Group 7 — SearchModule |
+| **Currently working on** | _none — Group 7 complete, awaiting human review_ |
+| **Last completed group** | Group 7 — SearchModule (2026-05-20) |
+| **Next group** | Group 8 — Cross-cutting cleanup & DoD |
 | **Active blocker** | None |
 
 > When starting a new module group, set "Currently working on" to the group name and move the "Next group" pointer.
@@ -33,7 +33,7 @@
 | 4 | HotelsModule | 3 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 5 | GuidesModule | 3 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 6 | TransportationModule | 3 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
-| 7 | SearchModule | 1 | ⬜ Not Started | ⬜ | — | — |
+| 7 | SearchModule | 1 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 8 | Cross-cutting cleanup & DoD | — | ⬜ Not Started | n/a | — | — |
 | **Totals** | **6 modules + 2 support groups** | **19** | **0 / 8** | **0 / 6** | — | — |
 
@@ -252,29 +252,29 @@
 
 ## Group 7 — SearchModule (DB stub)
 
-**Status:** ⬜ Not Started · **Owner:** _unassigned_ · **Reference:** `src/modules/trips/`
+**Status:** 🟢 Complete · **Owner:** Agent · **Reference:** `src/modules/trips/`
 
 ### Use case (1)
 
 | Status | File | Class |
 |--------|------|-------|
-| ⬜ | `use-cases/global-search.use-case.ts` | `GlobalSearchUseCase` |
+| 🟢 | `use-cases/global-search.use-case.ts` | `GlobalSearchUseCase` |
 
 ### Supporting files
 
 | Status | File | Notes |
 |--------|------|-------|
-| ⬜ | `dto/search-query.dto.ts` + `dto/index.ts` | `q: @MinLength(2)`, `type` enum |
-| ⬜ | `interfaces/search-hit.interface.ts` + `index.ts` | Discriminated union by `kind` |
-| ⬜ | `utils/merge-search-results.util.ts` + `utils/index.ts` | Pure flattener |
-| ⬜ | `use-cases/index.ts` | Barrel |
-| ⬜ | `search.controller.ts` | `@Controller('search')` |
-| ⬜ | `search.module.ts` | Provides `GlobalSearchUseCase` |
-| ⬜ | `app.module.ts` | (modified) import `SearchModule` |
+| 🟢 | `dto/search-query.dto.ts` + `dto/index.ts` | `q: @MinLength(2)`, `type` enum |
+| 🟢 | `interfaces/search-hit.interface.ts` + `index.ts` | Discriminated union by `kind` |
+| 🟢 | `utils/merge-search-results.util.ts` + `utils/index.ts` | Pure flattener |
+| 🟢 | `use-cases/index.ts` | Barrel |
+| 🟢 | `search.controller.ts` | `@Controller('search')` |
+| 🟢 | `search.module.ts` | Provides `GlobalSearchUseCase` |
+| 🟢 | `app.module.ts` | (modified) import `SearchModule` |
 
 ### Per-module gate (must pass before Group 8)
 
-- [ ] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
+- [x] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
 - [ ] `GET /v1/search?q=angkor` returns mixed results with `kind` discriminator
 - [ ] `GET /v1/search?q=a` returns 400 + `SRC_QUERY_TOO_SHORT`
 - [ ] `GET /v1/search?q=zzznoresult` returns 200 with `items: []`
@@ -328,6 +328,7 @@
 | 2026-05-20T21:25+07 | 4 | Group 4 complete: HotelsModule (16 files). lint ✅ build ✅. 3 use cases (list 300s, detail 600s, rooms 3600s), room overlap util, checkIn/checkOut DTO validation | Agent |
 | 2026-05-20T21:42+07 | 5 | Group 5 complete: GuidesModule (16 files). lint ✅ build ✅. 3 use cases (list 300s, detail 600s, availability 300s), buildBusyRanges util, existence check outside cache, BookingStatus enum | Agent |
 | 2026-05-20T21:54+07 | 6 | Group 6 complete: TransportationModule (16 files). lint ✅ build ✅. 3 use cases (list 300s, detail 600s, availability 120s), VehicleType enum filter, UTC-safe availability util (per-module copy with Group 5 fixes pre-applied) | Agent |
+| 2026-05-20T22:02+07 | 7 | Group 7 complete: SearchModule (10 files). lint ✅ build ✅. 1 use case (cached 60s), parallel 4-table search (trip title, place name, hotel name, guide bio/specialities), discriminated union SearchHit, defence-in-depth q<2 check | Agent |
 
 > Add one row per meaningful step. Examples of "meaningful": group started, use case implemented, gate passed, blocker discovered, group completed.
 
