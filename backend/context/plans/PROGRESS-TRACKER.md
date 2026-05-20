@@ -10,8 +10,9 @@
 |-------|------|--------|-------------|
 | Phase 0 | Bootstrap & Tooling | 🟢 Complete | Week 1 |
 | Phase 1 | Foundation & Shared Kernel | 🟢 Complete | Week 1–2 |
-| **Phase 3** | Auth & Users | 🟢 Complete | Week 3 |
+| Phase 3 | Auth & Users | 🟢 Complete | Week 3 |
 | Phase 2 | Database Schema | 🟡 In Progress (Senior) | Week 2 |
+| **Phase 4** | Core Inventory | 🟡 In Progress | Week 4–5 |
 
 ---
 
@@ -133,22 +134,29 @@
 
 ---
 
-### Phase 4: Core Inventory (Week 4–5)
+### Phase 4: Core Inventory (Week 4–5) — 🟡 In Progress
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
-| `TripsModule` | ⬜ Not Started | — | — | — |
-| `PlacesModule` | ⬜ Not Started | — | — | — |
-| `HotelsModule` | ⬜ Not Started | — | — | — |
-| `GuidesModule` | ⬜ Not Started | — | — | — |
-| `TransportationModule` | ⬜ Not Started | — | — | — |
-| `SearchModule` (DB search stub) | ⬜ Not Started | — | — | — |
-| Redis caching for public GETs | ⬜ Not Started | — | — | — |
+| `TripsModule` | 🟡 In Progress | Agent | Plain service pattern; canonical layout for the rest | — |
+| `PlacesModule` | ⬜ Not Started | Agent | Mirrors trips; Haversine for nearby-* | — |
+| `HotelsModule` | ⬜ Not Started | Agent | Rooms cache TTL 3600s per `api.yaml` | — |
+| `GuidesModule` | ⬜ Not Started | Agent | List/availability TTL 300s per `api.yaml` | — |
+| `TransportationModule` | ⬜ Not Started | Agent | Vehicle list/detail/availability | — |
+| `SearchModule` (DB search stub) | ⬜ Not Started | Agent | `ILIKE` across trip/place/hotel/guide title+tags | — |
+| Redis caching for public GETs | ⬜ Not Started | Agent | `CachedService.getOrSet` wrapper in `src/common/cache/` | — |
 
 **Verification:**
-- [ ] All `api.yaml` shapes match
-- [ ] E2E for each module (list + detail)
-- [ ] List endpoints < 300ms with 1000 records
+- [ ] Manual smoke for every endpoint (per `feature-specs/2026-05-20-core-inventory/validation.md`)
+- [ ] `npm run lint && npm run build` clean
+- [ ] Cache HIT/MISS observable in Redis (`KEYS 'cat:*'`, `TTL <key>`)
+- [ ] List endpoints < 300ms p95 informally; detail < 200ms (no automated gate)
+
+**Notes:**
+- Feature spec: `backend/context/feature-specs/2026-05-20-core-inventory/`
+- Branch: `feature/2026-05-20-core-inventory`
+- Builds against current monolithic `prisma/schema.prisma` (Phase 2 multi-file split owned by senior; will rebase when it lands)
+- ⚠️ **Tests deferred** to a follow-up branch by user direction. `TEST-PLAN.md` coverage gate must be restored before this code merges to `main`.
 
 **Blockers:** None
 
@@ -411,6 +419,7 @@
 | 2026-05-17 | 3 | Feature spec created for Phase 3 (Auth & Users); branch `feature/2026-05-17-auth-users` opened | Agent |
 | 2026-05-17 | 3 | Phase 3 complete: AuthModule + UsersModule with register/login/refresh/logout/forgot-password/reset-password/logout-all, GET/PATCH /users/me. cookie-parser added. 16 unit tests, 97% coverage. Lint + build pass. | Agent |
 | 2026-05-18 | 3 | Phase 3 finalized: Google OAuth flow (auth URL + callback with user creation/linking), Resend email integration, 11 unit test spec files, full E2E test suite (13 tests passing). ESLint test overrides added. | Agent |
+| 2026-05-20 | 4 | Phase 4 kickoff: branch `feature/2026-05-20-core-inventory` opened. Feature spec written (plan/requirements/validation). Scope: full Phase 4 (trips/places/hotels/guides/transportation/search + Redis caching). Plain service pattern; `src/modules/<feature>/` layout. **Tests deferred** to follow-up branch by user direction. | Agent |
 
 ---
 
