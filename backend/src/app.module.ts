@@ -9,6 +9,7 @@ import { AiToolsModule } from './modules/ai-tools/ai-tools.module';
 import { TripsModule } from './modules/trips/trips.module';
 import { PlacesModule } from './modules/places/places.module';
 import { HotelsModule } from './modules/hotels/hotels.module';
+import { GuidesModule } from './modules/guides/guides.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -28,6 +29,7 @@ import { ConfigService } from '@nestjs/config';
     TripsModule,
     PlacesModule,
     HotelsModule,
+    GuidesModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
