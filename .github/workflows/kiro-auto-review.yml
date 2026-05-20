@@ -2,7 +2,7 @@ name: Kiro Auto Code Reviewer
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened] # "synchronize" ensures it runs on every new push
+    types: [opened, synchronize, reopened]
 
 jobs:
   auto-review:
@@ -10,26 +10,65 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      checks: write
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Pulls full git history for precise diff calculations
+          fetch-depth: 0
 
-      - name: Install Kiro CLI
-        run: |
-          curl -fsSL "https://desktop-release.codewhisperer.us-east-1.amazonaws.com/latest/linux/x64/kiro-cli-linux-x64.tar.gz" -o kiro-cli.tar.gz
-          tar -xzf kiro-cli.tar.gz
-          sudo mv kiro-cli /usr/local/bin/kiro-cli
-          sudo chmod +x /usr/local/bin/kiro-cli
-          rm kiro-cli.tar.gz
-          kiro-cli --version
-
-      - name: Run Kiro Review
+      - name: Get PR Diff
+        id: diff
         env:
-          KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          kiro-cli chat --no-interactive "Read our master rules in .kiro/steering/review-rules.md. Review this pull request's diff entirely based on those rules and leave line-by-line inline feedback."
+          gh pr diff ${{ github.event.pull_request.number }} > pr_diff.txt
+          echo "diff_size=$(wc -c < pr_diff.txt)" >> $GITHUB_OUTPUT
+
+      - name: Get Review Rules
+        id: rules
+        run: |
+          if [ -f ".kiro/steering/review-rule.md" ]; then
+            echo "rules_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "rules_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run AI Code Review
+        if: steps.diff.outputs.diff_size != '0'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REVIEW_RULES=$(cat .kiro/steering/review-rule.md)
+          DIFF=$(cat pr_diff.txt)
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+
+          # Build the prompt
+          PROMPT=$(jq -n \
+            --arg rules "$REVIEW_RULES" \
+            --arg diff "$DIFF" \
+            --arg title "$PR_TITLE" \
+            --arg body "$PR_BODY" \
+            '{
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 8192,
+              messages: [{
+                role: "user",
+                content: ("You are a senior code reviewer. Follow these review rules strictly:\n\n" + $rules + "\n\n---\n\nPR Title: " + $title + "\nPR Description: " + $body + "\n\n---\n\nHere is the full PR diff to review:\n\n```diff\n" + $diff + "\n```\n\nReview this diff following the rules above. Only comment on changed lines (+ lines). Provide your review in the exact output format specified in the rules.")
+              }]
+            }')
+
+          # Call Claude API
+          RESPONSE=$(curl -s -X POST "https://api.anthropic.com/v1/messages" \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -d "$PROMPT")
+
+          # Extract review text
+          REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text // "Error: Could not generate review"')
+
+          # Post review as PR comment
+          gh pr comment ${{ github.event.pull_request.number }} --body "$REVIEW"
