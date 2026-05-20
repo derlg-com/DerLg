@@ -18,13 +18,14 @@ jobs:
         with:
           fetch-depth: 0 # Pulls full git history for precise diff calculations
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Install Kiro CLI
-        run: npm install -g @anthropic-ai/kiro-cli
+        run: |
+          curl -fsSL "https://desktop-release.codewhisperer.us-east-1.amazonaws.com/latest/linux/x64/kiro-cli-linux-x64.tar.gz" -o kiro-cli.tar.gz
+          tar -xzf kiro-cli.tar.gz
+          sudo mv kiro-cli /usr/local/bin/kiro-cli
+          sudo chmod +x /usr/local/bin/kiro-cli
+          rm kiro-cli.tar.gz
+          kiro-cli --version
 
       - name: Run Kiro Review
         env:
