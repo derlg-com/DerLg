@@ -1,59 +1,63 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CachedService } from '../../../common/cache/cached.service';
-import { placeListKey } from '../../../common/cache/cache-keys';
-import { mapPlaceSummary } from '../utils';
-import type { ListPlacesDto } from '../dto';
-import type { PlaceSummary } from '../interfaces';
+import { hotelListKey } from '../../../common/cache/cache-keys';
+import { mapHotelSummary } from '../utils';
+import type { ListHotelsDto } from '../dto';
+import type { HotelSummary } from '../interfaces';
 import type { Lang } from '../../../common/i18n';
 import type { PaginatedResponse } from '../../../common/types/paginated-response.type';
 import { Prisma } from '@prisma/client';
 
+const HOTEL_SUMMARY_SELECT = {
+  id: true,
+  starRating: true,
+  images: true,
+  latitude: true,
+  longitude: true,
+} satisfies Prisma.HotelSelect;
+
+const TRANSLATION_SELECT = {
+  language: true,
+  name: true,
+  address: true,
+} satisfies Prisma.HotelTranslationSelect;
+
 @Injectable()
-export class ListPlacesUseCase {
+export class ListHotelsUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CachedService,
   ) {}
 
   async execute(
-    query: ListPlacesDto,
+    query: ListHotelsDto,
     lang: Lang,
-  ): Promise<PaginatedResponse<PlaceSummary>> {
-    const { page = 1, limit = 20, category } = query;
+  ): Promise<PaginatedResponse<HotelSummary>> {
+    const { page = 1, limit = 20, starRating } = query;
     const safePage = Math.max(1, page);
     const safeLimit = Math.min(100, Math.max(1, limit));
 
-    const cacheKey = placeListKey(
-      { page: safePage, limit: safeLimit, category },
+    const cacheKey = hotelListKey(
+      { page: safePage, limit: safeLimit, starRating },
       lang,
     );
 
     return this.cache.getOrSet(cacheKey, 300, async () => {
-      const where: Prisma.PlaceWhereInput = {
+      const where: Prisma.HotelWhereInput = {
         isPublished: true,
-        ...(category && { category }),
+        ...(starRating !== undefined && { starRating }),
       };
 
-      const translationSelect = {
-        language: true,
-        name: true,
-      } satisfies Prisma.PlaceTranslationSelect;
-
       const [total, rows] = await Promise.all([
-        this.prisma.place.count({ where }),
-        this.prisma.place.findMany({
+        this.prisma.hotel.count({ where }),
+        this.prisma.hotel.findMany({
           where,
           select: {
-            id: true,
-            category: true,
-            latitude: true,
-            longitude: true,
-            entryFeeUsd: true,
-            images: true,
+            ...HOTEL_SUMMARY_SELECT,
             translations: {
               where: { language: lang },
-              select: translationSelect,
+              select: TRANSLATION_SELECT,
             },
           },
           skip: (safePage - 1) * safeLimit,
@@ -62,16 +66,16 @@ export class ListPlacesUseCase {
         }),
       ]);
 
-      // Fallback: fetch EN translations for rows missing the requested lang
+      // Fallback to EN for rows missing the requested lang
       const needsFallback = rows.filter((r) => r.translations.length === 0);
       if (needsFallback.length > 0 && lang !== 'en') {
-        const fallbackRows = await this.prisma.place.findMany({
+        const fallbackRows = await this.prisma.hotel.findMany({
           where: { id: { in: needsFallback.map((r) => r.id) } },
           select: {
             id: true,
             translations: {
               where: { language: 'en' },
-              select: translationSelect,
+              select: TRANSLATION_SELECT,
             },
           },
         });
@@ -84,7 +88,7 @@ export class ListPlacesUseCase {
       }
 
       return {
-        items: rows.map((r) => mapPlaceSummary(r, lang)),
+        items: rows.map((r) => mapHotelSummary(r, lang)),
         total,
         page: safePage,
         limit: safeLimit,
