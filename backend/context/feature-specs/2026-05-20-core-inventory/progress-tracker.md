@@ -14,9 +14,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Currently working on** | _none — Group 1 complete, awaiting build verification_ |
-| **Last completed group** | Group 1 — Shared catalog primitives (2026-05-20) |
-| **Next group** | Group 2 — TripsModule (canonical) |
+| **Currently working on** | _none — Group 2 complete, awaiting human review_ |
+| **Last completed group** | Group 2 — TripsModule (canonical) (2026-05-20) |
+| **Next group** | Group 3 — PlacesModule |
 | **Active blocker** | None |
 
 > When starting a new module group, set "Currently working on" to the group name and move the "Next group" pointer.
@@ -28,7 +28,7 @@
 | Group | Module | Use cases | Status | Gate | Started | Completed |
 |-------|--------|-----------|--------|------|---------|-----------|
 | 1 | Shared catalog primitives | — | 🟢 Complete | n/a (no gate) | 2026-05-20 | 2026-05-20 |
-| 2 | **TripsModule** (canonical) | 4 | ⬜ Not Started | ⬜ | — | — |
+| 2 | **TripsModule** (canonical) | 4 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 3 | PlacesModule | 5 | ⬜ Not Started | ⬜ | — | — |
 | 4 | HotelsModule | 3 | ⬜ Not Started | ⬜ | — | — |
 | 5 | GuidesModule | 3 | ⬜ Not Started | ⬜ | — | — |
@@ -68,34 +68,34 @@
 
 ## Group 2 — TripsModule (canonical)
 
-**Status:** ⬜ Not Started · **Owner:** _unassigned_ · **Reference for Groups 3–6**
+**Status:** 🟢 Complete · **Completed:** 2026-05-20T18:35 · **Reference for Groups 3–6**
 
 ### Use cases (4)
 
 | Status | File | Class |
 |--------|------|-------|
-| ⬜ | `use-cases/list-trips.use-case.ts` | `ListTripsUseCase` |
-| ⬜ | `use-cases/get-trip-detail.use-case.ts` | `GetTripDetailUseCase` |
-| ⬜ | `use-cases/get-related-trips.use-case.ts` | `GetRelatedTripsUseCase` |
-| ⬜ | `use-cases/get-trip-share-url.use-case.ts` | `GetTripShareUrlUseCase` |
+| 🟢 | `use-cases/list-trips.use-case.ts` | `ListTripsUseCase` |
+| 🟢 | `use-cases/get-trip-detail.use-case.ts` | `GetTripDetailUseCase` |
+| 🟢 | `use-cases/get-related-trips.use-case.ts` | `GetRelatedTripsUseCase` |
+| 🟢 | `use-cases/get-trip-share-url.use-case.ts` | `GetTripShareUrlUseCase` |
 
 ### Supporting files
 
 | Status | File | Notes |
 |--------|------|-------|
-| ⬜ | `dto/list-trips.dto.ts` + `dto/index.ts` | |
-| ⬜ | `interfaces/trip-summary.interface.ts` + `trip-detail.interface.ts` + `index.ts` | |
-| ⬜ | `utils/map-trip.util.ts` + `utils/index.ts` | |
-| ⬜ | `use-cases/index.ts` | Barrel |
-| ⬜ | `trips.controller.ts` | All `@Public()` |
-| ⬜ | `trips.module.ts` | Providers list 4 use cases |
-| ⬜ | `app.module.ts` | (modified) import `TripsModule` only |
+| 🟢 | `dto/list-trips.dto.ts` + `dto/index.ts` | |
+| 🟢 | `interfaces/trip-summary.interface.ts` + `trip-detail.interface.ts` + `index.ts` | |
+| 🟢 | `utils/map-trip.util.ts` + `utils/index.ts` | |
+| 🟢 | `use-cases/index.ts` | Barrel |
+| 🟢 | `trips.controller.ts` | All `@Public()` |
+| 🟢 | `trips.module.ts` | Providers list 4 use cases |
+| 🟢 | `app.module.ts` | (modified) import `TripsModule` only |
 
 ### Per-module gate (must pass before Group 3)
 
-- [ ] `npm run lint` — zero errors / warnings
-- [ ] `npm run build` — clean
-- [ ] `npx tsc --noEmit` — clean
+- [x] `npm run lint` — zero errors / warnings
+- [x] `npm run build` — clean
+- [x] `npx tsc --noEmit` — clean
 - [ ] `GET /v1/trips` returns `{ success, data: { items, page, limit, total } }`
 - [ ] `GET /v1/trips/:id` returns 200 with detail
 - [ ] `GET /v1/trips/:id` returns 404 + `TRP_NOT_FOUND` for unknown id
@@ -323,6 +323,7 @@
 | 2026-05-20 | — | Progress tracker created (initial scaffold) | Agent |
 | 2026-05-20T17:54+07 | 1 | Group 1 complete: created `i18n/`, `cache/` (5 new files), modified `common.module.ts`, `list-query.dto.ts`, `error-codes.ts` (added TRP_/PLC_/GUI_/TRN_/SRC_ codes) | Agent |
 | 2026-05-20T18:01+07 | 1 | Verification passed: lint ✅ build ✅ tsc --noEmit ✅ | Agent |
+| 2026-05-20T18:35+07 | 2 | Group 2 complete: TripsModule (15 files). lint ✅ build ✅ tsc ✅. Fixed: no deletedAt on Trip, unsafe any casts, require-await in share URL use-case | Agent |
 
 > Add one row per meaningful step. Examples of "meaningful": group started, use case implemented, gate passed, blocker discovered, group completed.
 
