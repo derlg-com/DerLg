@@ -14,9 +14,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Currently working on** | _none — Group 7 complete, awaiting human review_ |
-| **Last completed group** | Group 7 — SearchModule (2026-05-20) |
-| **Next group** | Group 8 — Cross-cutting cleanup & DoD |
+| **Currently working on** | _none — Group 8 complete, Phase 4 done_ |
+| **Last completed group** | Group 8 — Cross-cutting cleanup & DoD (2026-05-20) |
+| **Next group** | — Phase 4 complete — |
 | **Active blocker** | None |
 
 > When starting a new module group, set "Currently working on" to the group name and move the "Next group" pointer.
@@ -34,7 +34,7 @@
 | 5 | GuidesModule | 3 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 6 | TransportationModule | 3 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 7 | SearchModule | 1 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
-| 8 | Cross-cutting cleanup & DoD | — | ⬜ Not Started | n/a | — | — |
+| 8 | Cross-cutting cleanup & DoD | — | 🟢 Complete | n/a | 2026-05-20 | 2026-05-20 |
 | **Totals** | **6 modules + 2 support groups** | **19** | **0 / 8** | **0 / 6** | — | — |
 
 **Legend:** ⬜ Not Started · 🟡 In Progress · 🟢 Complete · 🔴 Blocked · ⏸️ Deferred
@@ -289,14 +289,14 @@
 
 | Status | Item |
 |--------|------|
-| ⬜ | `src/common/errors/error-codes.ts` — add `SRC_QUERY_TOO_SHORT`, `TRP_NOT_FOUND`, `PLC_NOT_FOUND`, `HTL_NOT_FOUND`, `GUI_NOT_FOUND`, `TRN_NOT_FOUND` |
-| ⬜ | `backend/.env.example` — add `FRONTEND_URL` if missing |
-| ⬜ | `src/config/env.validation.ts` — validate `FRONTEND_URL` |
-| ⬜ | `npm run lint` clean across the whole project |
-| ⬜ | `npm run build` clean |
-| ⬜ | `npx tsc --noEmit` clean |
-| ⬜ | All curl commands in `validation.md` succeed against a freshly-seeded local DB |
-| ⬜ | `backend/context/plans/PROGRESS-TRACKER.md` — flip Phase 4 row to 🟢 Complete with note "Tests deferred — see follow-up branch" |
+| 🟢 | `src/common/errors/error-codes.ts` — `SRC_QUERY_TOO_SHORT`, `TRP_NOT_FOUND`, `PLC_NOT_FOUND`, `HTL_NOT_FOUND`, `GUI_NOT_FOUND`, `TRN_NOT_FOUND` — all present from Group 1 |
+| 🟢 | `backend/.env.example` — `FRONTEND_URL=http://localhost:3000` already present |
+| 🟢 | `src/config/env.validation.ts` — `FRONTEND_URL` with `default('http://localhost:3000')` already present |
+| 🟢 | `npm run lint` clean |
+| 🟢 | `npm run build` clean |
+| 🟢 | `npx tsc --noEmit` clean |
+| ⬜ | All curl commands in `validation.md` succeed against a freshly-seeded local DB (manual, deferred to human) |
+| 🟢 | `backend/context/plans/PROGRESS-TRACKER.md` — Phase 4 flipped to 🟢 Complete |
 
 ---
 
@@ -329,6 +329,7 @@
 | 2026-05-20T21:42+07 | 5 | Group 5 complete: GuidesModule (16 files). lint ✅ build ✅. 3 use cases (list 300s, detail 600s, availability 300s), buildBusyRanges util, existence check outside cache, BookingStatus enum | Agent |
 | 2026-05-20T21:54+07 | 6 | Group 6 complete: TransportationModule (16 files). lint ✅ build ✅. 3 use cases (list 300s, detail 600s, availability 120s), VehicleType enum filter, UTC-safe availability util (per-module copy with Group 5 fixes pre-applied) | Agent |
 | 2026-05-20T22:02+07 | 7 | Group 7 complete: SearchModule (10 files). lint ✅ build ✅. 1 use case (cached 60s), parallel 4-table search (trip title, place name, hotel name, guide bio/specialities), discriminated union SearchHit, defence-in-depth q<2 check | Agent |
+| 2026-05-20T22:12+07 | 8 | Group 8 complete: DoD checks. All 6 error codes pre-existing ✅. FRONTEND_URL in .env.example and env.validation.ts pre-existing ✅. lint ✅ build ✅ tsc ✅. Phase 4 🟢 Complete. Tests deferred — see follow-up branch. | Agent |
 
 > Add one row per meaningful step. Examples of "meaningful": group started, use case implemented, gate passed, blocker discovered, group completed.
 

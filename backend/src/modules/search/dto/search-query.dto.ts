@@ -19,7 +19,7 @@ export class SearchQueryDto extends PaginationDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(2)
-  q: string;
+  q!: string;
 
   @IsOptional()
   @IsEnum(SearchType)
