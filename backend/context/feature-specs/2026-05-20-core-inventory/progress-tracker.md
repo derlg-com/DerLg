@@ -14,9 +14,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Currently working on** | _none — Group 4 complete, awaiting human review_ |
-| **Last completed group** | Group 4 — HotelsModule (2026-05-20) |
-| **Next group** | Group 5 — GuidesModule |
+| **Currently working on** | _none — Group 6 complete, awaiting human review_ |
+| **Last completed group** | Group 6 — TransportationModule (2026-05-20) |
+| **Next group** | Group 7 — SearchModule |
 | **Active blocker** | None |
 
 > When starting a new module group, set "Currently working on" to the group name and move the "Next group" pointer.
@@ -31,8 +31,8 @@
 | 2 | **TripsModule** (canonical) | 4 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 3 | PlacesModule | 5 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 4 | HotelsModule | 3 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
-| 5 | GuidesModule | 3 | ⬜ Not Started | ⬜ | — | — |
-| 6 | TransportationModule | 3 | ⬜ Not Started | ⬜ | — | — |
+| 5 | GuidesModule | 3 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
+| 6 | TransportationModule | 3 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 7 | SearchModule | 1 | ⬜ Not Started | ⬜ | — | — |
 | 8 | Cross-cutting cleanup & DoD | — | ⬜ Not Started | n/a | — | — |
 | **Totals** | **6 modules + 2 support groups** | **19** | **0 / 8** | **0 / 6** | — | — |
@@ -182,31 +182,31 @@
 
 ## Group 5 — GuidesModule
 
-**Status:** ⬜ Not Started · **Owner:** _unassigned_ · **Reference:** `src/modules/trips/`
+**Status:** 🟢 Complete · **Owner:** Agent · **Reference:** `src/modules/trips/`
 
 ### Use cases (3)
 
 | Status | File | Class |
 |--------|------|-------|
-| ⬜ | `use-cases/list-guides.use-case.ts` | `ListGuidesUseCase` (filters: `language?`, `speciality?`) |
-| ⬜ | `use-cases/get-guide-detail.use-case.ts` | `GetGuideDetailUseCase` |
-| ⬜ | `use-cases/get-guide-availability.use-case.ts` | `GetGuideAvailabilityUseCase` |
+| 🟢 | `use-cases/list-guides.use-case.ts` | `ListGuidesUseCase` (filters: `language?`, `speciality?`) |
+| 🟢 | `use-cases/get-guide-detail.use-case.ts` | `GetGuideDetailUseCase` |
+| 🟢 | `use-cases/get-guide-availability.use-case.ts` | `GetGuideAvailabilityUseCase` |
 
 ### Supporting files
 
 | Status | File | Notes |
 |--------|------|-------|
-| ⬜ | `dto/list-guides.dto.ts` + `dto/availability-query.dto.ts` + `dto/index.ts` | |
-| ⬜ | `interfaces/guide-summary.interface.ts` + `guide-detail.interface.ts` + `availability.interface.ts` + `index.ts` | |
-| ⬜ | `utils/map-guide.util.ts` + `utils/availability.util.ts` + `utils/index.ts` | |
-| ⬜ | `use-cases/index.ts` | Barrel |
-| ⬜ | `guides.controller.ts` | |
-| ⬜ | `guides.module.ts` | Providers list 3 use cases |
-| ⬜ | `app.module.ts` | (modified) import `GuidesModule` |
+| 🟢 | `dto/list-guides.dto.ts` + `dto/availability-query.dto.ts` + `dto/index.ts` | |
+| 🟢 | `interfaces/guide-summary.interface.ts` + `guide-detail.interface.ts` + `availability.interface.ts` + `index.ts` | |
+| 🟢 | `utils/map-guide.util.ts` + `utils/availability.util.ts` + `utils/index.ts` | |
+| 🟢 | `use-cases/index.ts` | Barrel |
+| 🟢 | `guides.controller.ts` | |
+| 🟢 | `guides.module.ts` | Providers list 3 use cases |
+| 🟢 | `app.module.ts` | (modified) import `GuidesModule` |
 
 ### Per-module gate (must pass before Group 6)
 
-- [ ] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
+- [x] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
 - [ ] `GET /v1/guides?language=zh` returns filtered list
 - [ ] `GET /v1/guides/:id` returns 404 + `GUI_NOT_FOUND` for unknown id
 - [ ] `GET /v1/guides/:id/availability?from=&to=` returns busy dates
@@ -217,31 +217,31 @@
 
 ## Group 6 — TransportationModule
 
-**Status:** ⬜ Not Started · **Owner:** _unassigned_ · **Reference:** `src/modules/trips/`
+**Status:** 🟢 Complete · **Owner:** Agent · **Reference:** `src/modules/trips/`
 
 ### Use cases (3)
 
 | Status | File | Class |
 |--------|------|-------|
-| ⬜ | `use-cases/list-vehicles.use-case.ts` | `ListVehiclesUseCase` (filter: `type` ∈ VAN \| BUS \| TUKTUK) |
-| ⬜ | `use-cases/get-vehicle-detail.use-case.ts` | `GetVehicleDetailUseCase` |
-| ⬜ | `use-cases/get-vehicle-availability.use-case.ts` | `GetVehicleAvailabilityUseCase` |
+| 🟢 | `use-cases/list-vehicles.use-case.ts` | `ListVehiclesUseCase` (filter: `type` ∈ VAN \| BUS \| TUKTUK) |
+| 🟢 | `use-cases/get-vehicle-detail.use-case.ts` | `GetVehicleDetailUseCase` |
+| 🟢 | `use-cases/get-vehicle-availability.use-case.ts` | `GetVehicleAvailabilityUseCase` |
 
 ### Supporting files
 
 | Status | File | Notes |
 |--------|------|-------|
-| ⬜ | `dto/list-vehicles.dto.ts` + `dto/availability-query.dto.ts` + `dto/index.ts` | |
-| ⬜ | `interfaces/vehicle-summary.interface.ts` + `vehicle-detail.interface.ts` + `availability.interface.ts` + `index.ts` | |
-| ⬜ | `utils/map-vehicle.util.ts` + `utils/availability.util.ts` + `utils/index.ts` | Per-module copy; promote to shared kernel only on a 3rd consumer |
-| ⬜ | `use-cases/index.ts` | Barrel |
-| ⬜ | `transportation.controller.ts` | `@Controller('transportation/vehicles')` |
-| ⬜ | `transportation.module.ts` | Providers list 3 use cases |
-| ⬜ | `app.module.ts` | (modified) import `TransportationModule` |
+| 🟢 | `dto/list-vehicles.dto.ts` + `dto/availability-query.dto.ts` + `dto/index.ts` | |
+| 🟢 | `interfaces/vehicle-summary.interface.ts` + `vehicle-detail.interface.ts` + `availability.interface.ts` + `index.ts` | |
+| 🟢 | `utils/map-vehicle.util.ts` + `utils/availability.util.ts` + `utils/index.ts` | Per-module copy; promote to shared kernel only on a 3rd consumer |
+| 🟢 | `use-cases/index.ts` | Barrel |
+| 🟢 | `transportation.controller.ts` | `@Controller('transportation/vehicles')` |
+| 🟢 | `transportation.module.ts` | Providers list 3 use cases |
+| 🟢 | `app.module.ts` | (modified) import `TransportationModule` |
 
 ### Per-module gate (must pass before Group 7)
 
-- [ ] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
+- [x] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
 - [ ] `GET /v1/transportation/vehicles?type=VAN` returns filtered list
 - [ ] `GET /v1/transportation/vehicles/:id` returns 404 + `TRN_NOT_FOUND` for unknown id
 - [ ] `GET /v1/transportation/vehicles/:id/availability?from=&to=` returns busy dates
@@ -326,6 +326,8 @@
 | 2026-05-20T18:35+07 | 2 | Group 2 complete: TripsModule (15 files). lint ✅ build ✅ tsc ✅. Fixed: no deletedAt on Trip, unsafe any casts, require-await in share URL use-case | Agent |
 | 2026-05-20T20:25+07 | 3 | Group 3 complete: PlacesModule (16 files). lint ✅ build ✅ tsc ✅. 5 use cases, haversine util for nearby queries, cross-module import of trips mappers for nearby-trips | Agent |
 | 2026-05-20T21:25+07 | 4 | Group 4 complete: HotelsModule (16 files). lint ✅ build ✅. 3 use cases (list 300s, detail 600s, rooms 3600s), room overlap util, checkIn/checkOut DTO validation | Agent |
+| 2026-05-20T21:42+07 | 5 | Group 5 complete: GuidesModule (16 files). lint ✅ build ✅. 3 use cases (list 300s, detail 600s, availability 300s), buildBusyRanges util, existence check outside cache, BookingStatus enum | Agent |
+| 2026-05-20T21:54+07 | 6 | Group 6 complete: TransportationModule (16 files). lint ✅ build ✅. 3 use cases (list 300s, detail 600s, availability 120s), VehicleType enum filter, UTC-safe availability util (per-module copy with Group 5 fixes pre-applied) | Agent |
 
 > Add one row per meaningful step. Examples of "meaningful": group started, use case implemented, gate passed, blocker discovered, group completed.
 
