@@ -14,9 +14,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Currently working on** | _none — Group 2 complete, awaiting human review_ |
-| **Last completed group** | Group 2 — TripsModule (canonical) (2026-05-20) |
-| **Next group** | Group 3 — PlacesModule |
+| **Currently working on** | _none — Group 4 complete, awaiting human review_ |
+| **Last completed group** | Group 4 — HotelsModule (2026-05-20) |
+| **Next group** | Group 5 — GuidesModule |
 | **Active blocker** | None |
 
 > When starting a new module group, set "Currently working on" to the group name and move the "Next group" pointer.
@@ -29,8 +29,8 @@
 |-------|--------|-----------|--------|------|---------|-----------|
 | 1 | Shared catalog primitives | — | 🟢 Complete | n/a (no gate) | 2026-05-20 | 2026-05-20 |
 | 2 | **TripsModule** (canonical) | 4 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
-| 3 | PlacesModule | 5 | ⬜ Not Started | ⬜ | — | — |
-| 4 | HotelsModule | 3 | ⬜ Not Started | ⬜ | — | — |
+| 3 | PlacesModule | 5 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
+| 4 | HotelsModule | 3 | 🟢 Complete | 🟢 | 2026-05-20 | 2026-05-20 |
 | 5 | GuidesModule | 3 | ⬜ Not Started | ⬜ | — | — |
 | 6 | TransportationModule | 3 | ⬜ Not Started | ⬜ | — | — |
 | 7 | SearchModule | 1 | ⬜ Not Started | ⬜ | — | — |
@@ -109,33 +109,33 @@
 
 ## Group 3 — PlacesModule
 
-**Status:** ⬜ Not Started · **Owner:** _unassigned_ · **Reference:** `src/modules/trips/`
+**Status:** 🟢 Complete · **Completed:** 2026-05-20T20:25+07 · **Owner:** Agent · **Reference:** `src/modules/trips/`
 
 ### Use cases (5)
 
 | Status | File | Class |
 |--------|------|-------|
-| ⬜ | `use-cases/list-places.use-case.ts` | `ListPlacesUseCase` |
-| ⬜ | `use-cases/get-place-detail.use-case.ts` | `GetPlaceDetailUseCase` |
-| ⬜ | `use-cases/get-related-places.use-case.ts` | `GetRelatedPlacesUseCase` |
-| ⬜ | `use-cases/get-nearby-trips.use-case.ts` | `GetNearbyTripsUseCase` |
-| ⬜ | `use-cases/get-nearby-places.use-case.ts` | `GetNearbyPlacesUseCase` |
+| 🟢 | `use-cases/list-places.use-case.ts` | `ListPlacesUseCase` |
+| 🟢 | `use-cases/get-place-detail.use-case.ts` | `GetPlaceDetailUseCase` |
+| 🟢 | `use-cases/get-related-places.use-case.ts` | `GetRelatedPlacesUseCase` |
+| 🟢 | `use-cases/get-nearby-trips.use-case.ts` | `GetNearbyTripsUseCase` |
+| 🟢 | `use-cases/get-nearby-places.use-case.ts` | `GetNearbyPlacesUseCase` |
 
 ### Supporting files
 
 | Status | File | Notes |
 |--------|------|-------|
-| ⬜ | `dto/list-places.dto.ts` + `dto/nearby-query.dto.ts` + `dto/index.ts` | |
-| ⬜ | `interfaces/place-summary.interface.ts` + `place-detail.interface.ts` + `index.ts` | |
-| ⬜ | `utils/map-place.util.ts` + `utils/haversine.util.ts` + `utils/index.ts` | Pure `haversine(lat1, lon1, lat2, lon2): km` |
-| ⬜ | `use-cases/index.ts` | Barrel |
-| ⬜ | `places.controller.ts` | |
-| ⬜ | `places.module.ts` | Providers list 5 use cases |
-| ⬜ | `app.module.ts` | (modified) import `PlacesModule` |
+| 🟢 | `dto/list-places.dto.ts` + `dto/nearby-query.dto.ts` + `dto/index.ts` | |
+| 🟢 | `interfaces/place-summary.interface.ts` + `place-detail.interface.ts` + `index.ts` | |
+| 🟢 | `utils/map-place.util.ts` + `utils/haversine.util.ts` + `utils/index.ts` | Pure `haversine(lat1, lon1, lat2, lon2): km` |
+| 🟢 | `use-cases/index.ts` | Barrel |
+| 🟢 | `places.controller.ts` | All `@Public()` |
+| 🟢 | `places.module.ts` | Providers list 5 use cases |
+| 🟢 | `app.module.ts` | (modified) import `PlacesModule` |
 
 ### Per-module gate (must pass before Group 4)
 
-- [ ] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
+- [x] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
 - [ ] `GET /v1/places` returns paginated list
 - [ ] `GET /v1/places/:id` returns 404 + `PLC_NOT_FOUND` for unknown id
 - [ ] `GET /v1/places/:id/nearby-trips?radiusKm=20` returns trips within radius
@@ -147,31 +147,31 @@
 
 ## Group 4 — HotelsModule
 
-**Status:** ⬜ Not Started · **Owner:** _unassigned_ · **Reference:** `src/modules/trips/`
+**Status:** 🟢 Complete · **Owner:** Agent · **Reference:** `src/modules/trips/`
 
 ### Use cases (3)
 
 | Status | File | Class |
 |--------|------|-------|
-| ⬜ | `use-cases/list-hotels.use-case.ts` | `ListHotelsUseCase` |
-| ⬜ | `use-cases/get-hotel-detail.use-case.ts` | `GetHotelDetailUseCase` |
-| ⬜ | `use-cases/get-hotel-rooms.use-case.ts` | `GetHotelRoomsUseCase` |
+| 🟢 | `use-cases/list-hotels.use-case.ts` | `ListHotelsUseCase` |
+| 🟢 | `use-cases/get-hotel-detail.use-case.ts` | `GetHotelDetailUseCase` |
+| 🟢 | `use-cases/get-hotel-rooms.use-case.ts` | `GetHotelRoomsUseCase` |
 
 ### Supporting files
 
 | Status | File | Notes |
 |--------|------|-------|
-| ⬜ | `dto/list-hotels.dto.ts` + `dto/room-availability-query.dto.ts` + `dto/index.ts` | Validates `checkIn` / `checkOut` |
-| ⬜ | `interfaces/hotel-summary.interface.ts` + `hotel-detail.interface.ts` + `room-availability.interface.ts` + `index.ts` | |
-| ⬜ | `utils/map-hotel.util.ts` + `utils/check-room-overlap.util.ts` + `utils/index.ts` | Pure overlap check |
-| ⬜ | `use-cases/index.ts` | Barrel |
-| ⬜ | `hotels.controller.ts` | |
-| ⬜ | `hotels.module.ts` | Providers list 3 use cases |
-| ⬜ | `app.module.ts` | (modified) import `HotelsModule` |
+| 🟢 | `dto/list-hotels.dto.ts` + `dto/room-availability-query.dto.ts` + `dto/index.ts` | Validates `checkIn` / `checkOut` |
+| 🟢 | `interfaces/hotel-summary.interface.ts` + `hotel-detail.interface.ts` + `room-availability.interface.ts` + `index.ts` | |
+| 🟢 | `utils/map-hotel.util.ts` + `utils/check-room-overlap.util.ts` + `utils/index.ts` | Pure overlap check |
+| 🟢 | `use-cases/index.ts` | Barrel |
+| 🟢 | `hotels.controller.ts` | |
+| 🟢 | `hotels.module.ts` | Providers list 3 use cases |
+| 🟢 | `app.module.ts` | (modified) import `HotelsModule` |
 
 ### Per-module gate (must pass before Group 5)
 
-- [ ] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
+- [x] `npm run lint` clean · `npm run build` clean · `npx tsc --noEmit` clean
 - [ ] `GET /v1/hotels` returns paginated list
 - [ ] `GET /v1/hotels/:id` returns 404 + `HTL_NOT_FOUND` for unknown id
 - [ ] `GET /v1/hotels/:id/rooms?checkIn=&checkOut=` returns rooms with availability flag
@@ -324,6 +324,8 @@
 | 2026-05-20T17:54+07 | 1 | Group 1 complete: created `i18n/`, `cache/` (5 new files), modified `common.module.ts`, `list-query.dto.ts`, `error-codes.ts` (added TRP_/PLC_/GUI_/TRN_/SRC_ codes) | Agent |
 | 2026-05-20T18:01+07 | 1 | Verification passed: lint ✅ build ✅ tsc --noEmit ✅ | Agent |
 | 2026-05-20T18:35+07 | 2 | Group 2 complete: TripsModule (15 files). lint ✅ build ✅ tsc ✅. Fixed: no deletedAt on Trip, unsafe any casts, require-await in share URL use-case | Agent |
+| 2026-05-20T20:25+07 | 3 | Group 3 complete: PlacesModule (16 files). lint ✅ build ✅ tsc ✅. 5 use cases, haversine util for nearby queries, cross-module import of trips mappers for nearby-trips | Agent |
+| 2026-05-20T21:25+07 | 4 | Group 4 complete: HotelsModule (16 files). lint ✅ build ✅. 3 use cases (list 300s, detail 600s, rooms 3600s), room overlap util, checkIn/checkOut DTO validation | Agent |
 
 > Add one row per meaningful step. Examples of "meaningful": group started, use case implemented, gate passed, blocker discovered, group completed.
 

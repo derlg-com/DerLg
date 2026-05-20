@@ -42,13 +42,13 @@ src/modules/<feature>/
   <feature>.controller.ts      # thin: DTO in → useCase.execute() → DTO/JSON out
   dto/
     <action>.dto.ts            # class-validator decorators, one DTO per file
-    index.ts                   # barrel
+    index.ts                   # barrel — `export * from './...'`
   interfaces/
     <thing>.interface.ts       # plain TS types, one per file
-    index.ts                   # barrel using `export type`
+    index.ts                   # barrel — `export type * from './...'`
   use-cases/
     <action>.use-case.ts       # @Injectable() class, single async execute()
-    index.ts                   # barrel
+    index.ts                   # barrel — `export * from './...'`
   utils/
     <helper>.util.ts           # pure functions (mappers, calculators)
     index.ts                   # barrel
@@ -139,7 +139,21 @@ export class TripsModule {}
 4. **Errors:** `throw new <Nest>Exception({ code: ErrorCode.XXX, message })`. The `ErrorCode` registry (singular) lives at `src/common/errors/error-codes.ts`. Match the existing auth style (e.g. `AUTH_EMAIL_EXISTS`).
 5. **Imports:** relative paths only — `../../prisma/prisma.service`, `../../redis/redis.service`, `../../../common/errors/error-codes`, `../utils`, `../dto`, `../interfaces`. Type-only imports use `import type`.
 6. **Pure utils** in `utils/` — mappers (Prisma row → API DTO), Haversine, date overlap. No state, no DI.
-7. **Barrels** — every subfolder has an `index.ts` re-exporting its members.
+7. **Barrels** — every subfolder has an `index.ts` re-exporting its members using `export * from './...'` (not named re-exports). Exception: `interfaces/index.ts` must use `export type * from './...'` (or `export type { Foo } from './...'`) since interfaces are type-only. Never use `export { Foo }` (value re-export) for interfaces.
+
+   ```ts
+   // ✅ dto/index.ts, use-cases/index.ts, utils/index.ts
+   export * from './list-hotels.dto';
+   export * from './room-availability-query.dto';
+
+   // ✅ interfaces/index.ts  (type-only)
+   export type * from './hotel-summary.interface';
+   export type * from './hotel-detail.interface';
+
+   // ❌ Never
+   export { ListHotelsUseCase } from './list-hotels.use-case';   // named — skip
+   export type { HotelSummary } from './hotel-summary.interface'; // named type — ok only if export type * unsupported
+   ```
 
 ---
 
