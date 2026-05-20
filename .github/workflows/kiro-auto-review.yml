@@ -1,0 +1,31 @@
+name: Kiro Auto Code Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened] # "synchronize" ensures it runs on every new push
+
+jobs:
+  auto-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Pulls full git history for precise diff calculations
+
+      - name: Install Kiro CLI
+        run: |
+          curl -fsSL https://kiro.dev/install.sh | sh
+          echo "$HOME/.kiro/bin" >> $GITHUB_PATH
+
+      - name: Run Kiro Review
+        env:
+          KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          kiro-cli chat --no-interactive "Read our master rules in .kiro/steering/review-rules.md. Review this pull request's diff entirely based on those rules and leave line-by-line inline feedback."
