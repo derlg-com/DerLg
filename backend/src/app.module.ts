@@ -11,6 +11,7 @@ import { PlacesModule } from './modules/places/places.module';
 import { HotelsModule } from './modules/hotels/hotels.module';
 import { GuidesModule } from './modules/guides/guides.module';
 import { TransportationModule } from './modules/transportation/transportation.module';
+import { SearchModule } from './modules/search/search.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -32,6 +33,7 @@ import { ConfigService } from '@nestjs/config';
     HotelsModule,
     GuidesModule,
     TransportationModule,
+    SearchModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
