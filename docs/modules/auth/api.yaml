@@ -297,19 +297,11 @@ components:
     RegisterResponse:
       type: object
       properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            user:
-              $ref: '#/components/schemas/UserSummary'
-            accessToken:
-              type: string
-              description: JWT access token (15 minutes)
-        message:
+        accessToken:
           type: string
+          description: JWT access token (15 minutes)
+        user:
+          $ref: '#/components/schemas/UserSummary'
 
     LoginRequest:
       type: object
@@ -324,51 +316,24 @@ components:
     LoginResponse:
       type: object
       properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            accessToken:
-              type: string
-              description: JWT access token (15 minutes)
-            expiresIn:
-              type: integer
-              example: 900
-              description: Seconds until expiry
-        message:
+        accessToken:
           type: string
+          description: JWT access token (15 minutes)
+        user:
+          $ref: '#/components/schemas/UserSummary'
 
     OAuthUrlResponse:
       type: object
       properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            url:
-              type: string
-              format: uri
-              description: Google OAuth consent screen URL
+        url:
+          type: string
+          format: uri
+          description: Google OAuth consent screen URL
 
     RefreshResponse:
       type: object
       properties:
-        success:
-          type: boolean
-          example: true
-        data:
-          type: object
-          properties:
-            accessToken:
-              type: string
-            expiresIn:
-              type: integer
-              example: 900
-        message:
+        accessToken:
           type: string
 
     UserSummary:
@@ -385,31 +350,19 @@ components:
           nullable: true
         role:
           type: string
-          enum: [USER, STUDENT, GUIDE, ADMIN]
-        createdAt:
-          type: string
-          format: date-time
+          enum: [user, student, guide, admin]
 
     SuccessResponse:
       type: object
       properties:
-        success:
-          type: boolean
-          example: true
         message:
           type: string
 
     ErrorResponse:
       type: object
       properties:
-        success:
-          type: boolean
-          example: false
-        error:
-          type: object
-          properties:
-            code:
-              type: string
-              example: AUTH_INVALID_CREDENTIALS
-            message:
-              type: string
+        code:
+          type: string
+          example: AUTH_INVALID_CREDENTIALS
+        message:
+          type: string

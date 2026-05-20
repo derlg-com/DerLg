@@ -43,7 +43,7 @@ The Auth module is the security gateway for the entire platform. All other modul
 │                          │                                   │
 │                          ▼                                   │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ Auth Service — bcrypt, JWT signing, token rotation  │    │
+│  │ Use Cases (Register, Login, Token Refresh, etc.)    │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                          │                                   │
 │         ┌────────────────┼────────────────┐                 │
@@ -54,6 +54,24 @@ The Auth module is the security gateway for the entire platform. All other modul
 │  └──────────┘     └──────────┘     └──────────┘            │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Use Cases
+
+Business logic is decomposed into individual, single-responsibility use case classes located in `src/modules/auth/use-cases/`:
+
+- **RegisterUseCase:** Validates email uniqueness, hashes password, creates user, and issues tokens.
+- **LoginUseCase:** Validates credentials, checks account status, and issues tokens.
+- **RefreshTokenUseCase:** Validates rotation, checks Redis, deletes old token, and issues new pair.
+- **LogoutUseCase:** Inactivates a specific session in Redis.
+- **LogoutAllDevicesUseCase:** Inactivates all sessions for a user in Redis.
+- **ForgotPasswordUseCase:** Generates secure reset token, stores in Redis, and triggers email.
+- **ResetPasswordUseCase:** Validates reset token, updates password, and cleans up Redis.
+- **GoogleAuthUseCase:** Generates the Google OAuth consent screen URL.
+- **GoogleCallbackUseCase:** Handles provider callback, exchanges code, and find/creates user.
+- **GenerateTokensUseCase:** (Internal) Handles JWT signing and Redis session storage logic.
+- **SendResetEmailUseCase:** (Internal) Handles integration with the Resend service.
 
 ---
 

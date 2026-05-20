@@ -6,6 +6,7 @@ import { CommonModule } from './common/common.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AiToolsModule } from './modules/ai-tools/ai-tools.module';
+import { TripsModule } from './modules/trips/trips.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -22,6 +23,7 @@ import { ConfigService } from '@nestjs/config';
     AuthModule,
     UsersModule,
     AiToolsModule,
+    TripsModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
