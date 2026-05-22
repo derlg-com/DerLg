@@ -16,21 +16,21 @@
 
 *Lock these before any page or component design begins.*
 
-- [ ] **Runtime Contract**
-  - [ ] Next.js version confirmed (currently v16.2.6)
-  - [ ] React version confirmed (currently v19.2.4)
-  - [ ] TypeScript strict mode enforcement confirmed
-  - [ ] Node.js version target for development and CI
+- [x] **Runtime Contract**
+  - [x] Next.js version confirmed (currently v16.2.6)
+  - [x] React version confirmed (currently v19.2.4)
+  - [x] TypeScript strict mode enforcement confirmed
+  - [x] Node.js version target for development and CI
 
 - [ ] **Rendering Strategy**
-  - [ ] App Router structure finalized: `(public)`, `(auth)`, `(app)` route groups
-  - [ ] Server Components by default policy (when are Client Components allowed?)
-  - [ ] Data fetching pattern: Server Actions vs. Route Handlers vs. direct API calls
+  - [x] App Router structure finalized: `(public)`, `(auth)`, `(app)` route groups
+  - [x] Server Components by default policy (when are Client Components allowed?)
+  - [x] Data fetching pattern: Server Actions vs. Route Handlers vs. direct API calls
   - [ ] Caching strategy per route (ISR, SSR, static, dynamic)
 
 - [ ] **Build & Deploy**
   - [ ] Output mode: `standalone` (Docker) vs. Vercel vs. static export
-  - [ ] Environment variable handling (client-side vs. server-side)
+  - [x] Environment variable handling (client-side vs. server-side)
   - [ ] Image optimization: Next.js built-in or external CDN?
 
 - [ ] **Mobile-First PWA Constraints**
@@ -45,30 +45,30 @@
 
 *Build the wiring every feature will depend on.*
 
-- [ ] **State Management**
-  - [ ] Zustand store structure defined (auth, booking, chat, language, UI)
-  - [ ] Persist middleware rules (what gets persisted to `localStorage`?)
-  - [ ] Hydration mismatch handling (Zustand persist + Next.js SSR)
+- [x] **State Management**
+  - [x] Zustand store structure defined (auth, booking, chat, language, UI)
+  - [x] Persist middleware rules (what gets persisted to `localStorage`?)
+  - [x] Hydration mismatch handling (Zustand persist + Next.js SSR)
 
-- [ ] **Data Fetching Layer**
-  - [ ] API client setup (fetch wrapper or axios?)
-  - [ ] React Query (TanStack Query) configuration:
-    - [ ] Default stale time / cache time
-    - [ ] Error retry policy
-    - [ ] Refetch on window focus policy
-  - [ ] Server Actions vs. API client — boundary defined
+- [x] **Data Fetching Layer**
+  - [x] API client setup (fetch wrapper or axios?)
+  - [x] React Query (TanStack Query) configuration:
+    - [x] Default stale time / cache time
+    - [x] Error retry policy
+    - [x] Refetch on window focus policy
+  - [x] Server Actions vs. API client — boundary defined
 
-- [ ] **Internationalization (i18n)**
-  - [ ] `next-intl` setup with three locales: `en`, `zh`, `km`
-  - [ ] Default locale and locale detection strategy
-  - [ ] Route prefixing: `/en/...`, `/zh/...` or domain-based?
-  - [ ] RTL / script handling (Khmer text direction)
-  - [ ] Number, date, and currency formatting per locale
+- [x] **Internationalization (i18n)**
+  - [x] `next-intl` setup with three locales: `en`, `zh`, `km`
+  - [x] Default locale and locale detection strategy
+  - [x] Route prefixing: `/en/...`, `/zh/...` or domain-based?
+  - [x] RTL / script handling (Khmer text direction)
+  - [x] Number, date, and currency formatting per locale
 
 - [ ] **Routing & Navigation**
   - [ ] Route table documented (all planned routes and their purposes)
   - [ ] Navigation state management (deep linking, back-button behavior)
-  - [ ] Route guards (client-side redirect for unauthenticated users)
+  - [x] Route guards (client-side redirect for unauthenticated users)
 
 - [ ] **Error Boundaries**
   - [ ] Global error boundary (`error.tsx` at root)
@@ -124,16 +124,16 @@
   - [ ] `/forgot-password` — password reset request
   - [ ] `/reset-password` — token-based password reset
 
-- [ ] **Session Management**
-  - [ ] JWT access token storage (memory only? `localStorage`?)
-  - [ ] Refresh token handling (httpOnly cookie via API?)
-  - [ ] Token refresh strategy (proactive or on 401?)
-  - [ ] Logout behavior (clear state, redirect, revoke token?)
+- [x] **Session Management**
+  - [x] JWT access token storage (memory only? `localStorage`?)
+  - [x] Refresh token handling (httpOnly cookie via API?)
+  - [x] Token refresh strategy (proactive or on 401?)
+  - [x] Logout behavior (clear state, redirect, revoke token?)
 
 - [ ] **Auth UX**
   - [ ] Auto-redirect authenticated users away from auth pages
-  - [ ] Protected route wrapper / middleware
-  - [ ] Session expiry handling (silent refresh vs. login prompt)
+  - [x] Protected route wrapper / middleware
+  - [x] Session expiry handling (silent refresh vs. login prompt)
 
 ---
 
@@ -274,10 +274,10 @@
 
 *Before launch. The details that separate demo from product.*
 
-- [ ] **Testing**
-  - [ ] Testing framework chosen and installed (Jest, Vitest, Playwright?)
-  - [ ] Component testing strategy (Storybook? React Testing Library?)
-  - [ ] E2E critical paths (booking flow, auth, chat)
+- [x] **Testing**
+  - [x] Testing framework chosen and installed (Jest, Vitest, Playwright?)
+  - [x] Component testing strategy (Storybook? React Testing Library?)
+  - [x] E2E critical paths (booking flow, auth, chat)
 
 - [ ] **Analytics**
   - [ ] Privacy-friendly analytics choice (Plausible, PostHog, none?)
@@ -297,25 +297,52 @@
 
 ## Decision Log
 
-*Record irreversible decisions here. Date each entry.*
+*Record irreversible decisions here. Date each entry. Architectural decisions are recorded as ADRs in [`docs/platform/frontend/adr/`](../frontend/adr/) — the table below summarizes them.*
 
-| Date | Decision | Context | Consequences if Reversed |
-|------|----------|---------|--------------------------|
-| YYYY-MM-DD | Example: Use Zustand for all state, no Redux | Simplicity, small team | Requires refactoring all stores if app grows beyond Zustand |
-| | | | |
-| | | | |
+| Date       | Decision | ADR | Consequences if reversed |
+|------------|----------|-----|--------------------------|
+| 2026-05-22 | App Router with Server Components by default; `'use client'` is opt-in. | [ADR-0001](../frontend/adr/0001-app-router-server-components-default.md) | Refactor every page into Client Components; ship larger JS bundles to mobile. |
+| 2026-05-22 | Zustand for client UI state, TanStack React Query for server state. No third state library. | [ADR-0002](../frontend/adr/0002-state-management-split.md) | Migrate every store and hook to a different library; rewrite cache invalidation. |
+| 2026-05-22 | Access token in JS memory (Zustand), refresh token in `httpOnly Secure SameSite=Strict` cookie, lazy 401 refresh, middleware checks cookie presence. | [ADR-0003](../frontend/adr/0003-auth-and-session-model.md) | Re-design entire auth flow; rebuild api-client refresh handshake. |
+| 2026-05-22 | next-intl with always-prefixed locale paths (`/en`, `/zh`, `/km`); `[locale]` dynamic segment is the only top-level user-facing route. | [ADR-0004](../frontend/adr/0004-i18n-routing-strategy.md) | Re-route every URL; rebuild SEO `hreflang` machinery; change PWA start URL contract. |
+| 2026-05-22 | Vitest + React Testing Library + Playwright + MSW. One unit/component runner, one E2E runner, one mock layer. | [ADR-0005](../frontend/adr/0005-testing-stack.md) | Migrate every test file to a different runner; double-maintain mocking layers during transition. |
+| 2026-05-22 | Per-feature frontend reference docs live at `docs/platform/frontend/reference/features/<feature>.md`. | [ADR-0006](../frontend/adr/0006-per-feature-frontend-reference-docs-location.md) | Relocate every per-feature doc and update every cross-link in the platform docs. |
 
 ---
 
 ## Current Status
 
-**Phase in Progress:** `Phase 0 — Foundation & Constraints`
+**Phase in Progress:** `Phase 0 — Foundation & Constraints` (decided), `Phase 1 — Core Infrastructure` (decided, not yet implemented).
+
+**What's decided (documented):**
+- Runtime contract — see [`foundation.md`](../frontend/foundation.md).
+- App Router structure + RSC default — [`architecture.md`](../frontend/architecture.md), ADR-0001.
+- State management split — ADR-0002.
+- Auth & session model — ADR-0003.
+- i18n routing strategy — ADR-0004.
+- Testing stack — ADR-0005.
+- Per-feature doc location and template — ADR-0006, [`_template-feature.md`](../frontend/_template-feature.md).
+
+**What's decided but not yet implemented (next):**
+- `frontend/package.json` does **not** yet include zustand, @tanstack/react-query, next-intl, vitest, @testing-library/react, @playwright/test, or msw — adoption is the next concrete step.
+- `frontend/middleware.ts` does not exist yet.
+- `frontend/lib/api-client.ts` does not exist yet.
+- `frontend/app/[locale]/` route segment does not exist; current `app/` is a flat scaffold.
+- No cross-cutting reference docs (`state-and-data.md`, `auth-and-session.md`, etc.) authored yet — they need the underlying code to land first per the "no future tense" rule in [`reference/README.md`](../frontend/reference/README.md).
+
+**What's still open (Phase 0 / Phase 1 unchecked items):**
+- Caching strategy per route (ISR/SSR/static/dynamic) — pending.
+- Output mode (`standalone` vs Vercel vs static export) — pending.
+- Image optimization choice — pending.
+- Mobile-first breakpoints, PWA manifest, Service Worker scope, offline fallback — entire PWA section pending.
+- Route table (exhaustive enumeration) — pending.
+- Error boundary policy (global, not-found, API error UX) — pending.
 
 **Blockers:**
-- None recorded yet.
+- None. Adoption work can begin in any order.
 
 **Next Review Date:**
-- YYYY-MM-DD
+- 2026-06-22
 
 ---
 

@@ -82,13 +82,13 @@ This boundary matters because the **middleware** (`middleware.ts`) reads the URL
 ```mermaid
 flowchart TD
   A[New route] --> B{Auth required?}
-  B -- No --> C{Public/SEO?}
-  C -- Yes --> D[(public)/]
+  B -- No --> C{"Public/SEO?"}
+  C -- Yes --> D["(public)/"]
   C -- No --> E{Auth flow?}
-  E -- Yes --> F[(auth)/]
+  E -- Yes --> F["(auth)/"]
   B -- Yes --> G{Full-screen experience?}
-  G -- No --> H[(app)/]
-  G -- Yes --> I[Top-level route<br/>own layout.tsx]
+  G -- No --> H["(app)/"]
+  G -- Yes --> I["Top-level route<br/>own layout.tsx"]
 ```
 
 ---

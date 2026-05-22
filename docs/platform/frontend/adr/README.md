@@ -18,11 +18,16 @@ See [`../governance.md`](../governance.md) for when an ADR is required.
 
 ## Index
 
-| #    | Title                                                                 | Status   | Date       |
-|------|-----------------------------------------------------------------------|----------|------------|
-| 0001 | [App Router with Server Components by default](./0001-app-router-server-components-default.md) | Accepted | 2026-05-22 |
+| #    | Title                                                                                                                              | Status   | Date       |
+|------|------------------------------------------------------------------------------------------------------------------------------------|----------|------------|
+| 0001 | [App Router with Server Components by default](./0001-app-router-server-components-default.md)                                     | Accepted | 2026-05-22 |
+| 0002 | [State management — Zustand for client state, React Query for server state](./0002-state-management-split.md)                       | Accepted | 2026-05-22 |
+| 0003 | [Auth & session — httpOnly refresh cookie, in-memory access token, middleware guards](./0003-auth-and-session-model.md)             | Accepted | 2026-05-22 |
+| 0004 | [i18n routing — next-intl with always-prefixed locale paths (`/en`, `/zh`, `/km`)](./0004-i18n-routing-strategy.md)                 | Accepted | 2026-05-22 |
+| 0005 | [Testing stack — Vitest + React Testing Library + Playwright + MSW](./0005-testing-stack.md)                                        | Accepted | 2026-05-22 |
+| 0006 | [Per-feature frontend reference docs live under `reference/features/`](./0006-per-feature-frontend-reference-docs-location.md)      | Accepted | 2026-05-22 |
 
-> Add a row above for each new ADR. Newest at the top after this row, or keep sorted ascending — pick one and stick to it. (Convention here: ascending by number.)
+> Convention here: ascending by number. Add a row at the bottom for each new ADR.
 
 ---
 
