@@ -5,7 +5,7 @@
 
 | Field | Value |
 |---|---|
-| **Status** | Drafting |
+| **Status** | Approved |
 | **Owner** | You |
 | **Last reviewed** | 2026-05-22 |
 | **Phase** | Phase 3 — Authentication Flows |

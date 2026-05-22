@@ -10,8 +10,8 @@
 |---|---|
 | **Last reviewed** | 2026-05-22 |
 | **Total features in queue** | 15 |
-| **Drafting** | 1 |
-| **Approved** | 0 |
+| **Drafting** | 7 |
+| **Approved** | 2 |
 | **Implementing** | 0 |
 | **Shipped** | 0 |
 
@@ -33,16 +33,16 @@ The queue is the **only place** `Status` lives at the queue-wide level. The doc 
 
 | Order | Feature slug | Phase | Priority | Scope | Status | Owner | Depends on | Doc |
 |---|---|---|---|---|---|---|---|---|
-| 1 | `auth` | 3 | P0 | MVP | Drafting | You | — | [`features/auth.md`](features/auth.md) |
-| 2 | `app-shell` | 4 | P0 | MVP | Not started | TBD | `auth` | — |
+| 1 | `auth` | 3 | P0 | MVP | Approved | You | — | [`features/auth.md`](features/auth.md) |
+| 2 | `app-shell` | 4 | P0 | MVP | Approved | You | `auth` | [`features/app-shell.md`](features/app-shell.md) |
 | 3 | `vibe-booking` | 6 | P0 | MVP | Not started | Senior | `auth` (token contract) | — |
-| 4 | `trip-discovery` | 5 | P0 | MVP | Not started | You | `auth`, `app-shell` | — |
-| 5 | `hotel-booking` | 5 | P0 | MVP | Not started | TBD | `auth`, `trip-discovery` (pattern) | — |
-| 6 | `transportation` | 5 | P0 | MVP | Not started | TBD | `auth`, `trip-discovery` (pattern) | — |
-| 7 | `tour-guide` | 5 | P0 | MVP | Not started | TBD | `auth`, `trip-discovery` (pattern) | — |
-| 8 | `payments` | 5 | P0 | MVP | Not started | TBD | At least one booking flow | — |
-| 9 | `my-trip` | 7 | P0 | MVP | Not started | TBD | `auth`, bookings | — |
-| 10 | `profile` | 7 | P0 | MVP | Not started | TBD | `auth` | — |
+| 4 | `trip-discovery` | 5 | P0 | MVP | Drafting | You | `auth`, `app-shell` | [`features/trip-discovery.md`](features/trip-discovery.md) |
+| 5 | `hotel-booking` | 5 | P0 | MVP | Drafting | TBD | `auth`, `trip-discovery` (pattern) | [`features/hotel-booking.md`](features/hotel-booking.md) |
+| 6 | `transportation` | 5 | P0 | MVP | Drafting | TBD | `auth`, `trip-discovery` (pattern) | [`features/transportation.md`](features/transportation.md) |
+| 7 | `tour-guide` | 5 | P0 | MVP | Drafting | TBD | `auth`, `trip-discovery` (pattern) | [`features/tour-guide.md`](features/tour-guide.md) |
+| 8 | `payments` | 5 | P0 | MVP | Drafting | TBD | At least one booking flow | [`features/payments.md`](features/payments.md) |
+| 9 | `my-trip` | 7 | P0 | MVP | Drafting | TBD | `auth`, bookings | [`features/my-trip.md`](features/my-trip.md) |
+| 10 | `profile` | 7 | P0 | MVP | Drafting | TBD | `auth` | [`features/profile.md`](features/profile.md) |
 | 11 | `explore-places` | 5–6 | P1 | MVP | Not started | TBD | `app-shell` | — |
 | 12 | `student-verification` | — | P1 | v1.1 | Not started | TBD | `auth` | — |
 | 13 | `loyalty` | — | P2 | v1.1 | Not started | TBD | `auth`, `payments` | — |
