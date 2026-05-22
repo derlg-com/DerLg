@@ -18,51 +18,84 @@
 | Audience | Where to start |
 |----------|----------------|
 | **New engineer joining the team** | `index.md` (this file) → `foundation.md` → `architecture.md` |
-| **Feature implementer** | `architecture.md` → `state-and-data.md` → `design-system.md` → relevant feature doc |
-| **Operator / SRE** | `deployment.md` → `observability.md` → `performance.md` |
+| **Feature implementer** | `architecture.md` → `reference/state-and-data.md` → `reference/design-system.md` → relevant feature doc |
+| **Operator / SRE** | `reference/deployment.md` → `reference/observability.md` → `reference/performance.md` |
 | **AI agent / automation** | [`frontend/AGENTS.md`](../../../frontend/AGENTS.md) (this folder is human-readable narrative; AGENTS.md is the operational contract) |
 | **Reviewer / architect** | `governance.md` → `adr/README.md` |
 
 ---
 
+## How these docs are organized
+
+This folder follows the [**Diátaxis**](https://diataxis.fr/) taxonomy. Every doc has exactly one home — the question to answer when filing a new doc is: *what does the reader need from it?*
+
+| Category | Reader's need | Folder | Index |
+|----------|---------------|--------|-------|
+| **Reference** | "Look up a fact." Contracts, schemas, configuration, conventions. | [`./reference/`](./reference/) | [`reference/README.md`](./reference/README.md) |
+| **How-to guides** | "Accomplish a task." Numbered steps for a specific goal. | [`./guides/`](./guides/) | [`guides/README.md`](./guides/README.md) |
+| **Tutorials** | "Learn by building." End-to-end narrative for newcomers. | [`./tutorials/`](./tutorials/) | [`tutorials/README.md`](./tutorials/README.md) |
+| **Explanation** | "Understand why." Concepts, mental models, trade-offs. | [`./explanation/`](./explanation/) | [`explanation/README.md`](./explanation/README.md) |
+| **ADRs** | "Trace a historical decision." Immutable, dated records. | [`./adr/`](./adr/) | [`adr/README.md`](./adr/README.md) |
+
+Three docs sit at the **top level** and are not part of any Diátaxis category — they're the front door:
+
+- [`foundation.md`](./foundation.md) — runtime contract (read first)
+- [`architecture.md`](./architecture.md) — high-level system shape
+- [`governance.md`](./governance.md) — the rules of the road
+
+The choice of category is enforced in code review per [`governance.md`](./governance.md#documentation-taxonomy-diátaxis). If a doc could plausibly live in two categories, write the reference doc and link to it from a guide or explanation — never duplicate.
+
+---
+
 ## Document map
 
-### 0. Foundation
+### 0. Entry docs
 | Doc | Purpose |
 |-----|---------|
 | [`foundation.md`](./foundation.md) | Runtime contract, Node/Next/React versions, package manager, env vars, common scripts |
-| [`governance.md`](./governance.md) | Doc lifecycle, PR rules, definition of done, how to add an ADR |
-
-### 1. Architecture
-| Doc | Purpose |
-|-----|---------|
 | [`architecture.md`](./architecture.md) | App Router structure, rendering strategy (RSC vs Client), route groups, folder layout |
-| [`state-and-data.md`](./state-and-data.md) | Zustand client stores, React Query server state, hydration rules, persistence |
-| [`auth-and-session.md`](./auth-and-session.md) | JWT access token storage, refresh-token cookie flow, middleware-based route guards |
-| [`realtime-and-vibe-booking.md`](./realtime-and-vibe-booking.md) | WebSocket lifecycle, AI message contracts, auto-render system, Zod validation |
+| [`governance.md`](./governance.md) | Doc lifecycle, PR rules, definition of done, how to add an ADR, taxonomy |
 
-### 2. Cross-cutting concerns
+### 1. Reference — [`./reference/`](./reference/)
+
+Factual lookup docs. See [`reference/README.md`](./reference/README.md) for the full conventions.
+
 | Doc | Purpose |
 |-----|---------|
-| [`design-system.md`](./design-system.md) | Tailwind v4 tokens, shadcn/ui usage, motion policy, accessibility baseline |
-| [`i18n-and-locale.md`](./i18n-and-locale.md) | next-intl setup, EN/ZH/KM resources, font stacks, currency/date/number formatting |
-| [`pwa-and-offline.md`](./pwa-and-offline.md) | Service worker scope, cache strategies, offline indicators, install prompt |
-| [`performance.md`](./performance.md) | Core Web Vitals targets, code splitting policy, image rules, prefetch strategy |
-| [`security.md`](./security.md) | CSP, XSS prevention, input validation, secrets policy, sandboxing AI content |
-| [`testing.md`](./testing.md) | Vitest + React Testing Library, Playwright E2E, MSW mocking, coverage targets |
-| [`observability.md`](./observability.md) | Sentry integration, analytics events, structured client logs, error budgets |
-| [`deployment.md`](./deployment.md) | Docker image, CI/CD pipeline, environments, rollback procedure |
+| [`reference/state-and-data.md`](./reference/state-and-data.md) | Zustand client stores, React Query server state, hydration rules, persistence |
+| [`reference/auth-and-session.md`](./reference/auth-and-session.md) | JWT access token storage, refresh-token cookie flow, middleware-based route guards |
+| [`reference/realtime-and-vibe-booking.md`](./reference/realtime-and-vibe-booking.md) | WebSocket lifecycle, AI message contracts, auto-render system, Zod validation |
+| [`reference/design-system.md`](./reference/design-system.md) | Tailwind v4 tokens, shadcn/ui usage, motion policy, accessibility baseline |
+| [`reference/i18n-and-locale.md`](./reference/i18n-and-locale.md) | next-intl setup, EN/ZH/KM resources, font stacks, currency/date/number formatting |
+| [`reference/pwa-and-offline.md`](./reference/pwa-and-offline.md) | Service worker scope, cache strategies, offline indicators, install prompt |
+| [`reference/performance.md`](./reference/performance.md) | Core Web Vitals targets, code splitting policy, image rules, prefetch strategy |
+| [`reference/security.md`](./reference/security.md) | CSP, XSS prevention, input validation, secrets policy, sandboxing AI content |
+| [`reference/testing.md`](./reference/testing.md) | Vitest + React Testing Library, Playwright E2E, MSW mocking, coverage targets |
+| [`reference/observability.md`](./reference/observability.md) | Sentry integration, analytics events, structured client logs, error budgets |
+| [`reference/deployment.md`](./reference/deployment.md) | Docker image, CI/CD pipeline, environments, rollback procedure |
 
-### 3. Decision records
+### 2. How-to guides — [`./guides/`](./guides/)
+
+Task-oriented recipes. See [`guides/README.md`](./guides/README.md) for the list of suggested first guides and the authoring conventions.
+
+### 3. Tutorials — [`./tutorials/`](./tutorials/)
+
+End-to-end learning narratives for new contributors. See [`tutorials/README.md`](./tutorials/README.md).
+
+### 4. Explanation — [`./explanation/`](./explanation/)
+
+Concepts, mental models, and trade-offs that don't fit a single ADR. See [`explanation/README.md`](./explanation/README.md).
+
+### 5. Decision records — [`./adr/`](./adr/)
 | Doc | Purpose |
 |-----|---------|
 | [`adr/README.md`](./adr/README.md) | Index of all Architecture Decision Records |
 | [`adr/0000-template.md`](./adr/0000-template.md) | Template for new ADRs |
 
-### 4. Templates
+### 6. Templates
 | Doc | Purpose |
 |-----|---------|
-| [`_template.md`](./_template.md) | Copy this when creating a new frontend platform doc |
+| [`_template.md`](./_template.md) | Copy this when creating a new frontend platform doc (works for all four Diátaxis categories) |
 
 ---
 
@@ -71,27 +104,27 @@
 ```mermaid
 flowchart LR
   subgraph Browser["Browser (PWA)"]
-    UI[Next.js App Router<br/>Server + Client Components]
-    SW[Service Worker<br/>next-pwa + Workbox]
-    LS[(localStorage<br/>auth, layout, session)]
+    UI["Next.js App Router<br/>Server + Client Components"]
+    SW["Service Worker<br/>next-pwa + Workbox"]
+    LS[("localStorage<br/>auth, layout, session")]
   end
 
   subgraph Edge["Next.js Server"]
-    MW[middleware.ts<br/>locale + auth guards]
-    RSC[Server Components<br/>fetch + revalidate]
-    API[/api/auth/refresh/]
+    MW["middleware.ts<br/>locale + auth guards"]
+    RSC["Server Components<br/>fetch + revalidate"]
+    API["/api/auth/refresh"]
   end
 
   subgraph Platform
-    BE[Backend NestJS<br/>:3001 /v1/*]
-    AI[AI Agent FastAPI<br/>WebSocket]
-    CDN[Static / Image CDN]
+    BE["Backend NestJS<br/>:3001 /v1/*"]
+    AI["AI Agent FastAPI<br/>WebSocket"]
+    CDN["Static / Image CDN"]
   end
 
   UI -->|REST| BE
-  UI -->|WebSocket /ws/{session}| AI
+  UI -->|"WebSocket /ws/{session}"| AI
   UI -.->|hydration| RSC
-  RSC -->|fetch /v1/*| BE
+  RSC -->|"fetch /v1/*"| BE
   MW --> RSC
   API -->|httpOnly cookie refresh| BE
   SW --> CDN

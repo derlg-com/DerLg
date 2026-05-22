@@ -101,6 +101,46 @@ A frontend PR can be merged only when **all** of the following are true.
 
 ---
 
+## Documentation taxonomy (Diátaxis)
+
+This folder follows the [**Diátaxis**](https://diataxis.fr/) framework: every doc has exactly one home, chosen by what the reader needs from it.
+
+| Category | Reader's need | Folder | Examples |
+|----------|---------------|--------|----------|
+| **Reference** | Look up a fact | [`reference/`](./reference/) | `state-and-data.md`, `i18n-and-locale.md`, `security.md` |
+| **How-to guides** | Accomplish a task | [`guides/`](./guides/) | "Add a new authenticated route", "Wire a React Query hook" |
+| **Tutorials** | Learn by building | [`tutorials/`](./tutorials/) | "Build your first booking page end to end" |
+| **Explanation** | Understand why | [`explanation/`](./explanation/) | "Why Server Components by default", "AI content trust model" |
+| **ADRs** | Trace a historical decision | [`adr/`](./adr/) | `0001-app-router-server-components-default.md` |
+
+Three docs sit at the **top level** and are not part of any Diátaxis category — they're the front door:
+
+- [`foundation.md`](./foundation.md) — runtime contract
+- [`architecture.md`](./architecture.md) — high-level system shape
+- [`governance.md`](./governance.md) — this doc
+
+### Decision tree for a new doc
+
+Ask the questions in order. The first "yes" wins.
+
+1. Is it a **single, dated decision** the team is committing to (and will need to re-evaluate later)? → [`adr/`](./adr/)
+2. Does the reader need **factual lookup** of a contract, schema, or rule that already exists in code? → [`reference/`](./reference/)
+3. Does the reader need **numbered steps** to accomplish one specific task? → [`guides/`](./guides/)
+4. Does the reader need to **learn the system end to end** by building something? → [`tutorials/`](./tutorials/)
+5. Does the reader need to **understand a concept, mental model, or trade-off** that spans multiple decisions? → [`explanation/`](./explanation/)
+
+Each of the four Diátaxis subfolders has a `README.md` with the authoring conventions for that category. Read it before writing the first doc of a kind.
+
+### Rules
+
+1. **One home per doc.** If a topic plausibly belongs in two categories, write the reference doc and link to it from the others. Never duplicate content across categories.
+2. **Reviewers reject misfiled docs.** A how-to in `reference/` or a reference in `guides/` is a request-for-changes, not a nit.
+3. **Subfolder READMEs are non-optional.** When you add the first doc to an empty subfolder, add a row to that subfolder's `README.md` index in the same PR.
+4. **Don't promote a doc across categories silently.** Moving a doc from `reference/` to `explanation/` (or vice versa) is a notable change — call it out in the PR description, update `index.md`, and bump `Last reviewed`.
+5. **Reference vs ADR is the most common mistake.** Reference describes *what is*; ADR records *why we decided*. If unsure, write the ADR (it's lower-effort) and let the reference doc cite it.
+
+---
+
 ## When to write an ADR
 
 You **MUST** write an ADR when the change is:
