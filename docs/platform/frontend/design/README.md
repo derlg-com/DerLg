@@ -96,11 +96,11 @@ design/
 
 ## Index
 
-*One row per feature design as it lands.*
+The live queue with priorities, owners, dependencies, and status lives in [`QUEUE.md`](./QUEUE.md).
 
-| Slug | Title | Status | Phase | Doc |
-|---|---|---|---|---|
-| *(none yet)* | — | — | — | — |
+This file (`README.md`) holds the **rules** of the design layer (template, lifecycle, authoring conventions). [`QUEUE.md`](./QUEUE.md) holds the **state** (what's designed, what's next).
+
+Look up your next design task in [`QUEUE.md`](./QUEUE.md). Update both the doc and `QUEUE.md` in the same PR when status changes.
 
 ---
 

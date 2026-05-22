@@ -80,10 +80,12 @@ When an agent picks up a task:
 
 1. **Locate the phase.** Find which row of the table the task belongs to. If you can't, the task is probably out of scope or not yet decided — flag it.
 2. **For a new feature, check for an Approved design doc** at `docs/platform/frontend/design/features/<feature>.md` (per [ADR-0008](../../docs/platform/frontend/adr/0008-frontend-feature-design-docs-location-and-lifecycle.md)). If `Status: Drafting` — finish the design first, do not implement. If missing — author it from [`_template-feature-design.md`](../../docs/platform/frontend/_template-feature-design.md) before any code.
-3. **Check status before assuming.** A piece of infrastructure (path alias, API client, middleware, locale routing) may be **decided** but **not yet in the code**. Don't import from something that doesn't exist; either build it as part of the task or stop and surface the dependency.
-4. **Read the gating ADRs.** Each phase in the canonical roadmap cites its binding ADRs. Read them before writing code that touches that area.
-5. **Stay in your phase.** Don't pull Phase 6 work into a Phase 2 PR. Each phase has acceptance criteria for a reason — drift makes review impossible.
-6. **Update the Decision Log.** Any new architectural decision goes into the canonical roadmap's Decision Log table with a new ADR. Don't make decisions only in code.
+3. **For "what should I design next?", read [`design/QUEUE.md`](../../docs/platform/frontend/design/QUEUE.md).** It is the live, sorted list with owner / status / dependencies. Pick the highest-priority `Not started` row whose dependencies are `Approved` or `Shipped`.
+4. **Check status before assuming.** A piece of infrastructure (path alias, API client, middleware, locale routing) may be **decided** but **not yet in the code**. Don't import from something that doesn't exist; either build it as part of the task or stop and surface the dependency.
+5. **Read the gating ADRs.** Each phase in the canonical roadmap cites its binding ADRs. Read them before writing code that touches that area.
+6. **Stay in your phase.** Don't pull Phase 6 work into a Phase 2 PR. Each phase has acceptance criteria for a reason — drift makes review impossible.
+7. **Update the Decision Log.** Any new architectural decision goes into the canonical roadmap's Decision Log table with a new ADR. Don't make decisions only in code.
+8. **Update QUEUE.md when design status changes.** Same PR as the doc-status change.
 
 ---
 
@@ -94,7 +96,10 @@ When an agent picks up a task:
 - Foundation (runtime contract): [`docs/platform/frontend/foundation.md`](../../docs/platform/frontend/foundation.md)
 - Governance (DoD): [`docs/platform/frontend/governance.md`](../../docs/platform/frontend/governance.md)
 - ADR index: [`docs/platform/frontend/adr/README.md`](../../docs/platform/frontend/adr/README.md)
-- Per-feature template: [`docs/platform/frontend/_template-feature.md`](../../docs/platform/frontend/_template-feature.md)
+- Per-feature design template: [`docs/platform/frontend/_template-feature-design.md`](../../docs/platform/frontend/_template-feature-design.md)
+- **Design queue (what to design next):** [`docs/platform/frontend/design/QUEUE.md`](../../docs/platform/frontend/design/QUEUE.md)
+- Design layer rules: [`docs/platform/frontend/design/README.md`](../../docs/platform/frontend/design/README.md)
+- Per-feature reference template: [`docs/platform/frontend/_template-feature.md`](../../docs/platform/frontend/_template-feature.md)
 - Reference docs index: [`docs/platform/frontend/reference/README.md`](../../docs/platform/frontend/reference/README.md)
 - Code standards (this folder): [`./code-standards.md`](./code-standards.md)
 - Architecture pointer (this folder): [`./architecture.md`](./architecture.md)
