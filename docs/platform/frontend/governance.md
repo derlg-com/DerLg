@@ -61,6 +61,7 @@ A frontend PR can be merged only when **all** of the following are true.
 - [ ] Any new input from the AI agent is Zod-validated *before* being passed to a renderer.
 
 ### Documentation
+- [ ] **Approved design doc exists** for any new feature being implemented ([ADR-0008](./adr/0008-frontend-feature-design-docs-location-and-lifecycle.md)). Path: `docs/platform/frontend/design/features/<feature>.md`. The implementing PR references the design doc and updates its `Status` (`Drafting` → `Approved` → `Implementing` → `Shipped`).
 - [ ] If the PR changes a documented pattern, the relevant doc in `docs/platform/frontend/` is updated in the **same PR**.
 - [ ] If the PR introduces a new architectural decision, a corresponding ADR is added (or referenced if already merged).
 - [ ] `Last reviewed` date is bumped on any doc that changes.

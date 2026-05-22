@@ -26,6 +26,8 @@ See [`../governance.md`](../governance.md) for when an ADR is required.
 | 0004 | [i18n routing — next-intl with always-prefixed locale paths (`/en`, `/zh`, `/km`)](./0004-i18n-routing-strategy.md)                 | Accepted | 2026-05-22 |
 | 0005 | [Testing stack — Vitest + React Testing Library + Playwright + MSW](./0005-testing-stack.md)                                        | Accepted | 2026-05-22 |
 | 0006 | [Per-feature frontend reference docs live under `reference/features/`](./0006-per-feature-frontend-reference-docs-location.md)      | Accepted | 2026-05-22 |
+| 0007 | [Feature-sliced architecture with strict boundaries](./0007-feature-sliced-architecture-with-strict-boundaries.md)                  | Accepted | 2026-05-22 |
+| 0008 | [Frontend feature design docs location and lifecycle](./0008-frontend-feature-design-docs-location-and-lifecycle.md)                | Accepted | 2026-05-22 |
 
 > Convention here: ascending by number. Add a row at the bottom for each new ADR.
 

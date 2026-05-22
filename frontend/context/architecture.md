@@ -1,42 +1,42 @@
-# Architecture Context
+# Frontend Architecture — Context Pointer
 
-## Stack
+> This file is a **pointer**, not a source of truth.
+> The canonical frontend architecture lives under [`docs/platform/frontend/`](../../docs/platform/frontend/).
+> If anything here drifts from the platform docs, the platform docs win — fix this file.
 
-| Layer     | Technology                  | Role   |
-| --------- | --------------------------- | ------ |
-| Framework | [e.g. Next.js + TypeScript] | [Role] |
-| UI        | [e.g. Tailwind + shadcn/ui] | [Role] |
-| Auth      | [e.g. Clerk]                | [Role] |
-| Database  | [e.g. Prisma + PostgreSQL]  | [Role] |
-| [Layer]   | [Technology]                | [Role] |
+## Read these in order
 
-## System Boundaries
+1. [`docs/platform/frontend/foundation.md`](../../docs/platform/frontend/foundation.md) — runtime contract: Node version, Next.js + React versions, package manager, hard rules.
+2. [`docs/platform/frontend/architecture.md`](../../docs/platform/frontend/architecture.md) — folder layout, server-vs-client component split, where to put a new file, anti-patterns, acceptance criteria.
+3. [`docs/platform/frontend/governance.md`](../../docs/platform/frontend/governance.md) — Definition of Done. A change isn't done until every gate here passes.
+4. [`docs/platform/frontend/_template-feature-design.md`](../../docs/platform/frontend/_template-feature-design.md) — forward-looking design template. Every new feature gets a design doc in [`design/features/`](../../docs/platform/frontend/design/) before implementation starts (per ADR-0008).
+5. [`docs/platform/frontend/_template-feature.md`](../../docs/platform/frontend/_template-feature.md) — reference template (post-build) every per-feature reference doc copies from.
 
-- `[folder]` — [What this folder owns and is responsible for]
-- `[folder]` — [What this folder owns and is responsible for]
-- `[folder]` — [What this folder owns and is responsible for]
-- `[folder]` — [What this folder owns and is responsible for]
+## Decisions (ADRs)
 
-## Storage Model
+Read the ADR before changing anything it touches:
 
-- **[Storage type e.g. Database]**: [What lives here —
-  e.g. metadata, ownership, relationships]
-- **[Storage type e.g. Blob/File Storage]**: [What lives
-  here — e.g. generated files, media, large artifacts]
+- [ADR-0001 — App Router as the only routing model](../../docs/platform/frontend/adr/0001-app-router-as-only-routing-model.md)
+- [ADR-0002 — State management split (Zustand + React Query)](../../docs/platform/frontend/adr/0002-state-management-split.md)
+- [ADR-0003 — Auth & session model](../../docs/platform/frontend/adr/0003-auth-and-session-model.md)
+- [ADR-0004 — i18n routing strategy](../../docs/platform/frontend/adr/0004-i18n-routing-strategy.md)
+- [ADR-0005 — Testing stack](../../docs/platform/frontend/adr/0005-testing-stack.md)
+- [ADR-0006 — Per-feature reference docs location](../../docs/platform/frontend/adr/0006-per-feature-frontend-reference-docs-location.md)
+- [ADR-0007 — Feature-sliced layout with strict boundaries](../../docs/platform/frontend/adr/0007-feature-sliced-architecture-with-strict-boundaries.md)
+- [ADR-0008 — Frontend feature design docs location and lifecycle](../../docs/platform/frontend/adr/0008-frontend-feature-design-docs-location-and-lifecycle.md)
 
-## Auth and Access Model
+ADR index: [`docs/platform/frontend/adr/README.md`](../../docs/platform/frontend/adr/README.md).
 
-- [How authentication works — e.g. Every user signs in
-  via Clerk]
-- [How ownership works — e.g. Every project has a single
-  owner]
-- [How access control works — e.g. Only the owner or a
-  collaborator can mutate project resources]
+## Roadmap & current status
 
-## Invariants
+[`docs/platform/roadmaps/frontend-roadmap.md`](../../docs/platform/roadmaps/frontend-roadmap.md) tracks what is **decided**, what is **decided-but-not-implemented**, and what is still **open**. Check it before assuming a piece of infrastructure exists.
 
-1. [Rule the codebase must never violate — e.g. Request
-   handlers do not run long-lived background work]
-2. [Invariant two]
-3. [Invariant three]
-4. [Invariant four]
+## Code conventions
+
+- [`.kiro/steering/tech.md`](../../.kiro/steering/tech.md) — stack and code-style rules (no semicolons, single quotes, 2-space indent for frontend).
+- [`.kiro/steering/conventions.md`](../../.kiro/steering/conventions.md) — naming, imports, error handling, validation, testing.
+- [`frontend/AGENTS.md`](../AGENTS.md) — frontend-specific agent guide (component patterns, request flow).
+
+## Rule of thumb
+
+If you are about to write architectural prose in this folder, stop and put it in `docs/platform/frontend/` instead. This `context/` folder is for cross-references and short orientation notes only.
