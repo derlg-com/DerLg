@@ -11,7 +11,7 @@
 | **Product spec** | [`docs/modules/<feature>/architecture.md`](../../../../modules/<feature>/architecture.md) |
 | **Backend reference** | [`docs/platform/backend/...`](...) *(when it exists)* |
 | **Related ADRs** | ADR-XXXX, ADR-YYYY |
-| **Related code** | `frontend/app/[locale]/<...>/`, `frontend/components/<feature>/`, `frontend/stores/<feature>.store.ts` |
+| **Related code** | `frontend/features/<feature>/` (self-contained per [ADR-0007](../../adr/0007-feature-sliced-architecture-with-strict-boundaries.md)), plus the route(s) in `frontend/app/<...>/` |
 
 ---
 
@@ -48,9 +48,41 @@ flowchart LR
 
 ---
 
+## Folder structure & public API ([ADR-0007](../../adr/0007-feature-sliced-architecture-with-strict-boundaries.md))
+
+The feature is self-contained at `frontend/features/<feature>/`. Internal subfolders are not importable from outside the feature; only `index.ts` is.
+
+```
+frontend/features/<feature>/
+├── components/        # Feature-only React components
+├── hooks/             # Feature-only hooks (React Query, custom)
+├── stores/            # Feature-only Zustand stores
+├── schemas/           # Feature-only Zod schemas
+├── lib/               # Feature-only pure utilities
+├── server/            # (optional) Server Component data helpers
+├── actions/           # (optional) Server Actions
+├── types.ts
+├── index.ts           # PUBLIC API — only this is importable from outside
+└── README.md
+```
+
+**Public API** (the **only** exports other code may import):
+
+```ts
+// features/<feature>/index.ts
+export { default as <RootComponent> } from './components/<RootComponent>'
+export { use<Feature>Store } from './stores/<feature>.store'
+export { <Feature>Schema, type <Feature> } from './schemas/<feature>'
+// add more re-exports only when another part of the app legitimately needs them
+```
+
+If this feature needs something owned by another feature, it does **not** import from that feature. The shared piece is promoted into `frontend/shared/`. See the boundary rule in [`../../architecture.md`](../../architecture.md#the-strict-boundary).
+
+---
+
 ## Components
 
-What lives in `frontend/components/<feature>/`, and what is reused from `components/shared/` or `components/ui/`.
+What lives in `features/<feature>/components/`, and what is reused from `shared/components/ui/` or `shared/components/layout/`.
 
 | Component | Type | Used by | Notes |
 |-----------|------|---------|-------|
