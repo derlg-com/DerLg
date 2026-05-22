@@ -308,6 +308,7 @@
 | 2026-05-22 | Vitest + React Testing Library + Playwright + MSW. One unit/component runner, one E2E runner, one mock layer. | [ADR-0005](../frontend/adr/0005-testing-stack.md) | Migrate every test file to a different runner; double-maintain mocking layers during transition. |
 | 2026-05-22 | Per-feature frontend reference docs live at `docs/platform/frontend/reference/features/<feature>.md`. | [ADR-0006](../frontend/adr/0006-per-feature-frontend-reference-docs-location.md) | Relocate every per-feature doc and update every cross-link in the platform docs. |
 | 2026-05-22 | Feature-sliced layout: `app/` for routes, `features/<x>/` self-contained per feature, `shared/` is the only cross-feature surface. ESLint enforces no feature-to-feature imports and `index.ts`-only entry to features. | [ADR-0007](../frontend/adr/0007-feature-sliced-architecture-with-strict-boundaries.md) | Reorganize the entire `frontend/` tree, rewrite ESLint config, and update every per-feature reference doc to point at scattered files. |
+| 2026-05-22 | Frontend feature design docs at `docs/platform/frontend/design/features/<feature>.md` with `Drafting → Approved → Implementing → Shipped` lifecycle; an Approved design doc is required before implementation. | [ADR-0008](../frontend/adr/0008-frontend-feature-design-docs-location-and-lifecycle.md) | Re-author every design doc against a new template; rebuild the link graph between roadmap, designs, and references. |
 
 ---
 
@@ -324,6 +325,7 @@
 - Testing stack — ADR-0005.
 - Per-feature doc location and template — ADR-0006, [`_template-feature.md`](../frontend/_template-feature.md).
 - Feature-sliced code layout with strict boundary (app/, features/<x>/, shared/) — ADR-0007.
+- Frontend feature design docs layer (`design/features/`) with `Drafting → Approved → Implementing → Shipped` lifecycle — ADR-0008.
 
 **What's decided but not yet implemented (next):**
 - `frontend/package.json` does **not** yet include zustand, @tanstack/react-query, next-intl, vitest, @testing-library/react, @playwright/test, msw, eslint-plugin-boundaries, eslint-config-prettier, prettier, or prettier-plugin-tailwindcss — adoption is the next concrete step.
