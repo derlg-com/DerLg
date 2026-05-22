@@ -28,12 +28,16 @@ A frontend PR can be merged only when **all** of the following are true.
 - [ ] `npm run lint`, `npm run typecheck`, `npm run test:ci`, `npm run build` are all green in CI.
 - [ ] No new ESLint warnings (CI runs `--max-warnings 0`).
 - [ ] No `// @ts-ignore`, `// @ts-nocheck`, `as any`, or non-null assertions on AI-derived data.
-- [ ] No new `console.log` left in code (use the Sentry breadcrumb pattern in [`observability.md`](./observability.md)).
+- [ ] No new `console.log` left in code (use the Sentry breadcrumb pattern in [`observability.md`](./reference/observability.md)).
 - [ ] Every new Client Component starts with `'use client'` and a one-line comment explaining why.
 - [ ] No raw user-facing strings — all text is an i18n key resolved through `next-intl`.
 - [ ] Every form uses React Hook Form + Zod (see [`.kiro/steering/conventions.md`](../../../.kiro/steering/conventions.md)).
-- [ ] Every API call goes through a React Query hook (Client) or `lib/api/*` server helper (Server) — not raw `fetch` in components.
+- [ ] Every API call goes through a React Query hook (Client) or `shared/lib/api/*` server helper (Server) — not raw `fetch` in components.
 - [ ] Every image uses `next/image` with explicit `width`/`height` or `fill` + `sizes`.
+- [ ] **Boundary rule passes** ([ADR-0007](./adr/0007-feature-sliced-architecture-with-strict-boundaries.md)): no `app/` deep imports of a feature, no feature-to-feature imports, no imports from legacy top-level paths (`@/components/*`, `@/hooks/*`, `@/stores/*`, `@/schemas/*`, `@/lib/*`, `@/types/*`). Enforced by `eslint-plugin-boundaries` in CI.
+- [ ] **`app/` contains routes only** — `page.tsx`, `layout.tsx`, `error.tsx`, `loading.tsx`, `not-found.tsx`, `route.ts`. UI, hooks, stores, schemas live in `features/<x>/` or `shared/`.
+- [ ] **Every new feature folder has an `index.ts`** that exports the public API; nothing else in `features/<x>/` is importable from outside the feature.
+- [ ] **`prettier --check` passes.** Run `npm run format:fix` locally before pushing.
 
 ### Tests
 - [ ] New logic has a corresponding unit test. New user-visible flows have an E2E test or an explicit waiver in the PR description.

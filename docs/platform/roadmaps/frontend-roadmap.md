@@ -307,6 +307,7 @@
 | 2026-05-22 | next-intl with always-prefixed locale paths (`/en`, `/zh`, `/km`); `[locale]` dynamic segment is the only top-level user-facing route. | [ADR-0004](../frontend/adr/0004-i18n-routing-strategy.md) | Re-route every URL; rebuild SEO `hreflang` machinery; change PWA start URL contract. |
 | 2026-05-22 | Vitest + React Testing Library + Playwright + MSW. One unit/component runner, one E2E runner, one mock layer. | [ADR-0005](../frontend/adr/0005-testing-stack.md) | Migrate every test file to a different runner; double-maintain mocking layers during transition. |
 | 2026-05-22 | Per-feature frontend reference docs live at `docs/platform/frontend/reference/features/<feature>.md`. | [ADR-0006](../frontend/adr/0006-per-feature-frontend-reference-docs-location.md) | Relocate every per-feature doc and update every cross-link in the platform docs. |
+| 2026-05-22 | Feature-sliced layout: `app/` for routes, `features/<x>/` self-contained per feature, `shared/` is the only cross-feature surface. ESLint enforces no feature-to-feature imports and `index.ts`-only entry to features. | [ADR-0007](../frontend/adr/0007-feature-sliced-architecture-with-strict-boundaries.md) | Reorganize the entire `frontend/` tree, rewrite ESLint config, and update every per-feature reference doc to point at scattered files. |
 
 ---
 
@@ -322,12 +323,16 @@
 - i18n routing strategy — ADR-0004.
 - Testing stack — ADR-0005.
 - Per-feature doc location and template — ADR-0006, [`_template-feature.md`](../frontend/_template-feature.md).
+- Feature-sliced code layout with strict boundary (app/, features/<x>/, shared/) — ADR-0007.
 
 **What's decided but not yet implemented (next):**
-- `frontend/package.json` does **not** yet include zustand, @tanstack/react-query, next-intl, vitest, @testing-library/react, @playwright/test, or msw — adoption is the next concrete step.
+- `frontend/package.json` does **not** yet include zustand, @tanstack/react-query, next-intl, vitest, @testing-library/react, @playwright/test, msw, eslint-plugin-boundaries, eslint-config-prettier, prettier, or prettier-plugin-tailwindcss — adoption is the next concrete step.
+- `frontend/features/` and `frontend/shared/` folders do not exist yet; current code lives under flat `frontend/components/`, `hooks/`, `stores/`, `schemas/`, `lib/`, `types/` — the migration to the layout in ADR-0007 is a separate PR.
 - `frontend/middleware.ts` does not exist yet.
 - `frontend/lib/api-client.ts` does not exist yet.
 - `frontend/app/[locale]/` route segment does not exist; current `app/` is a flat scaffold.
+- ESLint flat config has not yet been extended with `eslint-plugin-boundaries` rules; the boundary rule in ADR-0007 is documented but not yet enforced.
+- Prettier is not yet configured; the conventions in `tech.md` (no semicolons, single quotes, 100 col) are not enforced.
 - No cross-cutting reference docs (`state-and-data.md`, `auth-and-session.md`, etc.) authored yet — they need the underlying code to land first per the "no future tense" rule in [`reference/README.md`](../frontend/reference/README.md).
 
 **What's still open (Phase 0 / Phase 1 unchecked items):**

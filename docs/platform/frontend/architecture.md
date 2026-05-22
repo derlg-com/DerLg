@@ -7,8 +7,8 @@
 | **Owner** | Frontend platform team |
 | **Status** | Active |
 | **Last reviewed** | 2026-05-22 |
-| **Related ADRs** | [ADR-0001](./adr/0001-app-router-server-components-default.md) |
-| **Related code** | [`frontend/app/`](../../../frontend/app/), [`frontend/components/`](../../../frontend/components/), [`frontend/middleware.ts`](../../../frontend/middleware.ts) |
+| **Related ADRs** | [ADR-0001](./adr/0001-app-router-server-components-default.md), [ADR-0007](./adr/0007-feature-sliced-architecture-with-strict-boundaries.md) |
+| **Related code** | [`frontend/app/`](../../../frontend/app/), [`frontend/features/`](../../../frontend/features/), [`frontend/shared/`](../../../frontend/shared/), [`frontend/middleware.ts`](../../../frontend/middleware.ts) |
 | **Steering** | [`.kiro/steering/structure.md`](../../../.kiro/steering/structure.md) |
 
 ---
@@ -16,9 +16,9 @@
 ## TL;DR
 
 - App Router with three route groups: `(public)`, `(auth)`, `(app)`. Route group choice = decision about layout, navigation, and auth guard.
-- **Server Components by default.** `'use client'` is allowed only when one of five triggers applies (state, effects, browser APIs, event handlers, third-party client-only libraries).
+- **Server Components by default.** `'use client'` is allowed only when one of five triggers applies (state, effects, browser APIs, event handlers, or third-party client-only libraries).
 - **Server reads, Client mutates.** Initial data fetched in Server Components; React Query hooks own client-driven reads and writes after hydration.
-- **Co-locate by feature**, not by file type. Feature components live next to the route that uses them; truly cross-feature pieces go in `components/shared/`.
+- **Feature-sliced layout.** `app/` holds routes. `features/<x>/` is self-contained per feature. `shared/` is the only cross-feature surface. ESLint forbids feature-to-feature imports — see [ADR-0007](./adr/0007-feature-sliced-architecture-with-strict-boundaries.md).
 - The `vibe-booking/` route is the one exception to the layout pattern — it's a full-screen split-pane experience with its own layout file.
 
 ---
@@ -186,49 +186,95 @@ See [`state-and-data.md`](./state-and-data.md) for the complete contract.
 
 ---
 
-## Folder layout — by feature, not by type
+## Folder layout — feature-sliced with a strict boundary
+
+Per [ADR-0007](./adr/0007-feature-sliced-architecture-with-strict-boundaries.md):
 
 ```
 frontend/
-├── app/                        # Routes (route segments stay thin)
-├── components/
-│   ├── ui/                     # shadcn/ui primitives. Replace, don't fork upstream files.
-│   ├── shared/                 # Cross-feature: BottomNav, TopBar, EmptyState, Skeleton
-│   ├── home/                   # Used by app/(app)/page.tsx
-│   ├── explore/                # Used by app/(app)/explore/
+├── app/                        # ROUTES ONLY — page.tsx, layout.tsx, error.tsx, loading.tsx, route.ts
+├── features/                   # One folder per feature; self-contained
+│   ├── vibe-booking/
+│   │   ├── components/         # Internal — not importable from outside the feature
+│   │   ├── hooks/              # Internal
+│   │   ├── stores/             # Internal Zustand stores (per ADR-0002)
+│   │   ├── schemas/            # Internal Zod schemas
+│   │   ├── lib/                # Internal utilities
+│   │   ├── server/             # Optional: Server Component data helpers
+│   │   ├── actions/            # Optional: Server Actions (we default to React Query mutations — ADR-0002)
+│   │   ├── types.ts            # Feature-local types
+│   │   ├── index.ts            # PUBLIC API — only this is importable from app/ or other code
+│   │   └── README.md
+│   ├── auth/
 │   ├── bookings/
-│   ├── profile/
-│   └── vibe-booking/
-│       ├── ChatPanel.tsx
-│       ├── ContentStage.tsx
-│       └── renderers/          # Auto-render content type components
-├── lib/                        # Pure helpers. No React. No JSX.
-│   ├── api-client.ts
-│   ├── websocket.ts
-│   ├── env.ts
-│   ├── i18n.ts
-│   └── currency.ts
-├── stores/                     # Zustand stores. One per domain.
-├── hooks/                      # Reusable hooks. React Query hooks live here.
-├── schemas/                    # Zod schemas (AI content payloads, form schemas, env)
-└── types/                      # Domain types, ambient declarations
+│   └── …
+│
+├── shared/                     # Cross-feature; importable from anywhere
+│   ├── components/
+│   │   ├── ui/                 # shadcn/ui primitives (Button, Input, Dialog, BottomSheet)
+│   │   └── layout/             # BottomNav, TopBar, Skeleton, EmptyState
+│   ├── hooks/                  # Cross-feature hooks
+│   ├── lib/                    # api-client, env, currency, formatters
+│   ├── stores/                 # auth.store, locale.store (truly cross-feature only)
+│   ├── schemas/                # Shared Zod schemas (envelope, error)
+│   ├── types/                  # Domain types used by 2+ features
+│   └── README.md
+│
+├── messages/                   # i18n bundles (en/zh/km.json) — by ADR-0004
+├── i18n/                       # next-intl config — by ADR-0004
+├── middleware.ts               # By ADR-0003 + ADR-0004
+└── eslint.config.mjs, tsconfig.json, next.config.ts, …
 ```
+
+### The strict boundary
+
+Enforced by `eslint-plugin-boundaries` in `eslint.config.mjs`. The rule is short:
+
+| From | May import from |
+|------|----------------|
+| **`app/`** | `app/`, `features/<x>` (via the feature's `index.ts` only), `shared/`, `i18n/`, `messages/` |
+| **`features/<x>/`** | itself (relative paths), `shared/`, `i18n/`, `messages/`. **Never** another feature. |
+| **`shared/`** | `shared/` only. |
+| **`i18n/`, `messages/`** | themselves; `i18n/` may also read `shared/`. |
+
+> **Cross-feature reuse has exactly one mechanism: promote to `shared/`.** When two features need the same primitive, the primitive moves into `shared/`. There is no "feature-to-feature public API".
+
+### Public API per feature
+
+The only file in `features/<x>/` that may be imported from outside the feature is `index.ts`. Everything else is internal:
+
+```ts
+// features/vibe-booking/index.ts
+export { default as SplitScreenLayout } from './components/SplitScreenLayout'
+export { useVibeBookingStore } from './stores/vibe-booking.store'
+export { ContentPayloadSchema, type ContentPayload } from './schemas/content-payload'
+```
+
+`app/vibe-booking/page.tsx` imports from `@/features/vibe-booking` — never `@/features/vibe-booking/components/SplitScreenLayout`. The lint rule (`boundaries/entry-point`) enforces this.
+
+### Inside a feature
+
+- Use **relative paths** (`./components/Foo`, `../stores/foo.store`). Relative imports survive feature renames.
+- Anything goes; the boundary rule does not apply within a feature.
+- Subfolders are: `components/`, `hooks/`, `stores/`, `schemas/`, `lib/`, optionally `server/` (Server-Component data helpers) and `actions/` (Server Actions if/when adopted), plus a top-level `types.ts` and `index.ts`.
+- Tests are co-located: `Foo.test.tsx` next to `Foo.tsx`. Boundary rules ignore test files.
 
 ### Where to put a new file
 
 | Question | Answer |
 |----------|--------|
-| Is it a route? | `app/...` |
-| Is it a UI primitive (Button, Input, Dialog)? | `components/ui/` |
-| Is it used in 2+ feature folders? | `components/shared/` |
-| Is it used in only one feature? | `components/<feature>/` |
-| Is it a hook used in 2+ features? | `hooks/` |
-| Is it a hook used in one feature? | `components/<feature>/use-<thing>.ts` (co-located) |
-| Is it pure logic (no React)? | `lib/` |
-| Is it a Zustand store? | `stores/<domain>.store.ts` |
-| Is it a Zod schema? | `schemas/<domain>.ts` |
-| Is it a type definition only used in one feature? | Co-located with that feature |
-| Is it a domain type used across features? | `types/<domain>.ts` |
+| Is it a route? | `app/...` (and nothing else there) |
+| Is it a UI primitive (Button, Input, Dialog)? | `shared/components/ui/` |
+| Is it a layout chrome used across features (BottomNav, TopBar, EmptyState)? | `shared/components/layout/` |
+| Is it used by exactly one feature? | `features/<feature>/...` |
+| Is it used by 2+ features? | `shared/...` |
+| Is it pure logic (no React)? | `shared/lib/` if cross-feature, `features/<x>/lib/` if not |
+| Is it a Zustand store used by one feature? | `features/<feature>/stores/<feature>.store.ts` |
+| Is it a Zustand store used by multiple features (auth, locale)? | `shared/stores/<domain>.store.ts` |
+| Is it a Zod schema for AI content / forms used by one feature? | `features/<feature>/schemas/...` |
+| Is it a Zod schema for the API envelope or shared errors? | `shared/schemas/...` |
+| Is it a domain type used by one feature? | `features/<feature>/types.ts` |
+| Is it a domain type used by 2+ features? | `shared/types/<domain>.ts` |
 
 ### Naming
 
@@ -240,8 +286,25 @@ Per [`.kiro/steering/conventions.md`](../../../.kiro/steering/conventions.md):
 | Hook file | `use-kebab-case.ts` | `use-booking-hold.ts` |
 | Store file | `<domain>.store.ts` | `auth.store.ts` |
 | Utility file | `kebab-case.ts` | `api-client.ts` |
+| Feature folder | `kebab-case/` matching the slug under `docs/modules/` | `vibe-booking/` |
 | Route segment folder | `kebab-case` | `forgot-password/` |
 | Test file | Co-located, `*.test.tsx` | `TripCard.test.tsx` |
+
+### Path aliases (`tsconfig.json`)
+
+```jsonc
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"],
+      "@/features/*": ["./features/*"],
+      "@/shared/*": ["./shared/*"]
+    }
+  }
+}
+```
+
+The `@/*` alias is the legacy fallback. New imports prefer the explicit `@/features/*` and `@/shared/*` aliases. ESLint additionally **forbids** imports from the old top-level paths (`@/components/*`, `@/hooks/*`, `@/stores/*`, `@/schemas/*`, `@/lib/*`, `@/types/*`) so that recreating the flat layout is impossible.
 
 ---
 
@@ -357,7 +420,10 @@ Rules:
 
 - ❌ **Marking the whole page `'use client'`** to enable one button. Push the directive down to the smallest island.
 - ❌ **Importing Zustand into a Server Component.** The build fails — but if you bypass it via dynamic import, you'll silently ship server state to the client.
-- ❌ **Co-locating cross-feature components inside one feature folder.** If two features use it, move it to `components/shared/`.
+- ❌ **Importing across features.** `import { Foo } from '@/features/bookings/components/Foo'` from inside `features/vibe-booking/` is a lint error. Promote `Foo` to `shared/` if both features need it.
+- ❌ **Deep imports of another feature's internals.** `import x from '@/features/vibe-booking/components/ChatPanel'` from `app/` is a lint error — use the public `@/features/vibe-booking` index.
+- ❌ **Putting non-route code in `app/`.** `app/` is page files, layouts, loading/error boundaries, and route handlers only.
+- ❌ **Recreating top-level `components/`, `hooks/`, `stores/`, `schemas/`, `lib/`, `types/`.** Those folders are gone; lint forbids `@/components/*` etc.
 - ❌ **Adding a fourth route group.** If you think you need one, write an ADR first.
 - ❌ **Doing auth checks in `layout.tsx`.** Auth lives in `middleware.ts`. Layouts can render different chrome based on session, but they don't gate access.
 - ❌ **Calling backend APIs from `app/api/*` for things the client can call directly.** Route handlers exist for httpOnly cookie operations and webhook proxies, not as a generic backend mirror.
@@ -367,11 +433,14 @@ Rules:
 ## Acceptance criteria
 
 - [ ] Every route in `app/` lives in `(public)`, `(auth)`, `(app)`, or has a documented exception.
-- [ ] No file in `app/` starts with `'use client'` unless it's a leaf interactive component (typically in `components/`, not `app/`).
+- [ ] No file in `app/` starts with `'use client'` unless it's a leaf interactive component (typically in a feature, not in `app/`).
 - [ ] Every `'use client'` file has a comment on the first line explaining why.
-- [ ] No Client Component imports `lib/api-client` directly — it goes through a `useQuery` / `useMutation` hook.
+- [ ] No Client Component imports `shared/lib/api-client` directly — it goes through a `useQuery` / `useMutation` hook in a feature's `hooks/` folder.
 - [ ] `middleware.ts` is the only place doing locale routing and auth guards.
 - [ ] Each route group has `layout.tsx`, `error.tsx`, and `loading.tsx`.
+- [ ] Every feature folder has an `index.ts` that exports the public API.
+- [ ] No imports cross features (lint error from `eslint-plugin-boundaries`).
+- [ ] No imports from the legacy top-level paths (`@/components/*`, `@/hooks/*`, `@/stores/*`, `@/schemas/*`, `@/lib/*`, `@/types/*`).
 
 ---
 
@@ -386,9 +455,10 @@ Rules:
 ## References
 
 - [`foundation.md`](./foundation.md) — runtime contract
-- [`state-and-data.md`](./state-and-data.md) — data fetching contract
-- [`auth-and-session.md`](./auth-and-session.md) — session model
-- [`realtime-and-vibe-booking.md`](./realtime-and-vibe-booking.md) — Vibe Booking layout exception
+- [`reference/state-and-data.md`](./reference/state-and-data.md) — data fetching contract
+- [`reference/auth-and-session.md`](./reference/auth-and-session.md) — session model
+- [`reference/realtime-and-vibe-booking.md`](./reference/realtime-and-vibe-booking.md) — Vibe Booking layout exception
 - [`adr/0001-app-router-server-components-default.md`](./adr/0001-app-router-server-components-default.md)
+- [`adr/0007-feature-sliced-architecture-with-strict-boundaries.md`](./adr/0007-feature-sliced-architecture-with-strict-boundaries.md)
 - [Next.js App Router docs](https://nextjs.org/docs/app)
 - [`.kiro/steering/structure.md`](../../../.kiro/steering/structure.md)
