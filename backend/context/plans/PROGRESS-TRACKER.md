@@ -159,7 +159,7 @@
 
 ---
 
-### Phase 5: Booking Engine (Week 5–6)
+### Phase 5: Booking Engine (Week 5–6) — 🟡 In Progress
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
@@ -417,6 +417,7 @@
 | 2026-05-17 | 3 | Phase 3 complete: AuthModule + UsersModule with register/login/refresh/logout/forgot-password/reset-password/logout-all, GET/PATCH /users/me. cookie-parser added. 16 unit tests, 97% coverage. Lint + build pass. | Agent |
 | 2026-05-18 | 3 | Phase 3 finalized: Google OAuth flow (auth URL + callback with user creation/linking), Resend email integration, 11 unit test spec files, full E2E test suite (13 tests passing). ESLint test overrides added. | Agent |
 | 2026-05-20 | 4 | Phase 4 kickoff: branch `feature/2026-05-20-core-inventory` opened. Feature spec written (plan/requirements/validation). Scope: full Phase 4 (trips/places/hotels/guides/transportation/search + Redis caching). Plain service pattern; `src/modules/<feature>/` layout. **Tests deferred** to follow-up branch by user direction. | Agent |
+| 2026-05-23 | 5 | Feature spec created for Phase 5 (Booking Engine); branch `feature/2026-05-23-booking-engine` opened. Scope: full Phase 5 (BookingsModule + 3 creation endpoints + unified CRUD + cancel + QR/iCal + cron entrypoint, overlap protection, Redis hold, status state machine, tiered refund). Tests: critical paths only (overlap / refund / status / create-guide / cancel) — controller / E2E / property / 90 % coverage gate deferred to follow-up branch. Use-case pattern matching `src/modules/auth/`. | Agent |
 
 ---
 
