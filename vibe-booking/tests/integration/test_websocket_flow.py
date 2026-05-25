@@ -63,7 +63,7 @@ async def test_websocket_full_flow(app, mock_agent_response):
 
                 agent_msg = ws.receive_json()
                 assert agent_msg["type"] == "agent_message"
-                assert "content" in agent_msg
+                assert "content_payload" in agent_msg or "text" in agent_msg
 
 
 @pytest.mark.asyncio

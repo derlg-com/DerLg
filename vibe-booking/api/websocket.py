@@ -135,6 +135,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     })
 
     payment_task = asyncio.create_task(_listen_payment_events(session, websocket))
+    hold_expiry_task: asyncio.Task | None = None
 
     try:
         async for raw_msg in websocket.iter_text():
@@ -170,6 +171,14 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     # Check if agent wants to hand off to payment (task 7.1.1-7.1.3)
                     if response.get("type") == "requires_payment":
                         await websocket.send_json(response)
+                        # Cancel any prior countdown and start a new one (task 7.1.4)
+                        if hold_expiry_task and not hold_expiry_task.done():
+                            hold_expiry_task.cancel()
+                        expires_at = response.get("hold_expires_at")
+                        if expires_at:
+                            hold_expiry_task = asyncio.create_task(
+                                _emit_hold_expiry_countdown(websocket, expires_at, response.get("booking_id", ""))
+                            )
                     else:
                         await websocket.send_json({"type": "typing_end"})
                         # Wrap response in agent_message to avoid 'type' collision (RFE: frontend expects content_payload)
@@ -195,6 +204,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 booking_id = msg.get("booking_id", session.booking_id)
                 session.payment_status = "CONFIRMED"
                 await session_manager.save(session)
+                # Cancel countdown — payment landed
+                if hold_expiry_task and not hold_expiry_task.done():
+                    hold_expiry_task.cancel()
                 response = await run_agent(session, f"Payment completed for booking {booking_id}. Please confirm.")
                 resp_type = response.pop("type", "text")
                 resp_text = response.pop("text", "")
@@ -216,10 +228,55 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         logger.error("websocket_error", session_id=session_id, error=str(exc))
     finally:
         payment_task.cancel()
+        if hold_expiry_task and not hold_expiry_task.done():
+            hold_expiry_task.cancel()
         active_connections.pop(session_id, None)
         if session:
             await session_manager.save(session)
             await _flush_to_postgres(session)
+
+
+async def _emit_hold_expiry_countdown(
+    websocket: WebSocket, expires_at_iso: str, booking_id: str,
+) -> None:
+    """Emit booking_hold_expiry messages every 60s, then every 10s under 2 min.
+
+    Sends one final {expired: True} message at zero. Spec task 7.1.4.
+    """
+    try:
+        expires_at = datetime.fromisoformat(expires_at_iso.replace("Z", "+00:00"))
+    except ValueError:
+        return
+
+    try:
+        while True:
+            now = datetime.now(timezone.utc)
+            remaining_s = int((expires_at - now).total_seconds())
+
+            if remaining_s <= 0:
+                await websocket.send_json({
+                    "type": "booking_hold_expiry",
+                    "booking_id": booking_id,
+                    "remaining_seconds": 0,
+                    "expired": True,
+                })
+                return
+
+            await websocket.send_json({
+                "type": "booking_hold_expiry",
+                "booking_id": booking_id,
+                "remaining_seconds": remaining_s,
+                "expired": False,
+            })
+
+            # Every 60s normally; every 10s under the 2-minute mark
+            sleep_s = 10 if remaining_s <= 120 else 60
+            sleep_s = min(sleep_s, max(1, remaining_s))
+            await asyncio.sleep(sleep_s)
+    except asyncio.CancelledError:
+        return
+    except Exception as exc:
+        logger.warning("hold_expiry_countdown_error", error=str(exc))
 
 
 async def _listen_payment_events(session: ConversationState, websocket: WebSocket) -> None:

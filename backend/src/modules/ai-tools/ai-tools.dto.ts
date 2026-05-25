@@ -4,6 +4,9 @@ import {
   IsNumber,
   IsDateString,
   IsIn,
+  IsUUID,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -27,15 +30,26 @@ export class SearchGuidesDto {
   @IsDateString() date: string;
 }
 
+export class SearchTransportDto {
+  @IsString() from_location: string;
+  @IsString() to_location: string;
+  @IsDateString() departure_date: string;
+  @IsOptional() @IsNumber() @Type(() => Number) people_count?: number;
+  @IsOptional()
+  @IsString()
+  @IsIn(['van', 'bus', 'tuk_tuk', 'taxi', 'shuttle', 'minivan'])
+  mode?: string;
+}
+
 export class CheckAvailabilityDto {
-  @IsString() @IsIn(['trip', 'hotel', 'guide']) item_type: string;
+  @IsString() @IsIn(['trip', 'hotel', 'guide', 'transport']) item_type: string;
   @IsString() item_id: string;
   @IsDateString() date: string;
 }
 
 export class CreateBookingHoldDto {
   @IsString() user_id: string;
-  @IsString() @IsIn(['trip', 'hotel', 'guide']) item_type: string;
+  @IsString() @IsIn(['trip', 'hotel', 'guide', 'transport']) item_type: string;
   @IsString() item_id: string;
   @IsDateString() travel_date: string;
   @IsNumber() @Type(() => Number) people_count: number;
@@ -58,4 +72,32 @@ export class SendSosAlertDto {
 
 export class GetUserLoyaltyDto {
   @IsString() user_id: string;
+}
+
+export class CheckPaymentStatusDto {
+  @IsString() booking_id: string;
+}
+
+export class GeneratePaymentQrDto {
+  @IsString() booking_id: string;
+  @IsString() @IsIn(['BAKONG', 'ABA', 'bakong', 'aba']) provider: string;
+}
+
+export class EstimateBudgetDto {
+  @IsString() query: string;
+  @IsString() @IsIn(['en', 'zh', 'km']) locale: string;
+  @IsOptional() @IsString() currency?: string;
+  @IsOptional() @IsNumber() @Type(() => Number) duration_days?: number;
+  @IsOptional() @IsNumber() @Type(() => Number) people_count?: number;
+}
+
+export class GetPlacesDto {
+  @IsOptional() @IsString() province?: string;
+  @IsOptional() @IsString() category?: string;
+  @IsOptional() @IsNumber() @Type(() => Number) limit?: number;
+}
+
+export class GetFestivalsDto {
+  @IsOptional() @IsString() month?: string;
+  @IsOptional() @IsString() province?: string;
 }

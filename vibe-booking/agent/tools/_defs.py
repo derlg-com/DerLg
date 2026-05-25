@@ -1,5 +1,5 @@
 """
-9 tool schemas matching docs/modules API contracts.
+12 tool schemas matching docs/modules API contracts.
 Endpoints called via BackendClient at /v1/{path}.
 """
 
@@ -158,6 +158,60 @@ ALL_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_transport",
+            "description": "Search ground-transport options between two locations on a date. Returns vans, buses, taxis, tuk-tuks, shuttles.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "from_location": {"type": "string", "description": "Origin city or province"},
+                    "to_location": {"type": "string", "description": "Destination city or province"},
+                    "departure_date": {"type": "string", "description": "YYYY-MM-DD"},
+                    "people_count": {"type": "integer", "default": 1},
+                    "mode": {
+                        "type": "string",
+                        "enum": ["van", "bus", "tuk_tuk", "taxi", "shuttle", "minivan"],
+                        "description": "Optional preferred transport mode",
+                    },
+                },
+                "required": ["from_location", "to_location", "departure_date"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_payment_status",
+            "description": "Check the current payment status for a booking. Use this only when waiting for asynchronous QR payment confirmation.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "booking_id": {"type": "string", "description": "UUID of the booking to query"},
+                },
+                "required": ["booking_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "estimate_budget",
+            "description": "Estimate a trip budget breakdown (accommodation, food, transport, activities) from a natural-language brief.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Budget brief, e.g. '3 days in Siem Reap mid-range for 2 people'"},
+                    "locale": {"type": "string", "enum": ["en", "zh", "km"]},
+                    "currency": {"type": "string", "default": "USD"},
+                    "duration_days": {"type": "integer"},
+                    "people_count": {"type": "integer"},
+                },
+                "required": ["query", "locale"],
+            },
+        },
+    },
 ]
 
 # Maps tool name → (HTTP method, backend path)
@@ -165,8 +219,11 @@ TOOL_DISPATCH: dict[str, tuple[str, str]] = {
     "search_trips":           ("POST", "ai-tools/search/trips"),
     "search_hotels":          ("GET",  "ai-tools/hotels"),
     "search_guides":          ("GET",  "ai-tools/guides"),
+    "search_transport":       ("GET",  "ai-tools/search/transport"),
     "check_availability":     ("GET",  "ai-tools/availability"),
     "create_booking_hold":    ("POST", "ai-tools/bookings"),
+    "check_payment_status":   ("GET",  "ai-tools/payments/status"),
+    "estimate_budget":        ("POST", "ai-tools/budget/estimate"),
     "get_weather":            ("GET",  "ai-tools/weather"),
     "get_emergency_contacts": ("GET",  "ai-tools/emergency-contacts"),
     "send_sos_alert":         ("POST", "ai-tools/sos"),

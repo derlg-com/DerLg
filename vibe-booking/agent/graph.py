@@ -1,6 +1,8 @@
-from typing import TypedDict, Annotated
+from typing import TypedDict, Annotated, Optional
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
+
+from utils.logging import logger
 
 
 class GraphState(TypedDict):
@@ -36,5 +38,35 @@ def build_graph() -> StateGraph:
     return graph
 
 
-# Compiled graph (topology reference — execution driven by agent/core.py)
-compiled_graph = build_graph().compile()
+def _build_checkpointer():
+    """Try to construct a RedisSaver. Falls back to None (in-memory) if
+    `langgraph-checkpoint-redis` is not installed or REDIS_URL is unset.
+    """
+    try:
+        from langgraph.checkpoint.redis import RedisSaver  # type: ignore
+    except ImportError:
+        try:
+            from langgraph_checkpoint_redis import RedisSaver  # type: ignore
+        except ImportError:
+            logger.info("redis_saver_not_installed_using_in_memory_checkpoint")
+            return None
+
+    import os
+    redis_url = os.environ.get("REDIS_URL")
+    if not redis_url:
+        logger.info("redis_url_unset_using_in_memory_checkpoint")
+        return None
+
+    try:
+        return RedisSaver.from_conn_string(redis_url)
+    except Exception as exc:
+        logger.warning("redis_saver_init_failed", error=str(exc))
+        return None
+
+
+_checkpointer = _build_checkpointer()
+compiled_graph = (
+    build_graph().compile(checkpointer=_checkpointer)
+    if _checkpointer is not None
+    else build_graph().compile()
+)
