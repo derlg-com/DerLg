@@ -31,6 +31,7 @@ export interface WsAuthMessage {
   type: 'auth'
   user_id: string
   preferred_language: 'EN' | 'ZH' | 'KH'
+  session_id?: string
 }
 
 export interface WsUserMessage {
@@ -45,4 +46,18 @@ export interface WsUserAction {
   payload?: Record<string, unknown>
 }
 
-export type WsOutbound = WsAuthMessage | WsUserMessage | WsUserAction
+export interface WsPingMessage {
+  type: 'ping'
+}
+
+export interface WsPaymentCompletedMessage {
+  type: 'payment_completed'
+  booking_id?: string
+}
+
+export type WsOutbound =
+  | WsAuthMessage
+  | WsUserMessage
+  | WsUserAction
+  | WsPingMessage
+  | WsPaymentCompletedMessage

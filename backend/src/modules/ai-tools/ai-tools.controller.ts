@@ -14,12 +14,18 @@ import {
   SearchTripsDto,
   SearchHotelsDto,
   SearchGuidesDto,
+  SearchTransportDto,
   CheckAvailabilityDto,
   CreateBookingHoldDto,
   GetWeatherDto,
   GetEmergencyContactsDto,
   SendSosAlertDto,
   GetUserLoyaltyDto,
+  CheckPaymentStatusDto,
+  GeneratePaymentQrDto,
+  EstimateBudgetDto,
+  GetPlacesDto,
+  GetFestivalsDto,
 } from './ai-tools.dto';
 
 @UseGuards(ServiceKeyGuard)
@@ -43,6 +49,11 @@ export class AiToolsController {
     return { success: true, data: await this.service.searchGuides(dto) };
   }
 
+  @Get('search/transport')
+  async searchTransport(@Query() dto: SearchTransportDto) {
+    return { success: true, data: await this.service.searchTransport(dto) };
+  }
+
   @Get('availability')
   async checkAvailability(@Query() dto: CheckAvailabilityDto) {
     return { success: true, data: await this.service.checkAvailability(dto) };
@@ -52,6 +63,36 @@ export class AiToolsController {
   @HttpCode(HttpStatus.OK)
   async createBookingHold(@Body() dto: CreateBookingHoldDto) {
     return { success: true, data: await this.service.createBookingHold(dto) };
+  }
+
+  @Post('payments/qr')
+  @HttpCode(HttpStatus.CREATED)
+  async generatePaymentQr(@Body() dto: GeneratePaymentQrDto) {
+    return { success: true, data: await this.service.generatePaymentQr(dto) };
+  }
+
+  @Get('payments/status')
+  async checkPaymentStatus(@Query() dto: CheckPaymentStatusDto) {
+    return {
+      success: true,
+      data: await this.service.checkPaymentStatus(dto.booking_id),
+    };
+  }
+
+  @Post('budget/estimate')
+  @HttpCode(HttpStatus.OK)
+  estimateBudget(@Body() dto: EstimateBudgetDto) {
+    return { success: true, data: this.service.estimateBudget(dto) };
+  }
+
+  @Get('places')
+  async getPlaces(@Query() dto: GetPlacesDto) {
+    return { success: true, data: await this.service.getPlaces(dto) };
+  }
+
+  @Get('festivals')
+  async getFestivals(@Query() dto: GetFestivalsDto) {
+    return { success: true, data: await this.service.getFestivals(dto) };
   }
 
   @Get('weather')

@@ -23,6 +23,7 @@ export type ContentType =
   | 'itinerary'
   | 'booking_summary'
   | 'qr_payment'
+  | 'stripe_card_form'
   | 'payment_status'
   | 'booking_confirmed'
   | 'budget_estimate'
@@ -92,6 +93,7 @@ interface VibeBookingState {
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error'
   sessionId: string | null
   addMessage: (message: ChatMessage) => void
+  appendToStreamingMessage: (delta: string) => string
   setTyping: (v: boolean) => void
   setStreaming: (v: boolean) => void
   setConnectionStatus: (s: VibeBookingState['connectionStatus']) => void
@@ -133,6 +135,31 @@ export const useVibeBookingStore = create<VibeBookingState>()(
           if (s.messages.length >= 50) s.messages.shift()
           s.messages.push(message)
         }),
+      appendToStreamingMessage: (delta) => {
+        let resultId = ''
+        set((s) => {
+          const last = s.messages[s.messages.length - 1]
+          if (last && last.role === 'assistant' && last.type === 'text') {
+            last.content += delta
+            resultId = last.id
+          } else {
+            const id =
+              typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                ? crypto.randomUUID()
+                : Math.random().toString(36).slice(2)
+            if (s.messages.length >= 50) s.messages.shift()
+            s.messages.push({
+              id,
+              role: 'assistant',
+              content: delta,
+              type: 'text',
+              timestamp: new Date().toISOString(),
+            })
+            resultId = id
+          }
+        })
+        return resultId
+      },
       setTyping: (v) => set({ isTyping: v }),
       setStreaming: (v) => set({ isStreaming: v }),
       setConnectionStatus: (connectionStatus) => set({ connectionStatus }),

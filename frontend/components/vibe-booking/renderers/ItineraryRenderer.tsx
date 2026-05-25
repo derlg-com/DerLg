@@ -1,7 +1,7 @@
-import type { ContentItem } from '@/types/vibe-booking'
+import type { ContentItem } from '@/stores/vibe-booking.store'
 interface Props { item: ContentItem; onAction: (t: string, id?: string, p?: Record<string, unknown>) => void }
 export default function ItineraryRenderer({ item }: Props) {
-  const { days } = (item.payload as any).data
+  const { days } = (item.data as any)
   return (
     <div className="p-4 space-y-3">
       <p className="font-semibold text-sm">Itinerary</p>

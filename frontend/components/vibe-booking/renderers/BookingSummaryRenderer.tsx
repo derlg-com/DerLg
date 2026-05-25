@@ -1,8 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { ContentItem } from '@/stores/vibe-booking.store'
+import { useLanguageStore } from '@/lib/i18n'
+import { formatCurrency, formatDate } from '@/lib/format'
 interface Props { item: ContentItem; onAction: (t: string, id?: string, p?: Record<string, unknown>) => void }
 export default function BookingSummaryRenderer({ item, onAction }: Props) {
+  const locale = useLanguageStore((s) => s.locale)
   const { bookingId, tripName, travelDate, totalUsd, guestCount, reservedUntil } = item.data as {
     bookingId: string; tripName: string; travelDate: string; totalUsd: number; guestCount: number; reservedUntil: string
   }
@@ -21,8 +24,8 @@ export default function BookingSummaryRenderer({ item, onAction }: Props) {
     <div className="p-4 space-y-3">
       <div className="space-y-1">
         <p className="font-semibold">{tripName}</p>
-        <p className="text-sm text-muted-foreground">{travelDate} · {guestCount} guest{guestCount !== 1 ? 's' : ''}</p>
-        <p className="text-xl font-bold">${totalUsd} USD</p>
+        <p className="text-sm text-muted-foreground">{formatDate(travelDate, locale)} · {guestCount} guest{guestCount !== 1 ? 's' : ''}</p>
+        <p className="text-xl font-bold">{formatCurrency(totalUsd, locale)}</p>
       </div>
       <div className={`text-sm font-medium ${secondsLeft < 120 ? 'text-destructive' : 'text-muted-foreground'}`}>
         Hold expires in {mins}:{secs.toString().padStart(2, '0')}
