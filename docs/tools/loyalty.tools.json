@@ -1,0 +1,66 @@
+{
+  "module": "loyalty",
+  "description": "Tools for checking loyalty points balance, viewing transaction history, and validating redemption before applying points to a booking. The Vibe Booking AI agent uses these to help users understand their points and apply rewards during checkout.",
+  "baseUrl": "http://localhost:3001/v1",
+  "tools": [
+    {
+      "name": "get_loyalty_balance",
+      "description": "Get the authenticated user's current loyalty points balance, its USD equivalent, and any expiry warnings. Use when the user asks 'how many points do I have?' or before showing them their checkout options.",
+      "method": "GET",
+      "path": "/loyalty/balance",
+      "auth": true,
+      "parameters": {},
+      "returns": "balance (integer points), equivalent_usd, expiry_warning (points_expiring_soon, expiry_date)"
+    },
+    {
+      "name": "calculate_loyalty_redemption",
+      "description": "Calculate how much discount the user gets by redeeming a specific number of loyalty points against a booking subtotal. Always use this before applying points to confirm the discount and remaining balance. Points must be in multiples of 100, minimum 100.",
+      "method": "POST",
+      "path": "/loyalty/redeem",
+      "auth": true,
+      "parameters": {
+        "body": {
+          "points": {
+            "type": "integer",
+            "description": "Number of points to redeem (multiples of 100, minimum 100)",
+            "required": true
+          },
+          "subtotal_usd": {
+            "type": "number",
+            "description": "Booking subtotal in USD before the discount",
+            "required": true
+          }
+        }
+      },
+      "returns": "points_used, discount_usd, remaining_balance (points after redemption), is_valid (boolean), message (user-facing text)"
+    },
+    {
+      "name": "get_loyalty_transactions",
+      "description": "Get the user's loyalty points transaction history (earned, redeemed, adjusted, expired). Use when the user asks about their points activity or how they earned/spent points.",
+      "method": "GET",
+      "path": "/loyalty/transactions",
+      "auth": true,
+      "parameters": {
+        "query": {
+          "type": {
+            "type": "string",
+            "enum": ["EARNED", "REDEEMED", "ADJUSTED", "EXPIRED"],
+            "description": "Filter by transaction type",
+            "required": false
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number (default: 1)",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page (max 50, default: 20)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Paginated list of LoyaltyTransaction objects with type, amount, description, booking_reference, balance_after, created_at"
+    }
+  ]
+}

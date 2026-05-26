@@ -49,11 +49,11 @@ import { RedisService } from 'src/redis/redis.service';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 
 // 4. Relative imports from same module
-import { BookingService } from './booking.service';
-import { CreateBookingDto } from './booking.dto';
+import { CreateBookingUseCase } from './use-cases/create-booking.use-case';
+import { CreateBookingDto } from './dto/create-booking.dto';
 ```
 
-**Rule:** No `../../..` paths deeper than two levels. Use absolute imports for cross-module references.
+**Rule:** Inside a feature module, prefer relative imports. To reach the shared kernel from a use case, the canonical depth is `../../../common/...` (because use cases live two folders deep, `src/modules/<feature>/use-cases/`). This is **explicitly allowed** — see § 3.3 Use-Case Pattern. Anywhere else, do not exceed `../../..`. Use absolute `src/` imports only for cross-module references that cannot be expressed within the use-case pattern.
 
 ---
 
@@ -104,34 +104,34 @@ enum BadBookingStatus {
 **Exception:** Prisma-generated enums and NestJS `@ApiProperty({ enum: ... })` may use TS enums.
 
 ### 2.4 Explicit Return Types on Public Methods
-Service public methods must declare return types:
+The `execute()` method on every use case **must** declare an explicit return type:
 
 ```typescript
 // Good
-async findById(id: string): Promise<Booking | null> {
-  return this.prisma.booking.findUnique({ where: { id } });
+async execute(id: string): Promise<BookingDetail | null> {
+  return this.prisma.booking.findUnique({ where: { id, deletedAt: null } });
 }
 
 // Bad — inference hides the contract
-async findById(id: string) {
-  return this.prisma.booking.findUnique({ where: { id } });
+async execute(id: string) {
+  return this.prisma.booking.findUnique({ where: { id, deletedAt: null } });
 }
 ```
 
-Private methods may omit return types if inference is obvious.
+Private helpers may omit return types if inference is obvious.
 
 ### 2.5 Null Handling
 Always handle the null case explicitly:
 
 ```typescript
 // Good
-const booking = await this.bookingService.findById(id);
+const booking = await this.getBookingDetail.execute(id);
 if (!booking) {
-  throw new NotFoundException(ErrorCode.BOOKING_NOT_FOUND);
+  throw new NotFoundException({ code: ErrorCode.BKNG_NOT_FOUND, message: 'Booking not found' });
 }
 
 // Bad — implicit null dereference
-const booking = await this.bookingService.findById(id);
+const booking = await this.getBookingDetail.execute(id);
 return booking.status; // may throw at runtime
 ```
 
@@ -145,92 +145,157 @@ const name = user?.profile?.name ?? 'Guest';
 
 ## 3. NestJS Patterns
 
+> **Architectural standard (mandatory from Phase 3 onwards):** every feature module uses the **use-case pattern**, mirroring `backend/src/modules/auth/`. There are **no `<feature>.service.ts`** files in feature modules. Per-endpoint business logic lives in `*UseCase` classes with a single public `execute()` method. See § 3.3.
+
 ### 3.1 Module Structure
-Every feature module is a self-contained unit:
+Every feature module is a self-contained unit. Providers list every use case explicitly:
 
 ```typescript
 @Module({
-  imports: [PrismaModule, RedisModule], // only common modules
+  imports: [PrismaModule, RedisModule, CommonModule], // shared kernel only
   controllers: [BookingController],
-  providers: [BookingService],
-  exports: [BookingService], // only if other modules need it (rare)
+  providers: [
+    CreateBookingUseCase,
+    GetBookingDetailUseCase,
+    ListMyBookingsUseCase,
+    CancelBookingUseCase,
+  ],
 })
 export class BookingModule {}
 ```
 
-**Rule:** Feature modules do NOT import other feature modules. Cross-feature communication via events or Prisma relations only.
+**Rule:** Feature modules do NOT import other feature modules. Cross-feature communication via events or Prisma relations only. Modules export use cases only when another module legitimately needs to invoke them (rare).
 
 ### 3.2 Controller Patterns
-One controller per module. Routes are resource-based:
+One controller per module. **Controllers are thin** — they validate input via DTOs, call a single `useCase.execute(...)`, and return the result. No business logic, no Prisma calls, no Redis calls in a controller.
 
 ```typescript
-@Controller('v1/bookings')
+@Controller('bookings') // global prefix /v1 already applied in main.ts
 export class BookingController {
-  constructor(private readonly bookingService: BookingService) {}
+  constructor(
+    private readonly listMyBookings: ListMyBookingsUseCase,
+    private readonly getBookingDetail: GetBookingDetailUseCase,
+    private readonly createBooking: CreateBookingUseCase,
+  ) {}
 
   @Get()
-  async findAll(@Query() query: ListBookingsDto): Promise<PaginatedResponse<BookingSummary>> {
-    return this.bookingService.findAll(query);
+  @UseGuards(JwtAuthGuard)
+  list(
+    @Query() query: ListBookingsDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<PaginatedResponse<BookingSummary>> {
+    return this.listMyBookings.execute(user.sub, query);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<ApiResponse<BookingDetail>> {
-    const booking = await this.bookingService.findById(id);
-    if (!booking) {
-      throw new NotFoundException(ErrorCode.BOOKING_NOT_FOUND);
-    }
-    return { success: true, data: booking };
+  @UseGuards(JwtAuthGuard)
+  detail(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<BookingDetail> {
+    return this.getBookingDetail.execute(id, user.sub);
   }
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  async create(
+  create(
     @Body() dto: CreateBookingDto,
-    @CurrentUser() user: UserPayload,
-  ): Promise<ApiResponse<Booking>> {
-    const booking = await this.bookingService.create(dto, user.id);
-    return { success: true, data: booking };
+    @CurrentUser() user: JwtPayload,
+  ): Promise<BookingDetail> {
+    return this.createBooking.execute(dto, user.sub);
   }
 }
 ```
 
 **Rules:**
-- `@Controller('v1/<plural-resource>')` — always plural, kebab-case
+- `@Controller('<plural-resource>')` — always plural, kebab-case. The `/v1` prefix is applied globally in `main.ts`; do not repeat it.
 - `@Get()`, `@Post()`, etc. — no path on collection endpoints
 - `@Get(':id')` — `:id` for single resource, not `:bookingId`
-- Return `ApiResponse<T>` wrapper, not raw data
-- Throw NestJS exceptions; never return error objects manually
+- Each handler is **one logical line** that returns `useCase.execute(...)` (or wraps it for cookie/header side-effects, like the auth controller does for refresh-token cookies)
+- Return raw domain objects. The global `TransformInterceptor` adds the `{ success, data }` envelope.
+- Throw NestJS exceptions inside the use case; never construct error responses in the controller.
 
-### 3.3 Service Patterns
-Services contain business logic. Controllers only delegate:
+### 3.3 Use-Case Pattern (Canonical)
+
+**This is the official architectural pattern for every feature module from Phase 3 onwards.** It mirrors `backend/src/modules/auth/`. Any new module that diverges will be rejected in review.
+
+#### 3.3.1 Folder layout (mandatory)
+
+Every feature module **must** match this layout exactly:
+
+```
+src/modules/<feature>/
+  <feature>.module.ts          # imports kernel modules; providers list every use case
+  <feature>.controller.ts      # thin: DTO in → useCase.execute() → return
+  dto/
+    <action>.dto.ts            # one DTO per file, class-validator decorators
+    index.ts                   # barrel
+  interfaces/
+    <thing>.interface.ts       # plain TS types
+    index.ts                   # barrel using `export type`
+  use-cases/
+    <action>.use-case.ts       # one @Injectable() class per endpoint
+    index.ts                   # barrel
+  utils/                       # only when stateless helpers exist
+    <helper>.util.ts           # pure functions (mappers, calculators)
+    index.ts                   # barrel
+  strategies/                  # only when Passport strategies live in this module
+    <name>.strategy.ts
+```
+
+**Rules:**
+- Every subfolder has an `index.ts` barrel.
+- **No `<feature>.service.ts` files.** Per-endpoint logic lives in use cases.
+- A single feature may have helper use cases that other use cases consume (e.g. `GenerateTokensUseCase` is used by `RegisterUseCase`, `LoginUseCase`, `RefreshTokenUseCase` in the auth module). This is allowed and encouraged when the helper would otherwise be duplicated.
+
+#### 3.3.2 Use-case class shape (mandatory)
 
 ```typescript
+import { Injectable, ConflictException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ErrorCode } from '../../../common/errors/error-codes';
+import type { CreateBookingDto } from '../dto';
+import type { BookingDetail } from '../interfaces';
+
 @Injectable()
-export class BookingService {
+export class CreateBookingUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly events: EventEmitter2,
   ) {}
 
-  async create(dto: CreateBookingDto, userId: string): Promise<Booking> {
+  async execute(dto: CreateBookingDto, userId: string): Promise<BookingDetail> {
     return this.prisma.$transaction(async (tx) => {
       // 1. Check availability
-      const isAvailable = await this.checkAvailability(tx, dto);
-      if (!isAvailable) {
-        throw new ConflictException(ErrorCode.BOOKING_UNAVAILABLE);
+      const overlap = await tx.booking.findFirst({
+        where: {
+          guideId: dto.guideId,
+          status: 'CONFIRMED',
+          startDate: { lte: dto.endDate },
+          endDate: { gte: dto.startDate },
+          deletedAt: null,
+        },
+      });
+      if (overlap) {
+        throw new ConflictException({
+          code: ErrorCode.BKNG_DATES_UNAVAILABLE,
+          message: 'Selected dates are not available',
+        });
       }
 
       // 2. Create booking
       const booking = await tx.booking.create({
-        data: { ...dto, userId, status: BookingStatus.HOLD },
+        data: { ...dto, userId, status: 'HOLD' },
       });
 
-      // 3. Set hold in Redis
+      // 3. Set hold in Redis (15-min TTL)
       await this.redis.setex(`booking_hold:${booking.id}`, 900, '1');
 
-      // 4. Emit event (non-blocking)
-      this.eventEmitter.emit('booking.created', { bookingId: booking.id, userId });
+      // 4. Emit domain event (fire-and-forget)
+      this.events.emit('booking.created', { bookingId: booking.id, userId });
 
       return booking;
     });
@@ -239,11 +304,42 @@ export class BookingService {
 ```
 
 **Rules:**
-- Constructor injection only, no property injection
-- Business logic lives in service methods, not controllers
-- Database writes happen inside `$transaction` when multiple tables involved
-- Events are fire-and-forget (no `await` on `emit()`)
-- Services return domain types, not Prisma types (map if needed)
+1. **One class per endpoint, one public method named `execute()`.** No additional public methods. Private helpers may exist but a future refactor should move them to `utils/` once they are reused.
+2. **Decorated with `@Injectable()`.**
+3. **Constructor-only DI.** Inject `PrismaService`, `RedisService`, shared kernel services (e.g. `CachedService`, `EventEmitter2`, `ConfigService`, `JwtService`), or **other use cases** in the same module. Never inject a feature service (none exist).
+4. **Return domain types**, not Prisma row types. If translation/mapping is required, call a pure function in `utils/` (e.g. `mapBookingDetail(row)`).
+5. **Errors:** throw NestJS exceptions with the structured payload `{ code: ErrorCode.XXX, message }`. The `ErrorCode` registry is at `src/common/errors/error-codes.ts` — match the `AUTH_*` style used in auth use cases.
+6. **Imports:** relative paths only — `../../prisma/prisma.service`, `../../redis/redis.service`, `../../../common/errors/error-codes`, `../utils`, `../dto`, `../interfaces`. Use `import type` for DTO/interface types so the compile output stays clean.
+7. **No private state on the class.** Use cases are stateless beyond the injected dependencies.
+
+#### 3.3.3 When two endpoints share logic
+
+- **Pure logic** (date math, mapping, formatting): extract into `utils/<name>.util.ts` as a pure function. Both use cases import it.
+- **Stateful logic** that needs DI (e.g. token generation): extract into a dedicated use case (e.g. `GenerateTokensUseCase`) and inject it into both consumers. This is the pattern used by `RegisterUseCase` / `LoginUseCase` / `RefreshTokenUseCase` in auth.
+
+#### 3.3.4 Caching inside a use case
+
+When an endpoint is cacheable, use the shared `CachedService` from the kernel (`src/common/cache/`). Do **not** call Redis directly for read-through caching:
+
+```typescript
+async execute(id: string, lang: Lang): Promise<TripDetail> {
+  return this.cache.getOrSet(tripDetailKey(id, lang), 600, async () => {
+    const row = await this.prisma.trip.findFirst({ where: { id, deletedAt: null } });
+    if (!row) throw new NotFoundException({ code: ErrorCode.TRP_NOT_FOUND, message: 'Trip not found' });
+    return mapTripDetail(row, lang);
+  });
+}
+```
+
+#### 3.3.5 Reference implementation
+
+`backend/src/modules/auth/` is the canonical reference. When in doubt, copy its structure:
+- `auth.module.ts` — provider list
+- `auth.controller.ts` — thin handlers, cookies handled in the controller, business logic delegated
+- `use-cases/register.use-case.ts` — single-responsibility execute
+- `use-cases/generate-tokens.use-case.ts` — helper use case consumed by other use cases
+- `use-cases/index.ts` — barrel
+- `dto/`, `interfaces/`, `utils/` — per-folder `index.ts` barrels
 
 ### 3.4 DTO Patterns
 One DTO file per module. Use `class-validator` decorators:
@@ -289,10 +385,10 @@ import {
 } from '@nestjs/common';
 ```
 
-Map Prisma errors in the global exception filter, not in services:
+Map Prisma errors in the global exception filter, not in use cases:
 
 ```typescript
-// In global filter — NOT in service
+// In global filter — NOT in a use case
 if (error.code === 'P2002') {
   throw new ConflictException(ErrorCode.DUPLICATE_ENTRY);
 }
@@ -348,19 +444,30 @@ Or use a Prisma middleware to inject this automatically.
 ## 5. Testing Patterns
 
 ### 5.1 Test File Location
+Tests are colocated with the use case they cover. Each use case ships with its own `*.use-case.spec.ts`:
+
 ```
-src/booking/
-  booking.service.ts
-  booking.service.spec.ts        # unit test (colocated)
-  booking.controller.spec.ts     # unit test
+src/modules/booking/
+  booking.module.ts
+  booking.controller.ts
+  use-cases/
+    create-booking.use-case.ts
+    create-booking.use-case.spec.ts        # unit test (colocated)
+    get-booking-detail.use-case.ts
+    get-booking-detail.use-case.spec.ts
+    index.ts
+  dto/                                     # ...
+  interfaces/                              # ...
 test/
-  booking.e2e-spec.ts            # E2E test
+  booking.e2e-spec.ts                      # E2E test
 ```
+
+**Rule:** No `<feature>.service.spec.ts` files. The unit-test target is the use case, not a service. The reference implementation is `src/modules/auth/use-cases/*.use-case.spec.ts`.
 
 ### 5.2 Test Naming
 ```typescript
-describe('BookingService', () => {
-  describe('create', () => {
+describe('CreateBookingUseCase', () => {
+  describe('execute', () => {
     it('should create a booking when dates are available', async () => {
       // ...
     });
@@ -377,7 +484,8 @@ describe('BookingService', () => {
 ```
 
 **Rules:**
-- `describe` = class or method under test
+- `describe` = use case (or shared kernel class) under test
+- inner `describe` = `execute` (or other public method)
 - `it` = specific behavior, starting with "should"
 - One assertion concept per test (may have multiple `expect` calls)
 
@@ -408,13 +516,13 @@ Always `await` or explicitly void promises. No floating promises:
 
 ```typescript
 // Good
-await this.service.doSomething();
+await this.createBooking.execute(dto, userId);
 
 // Good — explicitly fire-and-forget
-void this.backgroundTask.doSomething();
+void this.backgroundTask.run();
 
 // Bad — floating promise
-this.service.doSomething(); // ESLint error
+this.createBooking.execute(dto, userId); // ESLint error
 ```
 
 ### 6.2 Error Handling in Async
@@ -440,8 +548,8 @@ Use `Promise.all` for independent async operations:
 
 ```typescript
 const [user, bookings] = await Promise.all([
-  this.userService.findById(userId),
-  this.bookingService.findByUser(userId),
+  this.getUserProfile.execute(userId),
+  this.listMyBookings.execute(userId, { page: 1, limit: 20 }),
 ]);
 ```
 
@@ -454,11 +562,11 @@ Use NestJS built-in logger or Pino:
 
 ```typescript
 @Injectable()
-export class BookingService {
-  private readonly logger = new Logger(BookingService.name);
+export class CreateBookingUseCase {
+  private readonly logger = new Logger(CreateBookingUseCase.name);
 
-  async create(dto: CreateBookingDto): Promise<Booking> {
-    this.logger.log(`Creating booking for user ${dto.userId}`);
+  async execute(dto: CreateBookingDto, userId: string): Promise<BookingDetail> {
+    this.logger.log(`Creating booking for user ${userId}`);
     // ...
   }
 }

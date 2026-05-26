@@ -1,0 +1,231 @@
+{
+  "module": "hotel-booking",
+  "description": "Tools for searching, checking availability, and booking hotels in Cambodia. The Vibe Booking AI agent uses these tools to help users find and book accommodations.",
+  "baseUrl": "http://localhost:3001/v1",
+  "tools": [
+    {
+      "name": "list_hotels",
+      "description": "Search and filter hotels available in Cambodia. Use this tool when the user wants to browse hotels, asks about accommodation options, or provides preferences like location, price range, star rating, or amenities. Returns a paginated list of hotel summaries with pricing.",
+      "method": "GET",
+      "path": "/hotels",
+      "auth": false,
+      "parameters": {
+        "query": {
+          "location": {
+            "type": "string",
+            "description": "City or province in Cambodia (e.g., 'Siem Reap', 'Phnom Penh')",
+            "required": false
+          },
+          "min_price": {
+            "type": "number",
+            "description": "Minimum price per night in USD",
+            "required": false
+          },
+          "max_price": {
+            "type": "number",
+            "description": "Maximum price per night in USD",
+            "required": false
+          },
+          "star_rating": {
+            "type": "number",
+            "description": "Hotel star rating (1–5)",
+            "required": false,
+            "minimum": 1,
+            "maximum": 5
+          },
+          "amenities": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of required amenities (e.g., ['pool', 'wifi', 'breakfast'])",
+            "required": false
+          },
+          "sort": {
+            "type": "string",
+            "enum": ["recommended", "price_asc", "price_desc", "rating_desc"],
+            "description": "Sort order. Default: recommended",
+            "required": false
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number (default: 1)",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page (max 50, default: 20)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Paginated list of hotels with id, slug, name, location, star_rating, price_per_night_from, amenities, rating_average"
+    },
+    {
+      "name": "get_hotel_detail",
+      "description": "Get full details of a specific hotel by its slug, including room types, gallery, policies, check-in/check-out times, and cancellation policy. Use this when the user selects a hotel or wants more information about a specific property.",
+      "method": "GET",
+      "path": "/hotels/{slug}",
+      "auth": false,
+      "parameters": {
+        "path": {
+          "slug": {
+            "type": "string",
+            "description": "URL-friendly hotel identifier (obtained from list_hotels)",
+            "required": true
+          }
+        }
+      },
+      "returns": "Full hotel details including rooms array with id, name, max_occupancy, price_per_night_usd, amenities"
+    },
+    {
+      "name": "check_hotel_room_availability",
+      "description": "Check real-time availability and total price for a specific hotel room for a given date range and guest count. Always use this before creating a booking to confirm availability and get the exact price.",
+      "method": "GET",
+      "path": "/hotels/{hotelId}/rooms/{roomId}/availability",
+      "auth": false,
+      "parameters": {
+        "path": {
+          "hotelId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Hotel UUID",
+            "required": true
+          },
+          "roomId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Room UUID (from get_hotel_detail)",
+            "required": true
+          }
+        },
+        "query": {
+          "check_in_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Check-in date (YYYY-MM-DD)",
+            "required": true
+          },
+          "check_out_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Check-out date (YYYY-MM-DD)",
+            "required": true
+          },
+          "guests_adults": {
+            "type": "integer",
+            "description": "Number of adult guests (minimum 1)",
+            "required": true
+          }
+        }
+      },
+      "returns": "is_available (boolean), price_total_usd, nights count, per-night availability breakdown"
+    },
+    {
+      "name": "create_hotel_booking",
+      "description": "Create a hotel room booking with a 15-minute hold. Use this after confirming availability and getting user consent. The booking enters HOLD status until payment is completed. Requires user authentication.",
+      "method": "POST",
+      "path": "/hotels/{hotelId}/bookings",
+      "auth": true,
+      "parameters": {
+        "path": {
+          "hotelId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Hotel UUID",
+            "required": true
+          }
+        },
+        "body": {
+          "room_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Room UUID to book",
+            "required": true
+          },
+          "check_in_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Check-in date (YYYY-MM-DD)",
+            "required": true
+          },
+          "check_out_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Check-out date (YYYY-MM-DD)",
+            "required": true
+          },
+          "guests_adults": {
+            "type": "integer",
+            "description": "Number of adult guests",
+            "required": true
+          },
+          "guests_children": {
+            "type": "integer",
+            "description": "Number of child guests (default: 0)",
+            "required": false
+          },
+          "special_requests": {
+            "type": "string",
+            "description": "Special requests from the user",
+            "required": false
+          }
+        }
+      },
+      "returns": "Booking object with id, reference, status (HOLD), total_price_usd, hold_expires_at"
+    },
+    {
+      "name": "get_hotel_booking",
+      "description": "Retrieve details of an existing hotel booking including status, dates, pricing, and hold expiry. Use this to check on a booking's current state or answer user questions about their reservation.",
+      "method": "GET",
+      "path": "/hotels/{hotelId}/bookings/{bookingId}",
+      "auth": true,
+      "parameters": {
+        "path": {
+          "hotelId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Hotel UUID",
+            "required": true
+          },
+          "bookingId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID",
+            "required": true
+          }
+        }
+      },
+      "returns": "Full booking details with status (HOLD | PENDING_PAYMENT | CONFIRMED | CANCELLED | EXPIRED)"
+    },
+    {
+      "name": "cancel_hotel_booking",
+      "description": "Cancel a hotel booking. Refund amount depends on the hotel's cancellation policy and how close to check-in the cancellation occurs. Use when the user explicitly requests cancellation.",
+      "method": "POST",
+      "path": "/hotels/{hotelId}/bookings/{bookingId}/cancel",
+      "auth": true,
+      "parameters": {
+        "path": {
+          "hotelId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Hotel UUID",
+            "required": true
+          },
+          "bookingId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID",
+            "required": true
+          }
+        },
+        "body": {
+          "reason": {
+            "type": "string",
+            "description": "Cancellation reason (max 500 characters)",
+            "required": false
+          }
+        }
+      },
+      "returns": "refund_amount_usd, refund_percentage, refund_method"
+    }
+  ]
+}

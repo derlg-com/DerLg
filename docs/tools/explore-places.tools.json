@@ -1,0 +1,125 @@
+{
+  "module": "explore-places",
+  "description": "Tools for discovering places of interest in Cambodia (temples, museums, nature sites, beaches, markets, etc.). The Vibe Booking AI agent uses these tools to inform users about must-see attractions, provide tips, and find nearby places.",
+  "baseUrl": "http://localhost:3001/v1",
+  "tools": [
+    {
+      "name": "list_places",
+      "description": "Browse places of interest in Cambodia by category and province. Use when the user asks about attractions, what to do, or places to visit in a specific area. Returns paginated list of places with name, category, location, and entry fee.",
+      "method": "GET",
+      "path": "/places",
+      "auth": false,
+      "parameters": {
+        "query": {
+          "category": {
+            "type": "string",
+            "enum": ["Temple", "Museum", "Nature", "Market", "Beach", "Mountain", "Other"],
+            "description": "Filter by place category",
+            "required": false
+          },
+          "province": {
+            "type": "string",
+            "description": "Filter by Cambodia province (e.g., 'Siem Reap', 'Kampot', 'Phnom Penh')",
+            "required": false
+          },
+          "sort": {
+            "type": "string",
+            "enum": ["popularity", "name_asc", "name_desc"],
+            "description": "Sort order (default: popularity)",
+            "required": false
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number (default: 1)",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page (max 50, default: 20)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Paginated list of places with id, slug, name, category, province, latitude, longitude, rating_average, entry_fee_usd"
+    },
+    {
+      "name": "get_place_detail",
+      "description": "Get full details of a specific place including description, visitor tips, dress code, opening hours by day, GPS coordinates, and gallery images. Use when the user wants to know more about a specific attraction.",
+      "method": "GET",
+      "path": "/places/{slug}",
+      "auth": false,
+      "parameters": {
+        "path": {
+          "slug": {
+            "type": "string",
+            "description": "URL-friendly place identifier (from list_places)",
+            "required": true
+          }
+        }
+      },
+      "returns": "Full place details with description, visitor_tips, dress_code, opening_hours (by day), gallery_image_urls, status"
+    },
+    {
+      "name": "get_nearby_places_by_coordinates",
+      "description": "Find places near specific GPS coordinates within a given radius. Use when the user shares their current location or asks 'what is near me?' or 'what is close to [specific coordinate]?'. Supports category filtering.",
+      "method": "GET",
+      "path": "/places/nearby",
+      "auth": false,
+      "parameters": {
+        "query": {
+          "lat": {
+            "type": "number",
+            "description": "Latitude (-90 to 90)",
+            "required": true
+          },
+          "lng": {
+            "type": "number",
+            "description": "Longitude (-180 to 180)",
+            "required": true
+          },
+          "radius": {
+            "type": "integer",
+            "description": "Search radius in meters (100–50000, default: 5000)",
+            "required": false
+          },
+          "category": {
+            "type": "string",
+            "enum": ["Temple", "Museum", "Nature", "Market", "Beach", "Mountain", "Other"],
+            "description": "Optional category filter",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Max results to return (max 50, default: 20)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Array of PlaceSummary objects sorted by distance, each with distance_meters field"
+    },
+    {
+      "name": "get_trips_visiting_place",
+      "description": "Get trip packages that include a specific place in their itinerary. Use when the user asks 'what trips visit Angkor Wat?' or similar place-focused questions.",
+      "method": "GET",
+      "path": "/places/{slug}/nearby-trips",
+      "auth": false,
+      "parameters": {
+        "path": {
+          "slug": {
+            "type": "string",
+            "description": "Place slug",
+            "required": true
+          }
+        },
+        "query": {
+          "limit": {
+            "type": "integer",
+            "description": "Max trips to return (max 20, default: 6)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Array of TripBrief objects with id, slug, name, duration_days, price_from_usd, rating_average"
+    }
+  ]
+}

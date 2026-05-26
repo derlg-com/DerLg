@@ -1,0 +1,16 @@
+{
+  "module": "user-profile",
+  "description": "Tools for reading the current authenticated user's profile. The Vibe Booking AI agent uses these to personalize interactions — checking the user's name, preferred language, loyalty balance, and student status.",
+  "baseUrl": "http://localhost:3001/v1",
+  "tools": [
+    {
+      "name": "get_current_user_profile",
+      "description": "Get the full profile of the currently authenticated user including name, email, preferred language, emergency contacts, role, student status, and loyalty points balance. Use at the start of a conversation to personalize greetings and understand the user's context.",
+      "method": "GET",
+      "path": "/users/me",
+      "auth": true,
+      "parameters": {},
+      "returns": "User object with id, email, name, phone, avatar_url, preferred_language (EN|ZH|KM), role (USER|ADMIN), email_verified, student_status (NONE|PENDING|VERIFIED|REJECTED), loyalty_balance (points)"
+    }
+  ]
+}

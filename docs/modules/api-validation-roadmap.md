@@ -47,6 +47,27 @@
 | 1.17 | Cross-check: `/ai-tools/bookings` schema aligned with `my-trip` bookings | - | - | - | - | - | - | - | - | - | |
 | 1.18 | Cross-check: `/ai-tools/payments/qr` aligned with `payments` QR endpoint | - | - | - | - | - | - | - | - | - | |
 
+### 00 — Auth & Authentication (`auth/`)
+
+| # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
+|---|------|----|----|----|----|----|----|----|----|----|-------|
+| 0.1 | OpenAPI syntax valid | - | - | - | - | - | - | - | - | - | |
+| 0.2 | **Every endpoint has a `description` field** | - | - | - | - | - | - | - | - | - | |
+| 0.3 | Auth endpoints (`/auth/*`) all documented | - | - | - | - | - | - | - | - | - | |
+| 0.4 | `Set-Cookie` header documented for `/auth/login`, `/auth/google/callback`, `/auth/refresh` | - | - | - | - | - | - | - | - | - | |
+| 0.5 | `Clear-Cookie` header documented for `/auth/logout`, `/auth/logout-all` | - | - | - | - | - | - | - | - | - | |
+| 0.6 | `RegisterRequest` password constraints match requirements | - | - | - | - | - | - | - | - | - | |
+| 0.7 | `LoginResponse` includes `expiresIn` (seconds) | - | - | - | - | - | - | - | - | - | |
+| 0.8 | Bearer auth security scheme defined | - | - | - | - | - | - | - | - | - | |
+| 0.9 | `/auth/forgot-password` returns silent success (no user enumeration) | - | - | - | - | - | - | - | - | - | |
+| 0.10 | `/auth/reset-password` accepts token + newPassword | - | - | - | - | - | - | - | - | - | |
+| 0.11 | **Functional requirements**: all auth flows (register, login, OAuth, refresh, logout, logout-all, forgot/reset) mapped | - | - | - | - | - | - | - | - | - | |
+| 0.12 | **NFRs documented**: JWT expiry (access 15min, refresh 7d), rate limits (auth 5/5min/IP) | - | - | - | - | - | - | - | - | - | |
+| 0.13 | **CRUD check: Sessions** — Create (login/register), Read (validate), Delete (logout), Refresh (rotate) | - | - | - | - | - | - | - | - | - | |
+| 0.14 | **Operation flow**: register → login → access app → refresh → logout → forgot password → reset | - | - | - | - | - | - | - | - | - | |
+| 0.15 | **Production**: password hashing (bcrypt), refresh token rotation, brute-force protection | - | - | - | - | - | - | - | - | - | |
+| 0.16 | Cross-check: `UserSummary` schema aligned with `profile` `/users/me` response | - | - | - | - | - | - | - | - | - | |
+
 ### 02 — Trip Discovery & Smart Suggestions (`trip-discovery/`)
 
 | # | Task | P1 | P2 | P3 | P4 | P5 | P6 | P7 | P8 | P9 | Notes |
@@ -285,22 +306,18 @@
 |---|------|----|----|----|----|----|----|----|----|----|-------|
 | 16.1 | OpenAPI syntax valid | - | - | - | - | - | - | - | - | - | |
 | 16.2 | **Every endpoint has a `description` field** | - | - | - | - | - | - | - | - | - | |
-| 16.3 | Auth endpoints (`/auth/*`) all documented | - | - | - | - | - | - | - | - | - | |
-| 16.4 | `Set-Cookie` header documented for `/auth/login`, `/auth/google/callback`, `/auth/refresh` | - | - | - | - | - | - | - | - | - | |
-| 16.5 | `Clear-Cookie` header documented for `/auth/logout` | - | - | - | - | - | - | - | - | - | |
-| 16.6 | `RegisterRequest` password constraints match implementation plan | - | - | - | - | - | - | - | - | - | |
-| 16.7 | `LoginResponse` includes `expiresIn` (seconds) | - | - | - | - | - | - | - | - | - | |
-| 16.8 | `User` schema includes `student_status` and `loyalty_balance` | - | - | - | - | - | - | - | - | - | |
-| 16.9 | Profile update supports both JSON and multipart (avatar upload) | - | - | - | - | - | - | - | - | - | |
-| 16.10 | `phone` pattern (`^\+[1-9]\d{1,14}$`) is E.164 | - | - | - | - | - | - | - | - | - | |
-| 16.11 | `preferred_language` enum (`EN`, `ZH`, `KM`) uppercase; check consistency with `trip-discovery` `Accept-Language` (lowercase `en/zh/km`) | - | - | - | - | - | - | - | - | - | |
-| 16.12 | **Functional requirements**: auth (register, login, OAuth, refresh, logout, forgot/reset), profile CRUD mapped | - | - | - | - | - | - | - | - | - | |
-| 16.13 | **NFRs documented**: JWT expiry (access 15min, refresh 7d), rate limits (auth 5/5min/IP), account lockout | - | - | - | - | - | - | - | - | - | |
-| 16.14 | **CRUD check: Users** — Create (register), Read (`/users/me`), Update (PATCH profile), Delete (deactivate account?) | - | - | - | - | - | - | - | - | - | |
-| 16.15 | **CRUD check: Sessions** — Create (login), Read (validate), Delete (logout), Refresh (rotate) | - | - | - | - | - | - | - | - | - | |
-| 16.16 | **Operation flow**: register → verify email → login → access app → update profile → logout → forgot password → reset | - | - | - | - | - | - | - | - | - | |
-| 16.17 | **Production**: password hashing (bcrypt/Argon2), refresh token rotation, brute-force protection, email verification | - | - | - | - | - | - | - | - | - | |
-| 16.18 | Cross-check: `User` schema fields aligned with `admin` customer endpoints | - | - | - | - | - | - | - | - | - | |
+| 16.3 | Profile endpoints (`/users/me`) documented | - | - | - | - | - | - | - | - | - | |
+| 16.4 | `User` schema includes `student_status` and `loyalty_balance` | - | - | - | - | - | - | - | - | - | |
+| 16.5 | Profile update supports both JSON and multipart (avatar upload) | - | - | - | - | - | - | - | - | - | |
+| 16.6 | `phone` pattern (`^\+[1-9]\d{1,14}$`) is E.164 | - | - | - | - | - | - | - | - | - | |
+| 16.7 | `preferred_language` enum (`EN`, `ZH`, `KM`) uppercase; check consistency with `trip-discovery` `Accept-Language` (lowercase `en/zh/km`) | - | - | - | - | - | - | - | - | - | |
+| 16.8 | **Functional requirements**: profile read/update mapped | - | - | - | - | - | - | - | - | - | |
+| 16.9 | **NFRs documented**: avatar upload size limit, image optimization | - | - | - | - | - | - | - | - | - | |
+| 16.10 | **CRUD check: User Profile** — Read (`GET /users/me`), Update (`PATCH /users/me`) | - | - | - | - | - | - | - | - | - | |
+| 16.11 | **Operation flow**: login → view profile → update profile → update avatar | - | - | - | - | - | - | - | - | - | |
+| 16.12 | **Production**: avatar CDN, image virus scan, PII handling | - | - | - | - | - | - | - | - | - | |
+| 16.13 | Cross-check: `User` schema fields aligned with `admin` customer endpoints | - | - | - | - | - | - | - | - | - | |
+| 16.14 | Cross-check: profile endpoints aligned with `auth` `UserSummary` schema | - | - | - | - | - | - | - | - | - | |
 
 ### 17 — Admin Dashboard (`admin/`)
 
@@ -375,7 +392,7 @@ These must be completed after all per-module tasks are done.
 
 | Metric | Count |
 |--------|-------|
-| Total modules | 16 |
+| Total modules | 17 |
 | Total validation tasks | ~250 |
 | Phase 1 (Structural) tasks | ~16 |
 | Phase 2 (Design Quality) tasks | ~16 |

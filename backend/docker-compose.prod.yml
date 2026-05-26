@@ -1,0 +1,77 @@
+# =============================================================================
+# DerLg Backend — Production Docker Compose
+# =============================================================================
+# Production uses Docker for both PostgreSQL and Redis.
+# Postgres 15 is pinned to match Supabase's version used in development.
+# Run: docker-compose -f docker-compose.prod.yml up -d
+# =============================================================================
+
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: derlg-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-derlg}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-derlg}
+      POSTGRES_DB: ${POSTGRES_DB:-derlg}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-derlg}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - derlg-prod
+
+  redis:
+    image: redis:8.6-alpine
+    container_name: derlg-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - derlg-prod
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: derlg-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=${DATABASE_URL}
+      - DIRECT_URL=${DIRECT_URL}
+      - REDIS_URL=redis://redis:6379
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - AI_SERVICE_KEY=${AI_SERVICE_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - derlg-prod
+
+volumes:
+  postgres_data:
+
+networks:
+  derlg-prod:
+    driver: bridge

@@ -929,10 +929,10 @@ The AI classifies each user message into an **Intent Category** before deciding 
 | Intent | Example User Message | Relevant Tools | Content Stage Shows |
 |--------|---------------------|----------------|---------------------|
 | `hotel_search` | "Hotel near me" | `getHotelDetails`, `getPlaces` (for location context) | Hotel cards + map |
-| `trip_search` | "3-day temple tour" | `getTripSuggestions`, `getTripItinerary` | Trip cards |
+| `trip_search` | "3-day temple tour" | `search_trips`, `search_guides` | Trip cards |
 | `transport_search` | "Van from Phnom Penh to Siem Reap" | `getTransportOptions` | Transport comparison |
 | `guide_search` | "English-speaking guide in Battambang" | `getGuides` | Guide profiles |
-| `booking_request` | "Book this hotel" | `validateUserDetails`, `createBooking` | Booking summary |
+| `booking_request` | "Book this hotel" | `check_availability`, `create_booking_hold` | Booking summary |
 | `payment_check` | "Is my payment done?" | `checkPaymentStatus` | Payment status card |
 | `budget_estimate` | "How much for 5 days?" | `estimateBudget`, `getCurrencyRates` | Budget breakdown |
 | `general_info` | "What's the weather like?" | `getWeatherForecast` | Weather widget |

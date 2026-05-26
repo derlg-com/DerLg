@@ -234,7 +234,7 @@ User (Chat): "3-day temple tour in Siem Reap under $300"
 **Step 2: AI Agent processes**
 - Detects intent: `trip_search`
 - Extracts: province="Siem Reap", duration=3, budget=300, theme="temple"
-- Calls tool: `getTripSuggestions({ province: "Siem Reap", duration_days: 3, budget_usd: 300, theme: "temple" })`
+- Calls tool: `search_trips({ province: "Siem Reap", duration_days: 3, budget_usd: 300, theme: "temple" })`
 
 **Step 3: Backend returns data**
 ```json
@@ -1222,7 +1222,7 @@ ContentItem calls onAction({ type: 'book_trip', payload: { tripId: '...' } })
 useContentRouter sends user_action WebSocket message
         │
         ▼
-AI Agent receives action → calls createBooking tool
+AI Agent receives action → calls create_booking_hold tool → sends requires_payment message to frontend
         │
         ▼
 AI Agent sends new agent_message with content_payload.type = 'booking_summary'

@@ -100,7 +100,7 @@ The backend is organized into 16 domain modules:
 | **LLM** | Claude 4 Sonnet (Anthropic API) |
 | **Port** | 8000 |
 | **Deployment** | Docker container on VPS |
-| **Planned directory** | `llm_agentic_chatbot/` (not yet created) |
+| **Planned directory** | `vibe-booking/` (not yet created) |
 
 ### Responsibilities
 
@@ -118,7 +118,7 @@ The backend is organized into 16 domain modules:
 ### Internal Structure (Planned)
 
 ```
-llm_agentic_chatbot/
+vibe-booking/
 ├── src/
 │   ├── main.py              # FastAPI bootstrap
 │   ├── agent/

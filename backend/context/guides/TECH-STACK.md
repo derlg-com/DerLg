@@ -40,7 +40,7 @@
 | prisma | 6.x | Schema, migrations, client generation | `previewFeatures: []` (stable only) |
 | @prisma/client | 6.x | Type-safe DB client | Generated from schema, singleton in `PrismaModule` |
 
-**Database:** PostgreSQL 15 (Supabase in production, Docker `postgres:15-alpine` locally)
+**Database:** PostgreSQL 15 (Supabase in development, Docker `postgres:15-alpine` in production)
 
 **Connection:**
 - Production: Supabase connection pooler + Prisma direct connection for migrations
@@ -93,7 +93,7 @@ app.useGlobalPipes(
 | ioredis | 5.x | Redis client | `enableReadyCheck: true`, `maxRetriesPerRequest: 3` |
 | @nestjs/throttler | 6.x | Rate limiting | Store in Redis, default: 10 req / 60s / IP |
 
-**Redis:** Upstash in production, Docker `redis:7-alpine` locally
+**Redis:** Upstash or Docker `redis:8.6-alpine` in production, Docker `redis:8.6-alpine` locally
 
 ---
 
@@ -174,16 +174,29 @@ app.useGlobalPipes(
 Required at runtime (validated at startup):
 
 ```
+# App
+PORT                      # Server port (default: 3001)
+NODE_ENV                  # development | production | test
+CORS_ORIGINS              # Comma-separated allowed origins
+
 # Database
-DATABASE_URL              # Prisma connection string
-DIRECT_URL                # Direct connection for migrations
+# Development (Supabase):
+#   DATABASE_URL → Supabase connection pooler (PgBouncer, port 6543)
+#   DIRECT_URL   → Supabase direct connection (port 5432, for migrations only)
+# Production (Docker):
+#   DATABASE_URL → Direct postgres connection
+#   DIRECT_URL   → Same as DATABASE_URL (no pooler in Docker)
+DATABASE_URL=
+DIRECT_URL=
+
+# Redis
+# Development: redis://localhost:6379 (Docker Redis)
+# Production: redis://redis:6379 (Docker network) or Upstash URL
+REDIS_URL=
 
 # Auth
 JWT_ACCESS_SECRET         # Access token signing key
 JWT_REFRESH_SECRET        # Refresh token signing key
-
-# Redis
-REDIS_URL                 # Redis connection string
 
 # Stripe
 STRIPE_SECRET_KEY         # Stripe API key
@@ -192,10 +205,10 @@ STRIPE_WEBHOOK_SECRET     # Webhook signature secret
 # AI Service
 AI_SERVICE_KEY            # Shared secret for AI tool endpoints
 
-# App
-PORT                      # Server port (default: 3001)
-NODE_ENV                  # development | production | test
-CORS_ORIGINS              # Comma-separated allowed origins
+# External Services (Optional for Phase 0)
+RESEND_API_KEY            # Resend API key for transactional email
+FCM_SERVER_KEY            # Firebase Cloud Messaging server key
+EXCHANGE_RATE_API_KEY     # ExchangeRate-API key
 ```
 
 ---
@@ -206,7 +219,11 @@ CORS_ORIGINS              # Comma-separated allowed origins
 |-------|---------|---------|
 | node | 22-alpine | Backend runtime |
 | postgres | 15-alpine | Local database |
-| redis | 7-alpine | Local cache |
+| redis | 8.6-alpine | Local and production cache |
+
+**Docker Compose Files:**
+- `docker-compose.yml` — Development: Redis only (Supabase provides PostgreSQL)
+- `docker-compose.prod.yml` — Production: PostgreSQL 15 + Redis 8.6 + backend
 
 **Multi-stage Dockerfile:**
 1. `deps` — install dependencies
@@ -219,8 +236,10 @@ CORS_ORIGINS              # Comma-separated allowed origins
 
 | Service | Purpose | Integration Point |
 |---------|---------|-------------------|
-| Supabase PostgreSQL | Primary database | Prisma |
-| Upstash Redis | Cache, sessions, rate limits | ioredis |
+| Supabase PostgreSQL | Development database | Prisma (dev only) |
+| Docker PostgreSQL | Production database | Prisma (prod only) |
+| Upstash Redis | Production cache | ioredis |
+| Docker Redis | Development cache | ioredis |
 | Stripe | Card payments, QR payments | stripe SDK |
 | Resend | Transactional email | HTTP API (background) |
 | FCM | Push notifications | HTTP API (background) |

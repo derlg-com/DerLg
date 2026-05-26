@@ -1,0 +1,90 @@
+{
+  "module": "emergency",
+  "description": "Tools for safety-critical features: sending SOS alerts, sharing live location, and looking up emergency contacts in Cambodia. The Vibe Booking AI agent uses these when a user reports an emergency, asks for help, or needs local emergency services.",
+  "baseUrl": "http://localhost:3001/v1",
+  "tools": [
+    {
+      "name": "send_sos_alert",
+      "description": "Immediately send an SOS emergency alert with the user's GPS coordinates to the DerLg support team. Use ONLY when the user explicitly reports an emergency (medical emergency, theft, being lost, or personal danger). This triggers push notifications and SMS to the support team. A 5-second countdown is shown to prevent accidental triggers.",
+      "method": "POST",
+      "path": "/emergency/alerts",
+      "auth": true,
+      "parameters": {
+        "body": {
+          "type": {
+            "type": "string",
+            "enum": ["SOS", "MEDICAL", "THEFT", "LOST"],
+            "description": "Emergency type: SOS (general), MEDICAL (health), THEFT (stolen items), LOST (lost/disoriented)",
+            "required": true
+          },
+          "latitude": {
+            "type": "number",
+            "description": "User's current GPS latitude",
+            "required": true
+          },
+          "longitude": {
+            "type": "number",
+            "description": "User's current GPS longitude",
+            "required": true
+          },
+          "accuracy_meters": {
+            "type": "integer",
+            "description": "GPS accuracy in meters",
+            "required": false
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional context about the emergency (max 500 chars)",
+            "required": false
+          }
+        }
+      },
+      "returns": "alert_id (UUID), status (SENT), message (confirmation for user)"
+    },
+    {
+      "name": "get_emergency_contacts",
+      "description": "Look up local emergency contacts (Police, Hospital, Fire, Tourist Police) for a specific Cambodia province or GPS location. Use when the user is in trouble and needs local emergency numbers, or asks 'what is the emergency number in Siem Reap?'",
+      "method": "GET",
+      "path": "/emergency/contacts",
+      "auth": false,
+      "parameters": {
+        "query": {
+          "province": {
+            "type": "string",
+            "description": "Province name (e.g., 'Siem Reap', 'Phnom Penh'). Use this or lat/lng.",
+            "required": false
+          },
+          "lat": {
+            "type": "number",
+            "description": "User's latitude for auto-detecting province",
+            "required": false
+          },
+          "lng": {
+            "type": "number",
+            "description": "User's longitude for auto-detecting province",
+            "required": false
+          }
+        }
+      },
+      "returns": "Array of EmergencyContact objects with contact_type (POLICE | HOSPITAL | FIRE | TOURIST_POLICE), name_en, phone, address_en, latitude, longitude"
+    },
+    {
+      "name": "create_location_share",
+      "description": "Create a shareable live location link for the user. Use when the user wants to share their real-time location with family or friends for safety purposes. Returns a unique URL and token that others can use to view the location.",
+      "method": "POST",
+      "path": "/location-shares",
+      "auth": true,
+      "parameters": {
+        "body": {
+          "expires_in_hours": {
+            "type": "integer",
+            "enum": [24, 72],
+            "description": "How long the sharing link remains active: 24 hours or 72 hours",
+            "required": true
+          }
+        }
+      },
+      "returns": "share_url (link to share with others), token, expires_at"
+    }
+  ]
+}

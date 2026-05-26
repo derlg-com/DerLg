@@ -1,0 +1,146 @@
+{
+  "module": "bookings",
+  "description": "Tools for the core booking engine covering all item types (trips, hotels, transport, guides). These are the unified booking management endpoints. The Vibe Booking AI agent uses these to create multi-item holds, list user bookings, and handle cancellations.",
+  "baseUrl": "http://localhost:3001/v1",
+  "tools": [
+    {
+      "name": "create_booking",
+      "description": "Create a new booking with a 15-minute hold for one or more items (TRIP, HOTEL, TRANSPORT, GUIDE). The booking enters HOLD status pending payment. Use this unified endpoint for multi-item bookings. Returns a booking reference for user-facing display.",
+      "method": "POST",
+      "path": "/bookings",
+      "auth": true,
+      "parameters": {
+        "body": {
+          "items": {
+            "type": "array",
+            "description": "List of items to book",
+            "required": true,
+            "items": {
+              "item_type": {
+                "type": "string",
+                "enum": ["TRIP", "HOTEL", "TRANSPORT", "GUIDE"],
+                "description": "Type of item"
+              },
+              "item_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Item UUID"
+              },
+              "quantity": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Quantity"
+              },
+              "metadata": {
+                "type": "object",
+                "description": "Type-specific data (e.g., check-in/check-out dates, guest count, pickup location)"
+              }
+            }
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["USD", "KHR", "CNY"],
+            "description": "Preferred currency (default: USD)",
+            "required": false
+          },
+          "guest_email": {
+            "type": "string",
+            "format": "email",
+            "description": "Required if booking as a guest (not authenticated)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Booking with id, reference, status (HOLD), total_price_usd, hold_expires_at (15 minutes)"
+    },
+    {
+      "name": "list_bookings",
+      "description": "List all bookings for the authenticated user, filterable by status. Use to show the user their upcoming, past, or cancelled bookings, or to check if they have an existing booking for a specific trip.",
+      "method": "GET",
+      "path": "/bookings",
+      "auth": true,
+      "parameters": {
+        "query": {
+          "status": {
+            "type": "string",
+            "enum": ["upcoming", "past", "cancelled", "all"],
+            "description": "Filter bookings by lifecycle status (default: all)",
+            "required": false
+          },
+          "page": {
+            "type": "integer",
+            "description": "Page number (default: 1)",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results per page (max 50, default: 20)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Paginated list of BookingSummary objects with id, reference, type, status, total_price_usd, payment_status"
+    },
+    {
+      "name": "get_booking_detail",
+      "description": "Get full details of a specific booking including all items, pricing, hold expiry, and cancellation info. Use to answer user questions about a specific booking.",
+      "method": "GET",
+      "path": "/bookings/{id}",
+      "auth": true,
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID",
+            "required": true
+          }
+        }
+      },
+      "returns": "Full Booking object with items array (item_type, name, unit_price_usd, total_price_usd), hold_expires_at, refund details"
+    },
+    {
+      "name": "cancel_booking",
+      "description": "Cancel an existing booking. Refund amount depends on the cancellation policy of the booked item(s) and time before the trip. Always confirm with the user before calling this — cancellation may be irreversible.",
+      "method": "POST",
+      "path": "/bookings/{id}/cancel",
+      "auth": true,
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID",
+            "required": true
+          }
+        },
+        "body": {
+          "reason": {
+            "type": "string",
+            "description": "Cancellation reason (max 500 characters)",
+            "required": false
+          }
+        }
+      },
+      "returns": "refund_amount_usd, refund_percentage, refund_method"
+    },
+    {
+      "name": "get_booking_qr",
+      "description": "Get the QR code for a confirmed booking. Use when the user needs their booking QR code for check-in at a hotel, tour meeting point, or transport pickup.",
+      "method": "GET",
+      "path": "/bookings/{id}/qr",
+      "auth": true,
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID",
+            "required": true
+          }
+        }
+      },
+      "returns": "qr_data (raw QR string), qr_image_url (displayable)"
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "module": "payments",
+  "description": "Tools for initiating payments, generating QR codes (Bakong/ABA), checking payment status, processing refunds, and validating discount codes. The Vibe Booking AI agent uses these tools to complete the payment step after a booking hold is created.",
+  "baseUrl": "http://localhost:3001/v1",
+  "tools": [
+    {
+      "name": "create_payment_intent",
+      "description": "Create a Stripe payment intent for card-based payments. Use after a booking hold is created and the user chooses to pay by credit/debit card. Returns a client_secret that the frontend uses to confirm the card payment. Supports applying discount codes and redeeming loyalty points.",
+      "method": "POST",
+      "path": "/payments/intent",
+      "auth": true,
+      "parameters": {
+        "body": {
+          "booking_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID to pay for",
+            "required": true
+          },
+          "payment_method": {
+            "type": "string",
+            "enum": ["STRIPE_CARD", "STRIPE_QR"],
+            "description": "Payment method type",
+            "required": true
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["USD", "KHR", "CNY"],
+            "description": "Currency for the payment (default: USD)",
+            "required": false
+          },
+          "discount_code": {
+            "type": "string",
+            "description": "Optional discount code to apply",
+            "required": false
+          },
+          "loyalty_points_to_redeem": {
+            "type": "integer",
+            "description": "Loyalty points to redeem (must be multiples of 100, min 100)",
+            "required": false
+          }
+        }
+      },
+      "returns": "client_secret (for Stripe frontend SDK), payment_intent_id, amount_usd, currency"
+    },
+    {
+      "name": "generate_payment_qr",
+      "description": "Generate a QR code for payment via Bakong or ABA (Cambodian payment providers). Use when the user prefers QR-based payment. Display the QR image URL in the conversation for the user to scan. QR code expires and must be scanned before expiry.",
+      "method": "POST",
+      "path": "/payments/qr",
+      "auth": true,
+      "parameters": {
+        "body": {
+          "booking_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID to generate QR for",
+            "required": true
+          },
+          "provider": {
+            "type": "string",
+            "enum": ["BAKONG", "ABA"],
+            "description": "QR payment provider. BAKONG = NBC's national payment system, ABA = ABA bank app",
+            "required": true
+          }
+        }
+      },
+      "returns": "qr_data (raw string), qr_image_url (displayable), expiry (datetime), reference"
+    },
+    {
+      "name": "get_payment_status",
+      "description": "Check the current status of a payment by payment ID. Use to poll payment confirmation after the user has scanned a QR code or submitted a card payment, before confirming to the user that the booking is confirmed.",
+      "method": "GET",
+      "path": "/payments/{id}/status",
+      "auth": true,
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Payment UUID",
+            "required": true
+          }
+        }
+      },
+      "returns": "Payment object with status (PENDING | SUCCEEDED | FAILED | REFUNDED | PARTIALLY_REFUNDED), amount_usd, payment_method"
+    },
+    {
+      "name": "validate_discount_code",
+      "description": "Validate a discount code and calculate the discount amount before applying it to a booking. Use when the user provides a promo/discount code. Returns whether the code is valid, the discount amount in USD, and a user-friendly message.",
+      "method": "POST",
+      "path": "/discount-codes/validate",
+      "auth": false,
+      "parameters": {
+        "body": {
+          "code": {
+            "type": "string",
+            "description": "Discount code to validate",
+            "required": true
+          },
+          "booking_value_usd": {
+            "type": "number",
+            "description": "Total booking value in USD before discount",
+            "required": true
+          },
+          "item_types": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["TRIP", "HOTEL", "TRANSPORT", "GUIDE"] },
+            "description": "Types of items in the booking (for code eligibility check)",
+            "required": false
+          }
+        }
+      },
+      "returns": "valid (boolean), discount_amount_usd, discount_percentage, message (user-facing explanation)"
+    }
+  ]
+}

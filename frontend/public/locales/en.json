@@ -1,0 +1,58 @@
+{
+  "common": {
+    "send": "Send",
+    "thinking": "Thinking…",
+    "connecting": "Connecting…",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "share": "Share",
+    "download": "Download",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "tryAgain": "Try Again",
+    "reset": "Reset"
+  },
+  "chat": {
+    "title": "DerLg AI Concierge",
+    "placeholder": "Tell me about your dream trip…",
+    "welcome": "Welcome to DerLg! I'm your Cambodia travel concierge. Tell me about your dream trip.",
+    "resume": "Welcome back! I remember our previous conversation."
+  },
+  "content": {
+    "trips": "Trips",
+    "hotels": "Hotels",
+    "transport": "Transport",
+    "itinerary": "Itinerary",
+    "weather": "Weather",
+    "budget": "Budget Estimate",
+    "comparison": "Comparison",
+    "gallery": "Gallery",
+    "bookNow": "Book Now",
+    "viewDetails": "View Details",
+    "perNight": "per night",
+    "rating": "Rating",
+    "duration": "Duration"
+  },
+  "booking": {
+    "summary": "Booking Summary",
+    "total": "Total",
+    "confirmBooking": "Confirm Booking",
+    "expiresIn": "Expires in {minutes}m {seconds}s",
+    "expired": "Hold expired",
+    "paymentMethod": "Payment Method",
+    "cardNumber": "Card Number",
+    "expiry": "Expiry",
+    "cvc": "CVC",
+    "scanQr": "Scan QR to pay",
+    "paymentSuccess": "Payment successful!",
+    "paymentFailed": "Payment failed",
+    "bookingConfirmed": "Booking Confirmed",
+    "reference": "Reference",
+    "addToCalendar": "Add to Calendar",
+    "downloadReceipt": "Download Receipt"
+  }
+}

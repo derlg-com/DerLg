@@ -1,0 +1,42 @@
+version: "3.9"
+
+# Production deployment on VPS — shared derlg-network with backend and frontend
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - derlg-network
+
+  ai-agent:
+    image: derlg/ai-agent:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      BACKEND_URL: http://backend:3001
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - derlg-network
+
+volumes:
+  redis_data:
+
+networks:
+  derlg-network:
+    external: true

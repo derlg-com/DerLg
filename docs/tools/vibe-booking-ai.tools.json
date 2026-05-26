@@ -1,0 +1,157 @@
+{
+  "module": "vibe-booking-ai-tools",
+  "description": "Core AI-service endpoints directly used by the Vibe Booking LangGraph agent. These are internal backend tools (called with X-Service-Key, not user JWT) that power AI-driven search, booking creation, payments, and budget estimation from the chat flow.",
+  "baseUrl": "http://localhost:3001/v1",
+  "websocketUrl": "ws://localhost:3002/v1",
+  "security": "X-Service-Key header (internal service-to-service auth)",
+  "tools": [
+    {
+      "name": "ai_search_trips",
+      "description": "AI-native trip search using a natural language query. Use this instead of list_trips when the user's intent needs semantic matching (e.g., 'I want a relaxing beach trip for 5 days under $200'). The backend translates the query into structured results. Returns up to 5 matching trips.",
+      "method": "POST",
+      "path": "/ai-tools/search/trips",
+      "auth": "serviceKey",
+      "parameters": {
+        "body": {
+          "query": {
+            "type": "string",
+            "description": "Natural language search intent from the user (e.g., 'temple tour in Siem Reap for 3 days')",
+            "required": true
+          },
+          "locale": {
+            "type": "string",
+            "enum": ["en", "zh", "km"],
+            "description": "Language locale of the user's request",
+            "required": true
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Authenticated user UUID for personalization",
+            "required": false
+          },
+          "max_results": {
+            "type": "integer",
+            "description": "Maximum results to return (1–5, default: 3)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Array of matching trip objects suitable for the AI to present to the user"
+    },
+    {
+      "name": "ai_create_booking_hold",
+      "description": "Create a multi-item booking hold on behalf of the user from the AI chat. Use after the user confirms they want to book. Supports mixed bookings (TRIP + HOTEL + TRANSPORT + GUIDE) in a single call. Returns booking_id, reference, hold_expires_at, and total_price_usd.",
+      "method": "POST",
+      "path": "/ai-tools/bookings",
+      "auth": "serviceKey",
+      "parameters": {
+        "body": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the authenticated user making the booking",
+            "required": true
+          },
+          "items": {
+            "type": "array",
+            "description": "List of items to include in the booking",
+            "required": true,
+            "items": {
+              "item_type": {
+                "type": "string",
+                "enum": ["TRIP", "HOTEL", "TRANSPORT", "GUIDE"],
+                "description": "Type of item being booked"
+              },
+              "item_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "UUID of the specific item (trip/hotel/vehicle/guide)"
+              },
+              "quantity": {
+                "type": "integer",
+                "description": "Number of units"
+              },
+              "metadata": {
+                "type": "object",
+                "description": "Type-specific booking data (e.g., check-in/check-out dates, guest count)"
+              }
+            }
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["USD", "KHR", "CNY"],
+            "description": "Preferred currency (default: USD)",
+            "required": false
+          }
+        }
+      },
+      "returns": "booking_id (UUID), reference (human-readable), hold_expires_at (15-minute window), total_price_usd"
+    },
+    {
+      "name": "ai_generate_payment_qr",
+      "description": "Generate a QR code for payment via Bakong (Cambodia's national payment) or ABA bank within the chat interface. Use after creating a booking hold and the user chooses QR payment. Display the QR code image in the chat for the user to scan.",
+      "method": "POST",
+      "path": "/ai-tools/payments/qr",
+      "auth": "serviceKey",
+      "parameters": {
+        "body": {
+          "booking_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID for which to generate the QR payment",
+            "required": true
+          },
+          "provider": {
+            "type": "string",
+            "enum": ["BAKONG", "ABA"],
+            "description": "Payment provider. BAKONG = Cambodia national payment system, ABA = ABA bank",
+            "required": true
+          }
+        }
+      },
+      "returns": "qr_data (raw QR string), qr_image_url (displayable image), amount_usd, expiry (datetime)"
+    },
+    {
+      "name": "ai_estimate_budget",
+      "description": "Estimate the total budget for a trip using a natural language query. Use when the user asks how much a trip will cost or wants a budget breakdown. Returns min/max cost with breakdown by category (accommodation, transportation, meals, entry_fees, guide, miscellaneous).",
+      "method": "POST",
+      "path": "/ai-tools/budget/estimate",
+      "auth": "serviceKey",
+      "parameters": {
+        "body": {
+          "query": {
+            "type": "string",
+            "description": "Natural language budget request (e.g., '3 days in Siem Reap for 2 people, mid-range budget')",
+            "required": true
+          },
+          "locale": {
+            "type": "string",
+            "enum": ["en", "zh", "km"],
+            "description": "Language locale for the response",
+            "required": true
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["USD", "KHR", "CNY"],
+            "description": "Preferred currency for the estimate (default: USD)",
+            "required": false
+          }
+        }
+      },
+      "returns": "total_min_usd, total_max_usd, breakdown array (category, min_usd, max_usd, notes)"
+    },
+    {
+      "name": "ai_websocket_chat",
+      "description": "Upgrade to a WebSocket connection for real-time bidirectional AI chat. This is the primary connection the Vibe Booking agent maintains with the user. Use Authorization: Bearer <jwt> and X-Session-Id: <uuid> headers on upgrade. Messages are structured JSON objects.",
+      "protocol": "WebSocket",
+      "path": "/chat",
+      "auth": true,
+      "headers": {
+        "Authorization": "Bearer <jwt>",
+        "X-Session-Id": "<uuid>"
+      },
+      "returns": "101 Switching Protocols — real-time chat stream"
+    }
+  ]
+}
