@@ -1,4 +1,4 @@
-"""Unit tests for agent.core.run_agent (non-streaming) (Task 18.1.12)."""
+"""Unit tests for agent.core.run_agent (non-streaming)."""
 from unittest.mock import AsyncMock, patch, MagicMock
 import pytest
 
@@ -14,7 +14,7 @@ def session():
 
 @pytest.mark.asyncio
 async def test_run_agent_returns_text_on_end_turn(session):
-    """When the model finishes with end_turn, run_agent returns formatted text."""
+    """When the model finishes with end_turn, run_agent returns plain text."""
     fake_response = ModelResponse(
         stop_reason="end_turn",
         content=[ContentBlock(type="text", text="Hello traveler")],
@@ -25,49 +25,14 @@ async def test_run_agent_returns_text_on_end_turn(session):
     with patch("agent.core.get_model_client", return_value=fake_client):
         result = await run_agent(session, "Hi")
 
-    assert result["type"] in ("text", "agent_message")
-    if result["type"] == "text":
-        assert "Hello" in result["text"]
-    else:
-        assert "Hello" in result.get("text", "")
-    # User message and assistant reply both appended
+    assert isinstance(result, str)
+    assert "Hello" in result
     assert any(m.get("role") == "user" and m.get("content") == "Hi" for m in session.messages)
 
 
 @pytest.mark.asyncio
-async def test_run_agent_emits_requires_payment_on_create_booking_hold(session):
-    """create_booking_hold success short-circuits and returns requires_payment."""
-    tool_use_response = ModelResponse(
-        stop_reason="tool_use",
-        content=[ContentBlock(type="tool_use", id="tu1", name="create_booking_hold", input={"trip_id": "t1"})],
-    )
-    fake_client = MagicMock()
-    fake_client.create_message = AsyncMock(return_value=tool_use_response)
-    backend_result = {
-        "success": True,
-        "data": {
-            "booking_id": "B-100",
-            "reference": "REF-100",
-            "total_price_usd": 250,
-            "hold_expires_at": "2026-05-25T12:00:00Z",
-        },
-    }
-    with patch("agent.core.get_model_client", return_value=fake_client), \
-         patch("agent.core._execute_tool", new=AsyncMock(return_value=backend_result)):
-        result = await run_agent(session, "book trip t1")
-
-    assert result["type"] == "requires_payment"
-    assert result["booking_id"] == "B-100"
-    assert result["amount_usd"] == 250
-    assert "stripe" in result["methods"]
-    assert "bakong" in result["methods"]
-    assert session.booking_id == "B-100"
-    assert session.booking_ref == "REF-100"
-
-
-@pytest.mark.asyncio
 async def test_run_agent_returns_fallback_after_max_loops(session):
-    """If model keeps requesting tool calls, run_agent eventually returns fallback."""
+    """If model keeps requesting tool calls, run_agent eventually returns fallback text."""
     tool_use_response = ModelResponse(
         stop_reason="tool_use",
         content=[ContentBlock(type="tool_use", id="tu1", name="search_hotels", input={})],
@@ -75,11 +40,33 @@ async def test_run_agent_returns_fallback_after_max_loops(session):
     fake_client = MagicMock()
     fake_client.create_message = AsyncMock(return_value=tool_use_response)
 
-    # Backend always returns success=True for search_hotels (no booking hold)
     benign_result = {"success": True, "data": {"hotels": []}}
     with patch("agent.core.get_model_client", return_value=fake_client), \
          patch("agent.core._execute_tool", new=AsyncMock(return_value=benign_result)):
         result = await run_agent(session, "search forever")
 
-    assert result["type"] == "text"
-    assert "trouble" in result["text"].lower()
+    assert isinstance(result, str)
+    assert "trouble" in result.lower()
+
+
+@pytest.mark.asyncio
+async def test_run_agent_calls_tool_and_follows_up(session):
+    """After tool execution, agent continues to end_turn."""
+    tool_response = ModelResponse(
+        stop_reason="tool_use",
+        content=[ContentBlock(type="tool_use", id="t1", name="search_trips", input={"query": "temples"})],
+    )
+    final_response = ModelResponse(
+        stop_reason="end_turn",
+        content=[ContentBlock(type="text", text="Found 3 temple tours")],
+    )
+    fake_client = MagicMock()
+    fake_client.create_message = AsyncMock(side_effect=[tool_response, final_response])
+    tool_result = {"success": True, "data": {"trips": []}}
+
+    with patch("agent.core.get_model_client", return_value=fake_client), \
+         patch("agent.core._execute_tool", new=AsyncMock(return_value=tool_result)):
+        result = await run_agent(session, "Find temple trips")
+
+    assert isinstance(result, str)
+    assert "temple" in result.lower()

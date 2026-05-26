@@ -1,0 +1,19 @@
+- iframe [ref=e2]:
+  - generic [ref=f1e2]:
+    - generic [ref=f1e5]:
+      - img
+    - paragraph [ref=f1e8]: Access is temporarily restricted
+    - generic [ref=f1e10]:
+      - generic [ref=f1e11]:
+        - paragraph [ref=f1e12]: We detected unusual activity from your device or network.
+        - paragraph [ref=f1e13]: "Reasons may include:"
+        - list [ref=f1e14]:
+          - listitem [ref=f1e15]: "- Rapid taps or clicks"
+          - listitem [ref=f1e16]: "- JavaScript disabled or not working"
+          - listitem [ref=f1e17]: "- Automated (bot) activity on your network (IP 117.20.115.32)"
+          - listitem [ref=f1e18]: "- Use of developer or inspection tools"
+      - generic [ref=f1e19]:
+        - paragraph [ref=f1e20]:
+          - text: Need help?
+          - button "Submit feedback." [ref=f1e21] [cursor=pointer]
+        - paragraph [ref=f1e22]: "ID: bce2b320-47b9-b094-299c-34b414d6fc6a"

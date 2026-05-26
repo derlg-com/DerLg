@@ -66,7 +66,7 @@ async def test_accept_language_header_passed_to_backend():
 @pytest.mark.asyncio
 async def test_run_agent_uses_locale_in_tool_calls():
     """R10.3 — tool calls include Accept-Language from session locale."""
-    from agent.session.state import ConversationState, AgentState
+    from agent.session.state import ConversationState
     from agent.backend_client import BackendClient
 
     session = ConversationState(session_id="s4", user_id="u4", preferred_language="ZH")
