@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from fastapi import WebSocket, WebSocketDisconnect
 from agent.session.state import ConversationState
 from agent.session.manager import SessionManager
-from agent.core import run_agent
+from agent.core import run_agent_streaming
 from utils.logging import logger
 from utils.redis import check_rate_limit
 
@@ -130,10 +130,16 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
                 await websocket.send_json({"type": "typing_start"})
                 try:
-                    text = await run_agent(session, content)
-                    await session_manager.save(session)
-                    await websocket.send_json({"type": "typing_end"})
-                    await websocket.send_json({"type": "agent_message", "text": text})
+                    async for event in run_agent_streaming(session, content):
+                        if event["type"] == "agent_stream_chunk":
+                            await websocket.send_json(event)
+                        elif event["type"] == "final":
+                            await session_manager.save(session)
+                            await websocket.send_json({"type": "typing_end"})
+                            agent_msg: dict = {"type": "agent_message", "text": event["text"]}
+                            if event.get("content_payload"):
+                                agent_msg["content_payload"] = event["content_payload"]
+                            await websocket.send_json(agent_msg)
                 except Exception as exc:
                     logger.error("agent_error", session_id=session_id, error=str(exc))
                     await websocket.send_json({"type": "typing_end"})
