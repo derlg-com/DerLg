@@ -14,7 +14,7 @@ def session():
 
 @pytest.mark.asyncio
 async def test_run_agent_returns_text_on_end_turn(session):
-    """When the model finishes with end_turn, run_agent returns plain text."""
+    """When the model finishes with end_turn, run_agent returns (text, payload)."""
     fake_response = ModelResponse(
         stop_reason="end_turn",
         content=[ContentBlock(type="text", text="Hello traveler")],
@@ -23,10 +23,10 @@ async def test_run_agent_returns_text_on_end_turn(session):
     fake_client.create_message = AsyncMock(return_value=fake_response)
 
     with patch("agent.core.get_model_client", return_value=fake_client):
-        result = await run_agent(session, "Hi")
+        text, payload = await run_agent(session, "Hi")
 
-    assert isinstance(result, str)
-    assert "Hello" in result
+    assert isinstance(text, str)
+    assert "Hello" in text
     assert any(m.get("role") == "user" and m.get("content") == "Hi" for m in session.messages)
 
 
@@ -43,10 +43,10 @@ async def test_run_agent_returns_fallback_after_max_loops(session):
     benign_result = {"success": True, "data": {"hotels": []}}
     with patch("agent.core.get_model_client", return_value=fake_client), \
          patch("agent.core._execute_tool", new=AsyncMock(return_value=benign_result)):
-        result = await run_agent(session, "search forever")
+        text, payload = await run_agent(session, "search forever")
 
-    assert isinstance(result, str)
-    assert "trouble" in result.lower()
+    assert isinstance(text, str)
+    assert "trouble" in text.lower()
 
 
 @pytest.mark.asyncio
@@ -66,7 +66,48 @@ async def test_run_agent_calls_tool_and_follows_up(session):
 
     with patch("agent.core.get_model_client", return_value=fake_client), \
          patch("agent.core._execute_tool", new=AsyncMock(return_value=tool_result)):
-        result = await run_agent(session, "Find temple trips")
+        text, payload = await run_agent(session, "Find temple trips")
 
-    assert isinstance(result, str)
-    assert "temple" in result.lower()
+    assert isinstance(text, str)
+    assert "temple" in text.lower()
+
+
+@pytest.mark.asyncio
+async def test_run_agent_parses_suggestions(session):
+    """Suggestions block is extracted into content_payload."""
+    raw = 'Here is your trip.\n<suggestions>\n["What is the best time?", "Budget options?", "Family trips?"]\n</suggestions>'
+    fake_response = ModelResponse(
+        stop_reason="end_turn",
+        content=[ContentBlock(type="text", text=raw)],
+    )
+    fake_client = MagicMock()
+    fake_client.create_message = AsyncMock(return_value=fake_response)
+
+    with patch("agent.core.get_model_client", return_value=fake_client):
+        text, payload = await run_agent(session, "Plan my trip")
+
+    assert "<suggestions>" not in text
+    assert payload is not None
+    assert len(payload["suggestions"]) == 3
+
+
+@pytest.mark.asyncio
+async def test_run_agent_parses_chips(session):
+    """Chips block is extracted into content_payload alongside suggestions."""
+    raw = (
+        "Here are options.\n"
+        "<suggestions>\n[\"More options?\"]\n</suggestions>\n"
+        "<chips>\n[\"Budget\", \"Beach\", \"Family\"]\n</chips>"
+    )
+    fake_response = ModelResponse(
+        stop_reason="end_turn",
+        content=[ContentBlock(type="text", text=raw)],
+    )
+    fake_client = MagicMock()
+    fake_client.create_message = AsyncMock(return_value=fake_response)
+
+    with patch("agent.core.get_model_client", return_value=fake_client):
+        text, payload = await run_agent(session, "Show trips")
+
+    assert "<chips>" not in text
+    assert payload["chips"] == ["Budget", "Beach", "Family"]

@@ -1,0 +1,774 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - button "Skip to main content" [ref=e4] [cursor=pointer]:
+      - generic [ref=e5]: Skip to main content
+    - banner [ref=e7]:
+      - navigation [ref=e9]:
+        - link "Tripadvisor" [ref=e11] [cursor=pointer]:
+          - /url: /
+          - img "Tripadvisor" [ref=e13]
+        - generic [ref=e14]:
+          - button "Plan with AI" [ref=e16] [cursor=pointer]:
+            - generic [ref=e18]:
+              - img [ref=e20]
+              - text: Plan with AI
+          - generic [ref=e26]:
+            - link "Rewards" [ref=e28] [cursor=pointer]:
+              - /url: /Rewards
+            - button "Discover" [ref=e31] [cursor=pointer]
+            - button "Review" [ref=e34] [cursor=pointer]
+            - link "Forums" [ref=e36] [cursor=pointer]:
+              - /url: /ForumHome
+          - generic [ref=e37]:
+            - button "Select region or currency, currently United States and USD" [ref=e39] [cursor=pointer]:
+              - generic "Select region or currency, currently United States and USD" [ref=e41]:
+                - img [ref=e42]
+                - text: USD
+            - link "Sign in" [ref=e46] [cursor=pointer]:
+              - /url: /RegistrationController?flow=sign_up_and_save&returnTo=%2F&fullscreen=true&flowOrigin=login&hideNavigation=true&isLithium=true
+              - generic [ref=e48]: Sign in
+    - main [ref=e49]:
+      - heading "Where to?" [level=1] [ref=e51]:
+        - generic [ref=e52]: Where to?
+      - tablist [ref=e54]:
+        - tab "Search All" [selected] [ref=e55] [cursor=pointer]:
+          - generic [ref=e57]:
+            - img [ref=e58]
+            - text: Search All
+        - tab "Things to Do" [ref=e60] [cursor=pointer]:
+          - link "Things to Do" [ref=e62]:
+            - /url: /Attractions
+            - img [ref=e63]
+            - text: Things to Do
+        - tab "Hotels" [ref=e66] [cursor=pointer]:
+          - link "Hotels" [ref=e68]:
+            - /url: /Hotels
+            - img [ref=e69]
+            - text: Hotels
+        - tab "Restaurants" [ref=e73] [cursor=pointer]:
+          - link "Restaurants" [ref=e75]:
+            - /url: /Restaurants
+            - img [ref=e76]
+            - text: Restaurants
+        - tab "Cruises" [ref=e78] [cursor=pointer]:
+          - link "Cruises" [ref=e80]:
+            - /url: /Cruises
+            - img [ref=e81]
+            - text: Cruises
+      - search [ref=e88]:
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - button "Search" [ref=e91] [cursor=pointer]:
+              - img [ref=e92]
+            - searchbox "Search" [ref=e96]
+          - button "Search" [ref=e98] [cursor=pointer]
+      - generic [ref=e99]:
+        - generic [ref=e104] [cursor=pointer]:
+          - img "image gif" [ref=e105]
+          - generic [ref=e110]:
+            - generic [ref=e111]: Book the best with the badge
+            - generic [ref=e113]: The 2026 Travelers’ Choice Best of the Best Things to Do are in, all backed by travelers.
+            - link "See the winners" [ref=e117]:
+              - /url: https://www.tripadvisor.com/TravelersChoice-ThingsToDo
+        - generic [ref=e118]:
+          - generic [ref=e120]:
+            - heading "Find things to do by interest" [level=2] [ref=e121]
+            - generic [ref=e122]: Whatever you're into, we’ve got it
+          - list [ref=e126]:
+            - listitem [ref=e127]:
+              - link "Outdoors" [ref=e128] [cursor=pointer]:
+                - /url: /Attractions-h1-Outdoor_Activities.html
+                - generic [ref=e134]: Outdoors
+            - listitem [ref=e135]:
+              - link "Food" [ref=e136] [cursor=pointer]:
+                - /url: /Attractions-h2-Food_Activities.html
+                - generic [ref=e142]: Food
+            - listitem [ref=e143]:
+              - link "Culture" [ref=e144] [cursor=pointer]:
+                - /url: /Attractions-h3-Culture_Activities.html
+                - generic [ref=e150]: Culture
+            - listitem [ref=e151]:
+              - link "Water" [ref=e152] [cursor=pointer]:
+                - /url: /Attractions-h4-Water_Activities.html
+                - generic [ref=e158]: Water
+        - generic [ref=e160]:
+          - generic [ref=e162]:
+            - heading "Explore experiences near Phnom Penh" [level=2] [ref=e163]
+            - generic [ref=e164]: Can’t-miss picks near you
+          - generic [ref=e165]:
+            - button "Previous" [disabled] [ref=e167]:
+              - img [ref=e168]
+            - list [ref=e172]:
+              - listitem [ref=e173]:
+                - generic [ref=e174]:
+                  - link "The Killing Field and Toul Sleng Genocide Museum (S21) Tour 4.9 of 5 bubbles (1,777) from $19 per adult" [ref=e175] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293940-d17823563-The_Killing_Field_and_Toul_Sleng_Genocide_Museum_S21_Tour-Phnom_Penh.html
+                    - generic [ref=e180]:
+                      - generic [ref=e181]: The Killing Field and Toul Sleng Genocide Museum (S21) Tour
+                      - generic [ref=e184]:
+                        - generic [ref=e186]: "4.9"
+                        - generic [ref=e187]:
+                          - img "4.9 of 5 bubbles" [ref=e188]
+                          - generic [ref=e196]: (1,777)
+                      - generic [ref=e197]: from $19 per adult
+                  - button "Save to a trip" [ref=e199] [cursor=pointer]:
+                    - img [ref=e200]
+              - listitem [ref=e202]:
+                - generic [ref=e203]:
+                  - link "Sunset Cruise with unlimited beer & soft drinks -English speaking guide on board 4.8 of 5 bubbles (244) from $17 per adult" [ref=e204] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293940-d19772938-Sunset_Cruise_with_unlimited_beer_soft_drinks_English_speaking_guide_on_board-Phno.html
+                    - generic [ref=e209]:
+                      - generic [ref=e210]: Sunset Cruise with unlimited beer & soft drinks -English speaking guide on board
+                      - generic [ref=e213]:
+                        - generic [ref=e215]: "4.8"
+                        - generic [ref=e216]:
+                          - img "4.8 of 5 bubbles" [ref=e217]
+                          - generic [ref=e225]: (244)
+                      - generic [ref=e226]: from $17 per adult
+                  - button "Save to a trip" [ref=e228] [cursor=pointer]:
+                    - img [ref=e229]
+              - listitem [ref=e231]:
+                - generic [ref=e232]:
+                  - link "Visit 9 Places in 3 Hours by Khmer Traditional Tuk-Tuk 4.9 of 5 bubbles (34) from $35 per group" [ref=e233] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293940-d26210035-Visit_9_Places_in_3_Hours_by_Khmer_Traditional_Tuk_Tuk-Phnom_Penh.html
+                    - generic [ref=e238]:
+                      - generic [ref=e239]: Visit 9 Places in 3 Hours by Khmer Traditional Tuk-Tuk
+                      - generic [ref=e242]:
+                        - generic [ref=e244]: "4.9"
+                        - generic [ref=e245]:
+                          - img "4.9 of 5 bubbles" [ref=e246]
+                          - generic [ref=e254]: (34)
+                      - generic [ref=e255]: from $35 per group
+                  - button "Save to a trip" [ref=e257] [cursor=pointer]:
+                    - img [ref=e258]
+              - listitem [ref=e260]:
+                - generic [ref=e261]:
+                  - link "Phnom Penh Outdoor Shooting Range 5 of 5 bubbles (160) from $15 per adult" [ref=e262] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293940-d25228888-Phnom_Penh_Outdoor_Shooting_Range-Phnom_Penh.html
+                    - generic [ref=e267]:
+                      - generic [ref=e268]: Phnom Penh Outdoor Shooting Range
+                      - generic [ref=e271]:
+                        - generic [ref=e273]: "5.0"
+                        - generic [ref=e274]:
+                          - img "5 of 5 bubbles" [ref=e275]
+                          - generic [ref=e283]: (160)
+                      - generic [ref=e284]: from $15 per adult
+                  - button "Save to a trip" [ref=e286] [cursor=pointer]:
+                    - img [ref=e287]
+              - listitem [ref=e289]:
+                - generic [ref=e290]:
+                  - link "Khmer Cooking Class Half Day (AM or PM) 4.9 of 5 bubbles (319) from $36 per adult" [ref=e291] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293940-d21136298-Khmer_Cooking_Class_Half_Day_AM_or_PM-Phnom_Penh.html
+                    - generic [ref=e296]:
+                      - generic [ref=e297]: Khmer Cooking Class Half Day (AM or PM)
+                      - generic [ref=e300]:
+                        - generic [ref=e302]: "4.9"
+                        - generic [ref=e303]:
+                          - img "4.9 of 5 bubbles" [ref=e304]
+                          - generic [ref=e312]: (319)
+                      - generic [ref=e313]: from $36 per adult
+                  - button "Save to a trip" [ref=e315] [cursor=pointer]:
+                    - img [ref=e316]
+              - listitem [ref=e318]:
+                - generic [ref=e319]:
+                  - link "Phnom Penh to Angkor Wat, Bayon & Ta Prohm Day Trip + Lunch 5 of 5 bubbles (52) from $149 per adult" [ref=e320] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293940-d17459987-Phnom_Penh_to_Angkor_Wat_Bayon_Ta_Prohm_Day_Trip_Lunch-Phnom_Penh.html
+                    - generic [ref=e325]:
+                      - generic [ref=e326]: Phnom Penh to Angkor Wat, Bayon & Ta Prohm Day Trip + Lunch
+                      - generic [ref=e329]:
+                        - generic [ref=e331]: "5.0"
+                        - generic [ref=e332]:
+                          - img "5 of 5 bubbles" [ref=e333]
+                          - generic [ref=e341]: (52)
+                      - generic [ref=e342]: from $149 per adult
+                  - button "Save to a trip" [ref=e344] [cursor=pointer]:
+                    - img [ref=e345]
+              - listitem [ref=e347]:
+                - generic [ref=e348]:
+                  - link "Phnom Penh Unique Classical Dance Every Wednesday,Saturday&Sunday 5 of 5 bubbles (14) from $20 per adult" [ref=e349] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293940-d28399794-Phnom_Penh_Unique_Classical_Dance_Every_Wednesday_Saturday_Sunday-Phnom_Penh.html
+                    - generic [ref=e354]:
+                      - generic [ref=e355]: Phnom Penh Unique Classical Dance Every Wednesday,Saturday&Sunday
+                      - generic [ref=e358]:
+                        - generic [ref=e360]: "5.0"
+                        - generic [ref=e361]:
+                          - img "5 of 5 bubbles" [ref=e362]
+                          - generic [ref=e370]: (14)
+                      - generic [ref=e371]: from $20 per adult
+                  - button "Save to a trip" [ref=e373] [cursor=pointer]:
+                    - img [ref=e374]
+              - listitem [ref=e376]:
+                - generic [ref=e377]:
+                  - link "Phnom Penh Silk Island Bike Tour/ E-Bike or Tuk Tuk 5 of 5 bubbles (509) from $35 per adult" [ref=e378] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293940-d26318934-Phnom_Penh_Silk_Island_Bike_Tour_E_Bike_or_Tuk_Tuk-Phnom_Penh.html
+                    - generic [ref=e383]:
+                      - generic [ref=e384]: Phnom Penh Silk Island Bike Tour/ E-Bike or Tuk Tuk
+                      - generic [ref=e387]:
+                        - generic [ref=e389]: "5.0"
+                        - generic [ref=e390]:
+                          - img "5 of 5 bubbles" [ref=e391]
+                          - generic [ref=e399]: (509)
+                      - generic [ref=e400]: from $35 per adult
+                  - button "Save to a trip" [ref=e402] [cursor=pointer]:
+                    - img [ref=e403]
+              - listitem [ref=e405]:
+                - generic [ref=e406]:
+                  - 'link "The Journey Phnom Penh to/from Siem Reap: A Memorable Tour 4.7 of 5 bubbles (52) from $57 per adult" [ref=e407] [cursor=pointer]':
+                    - /url: /AttractionProductReview-g293940-d20189493-The_Journey_Phnom_Penh_to_from_Siem_Reap_A_Memorable_Tour-Phnom_Penh.html
+                    - generic [ref=e412]:
+                      - generic [ref=e413]: "The Journey Phnom Penh to/from Siem Reap: A Memorable Tour"
+                      - generic [ref=e416]:
+                        - generic [ref=e418]: "4.7"
+                        - generic [ref=e419]:
+                          - img "4.7 of 5 bubbles" [ref=e420]
+                          - generic [ref=e428]: (52)
+                      - generic [ref=e429]: from $57 per adult
+                  - button "Save to a trip" [ref=e431] [cursor=pointer]:
+                    - img [ref=e432]
+              - listitem [ref=e434]:
+                - generic [ref=e435]:
+                  - link "A Full Day Tour for Royal Palace, S21, Killing Fields & More 4.9 of 5 bubbles (91) from $35 per adult" [ref=e436] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293940-d25275089-A_Full_Day_Tour_for_Royal_Palace_S21_Killing_Fields_More-Phnom_Penh.html
+                    - generic [ref=e441]:
+                      - generic [ref=e442]: A Full Day Tour for Royal Palace, S21, Killing Fields & More
+                      - generic [ref=e445]:
+                        - generic [ref=e447]: "4.9"
+                        - generic [ref=e448]:
+                          - img "4.9 of 5 bubbles" [ref=e449]
+                          - generic [ref=e457]: (91)
+                      - generic [ref=e458]: from $35 per adult
+                  - button "Save to a trip" [ref=e460] [cursor=pointer]:
+                    - img [ref=e461]
+            - button "Next" [ref=e464] [cursor=pointer]:
+              - img [ref=e465]
+        - generic [ref=e468]:
+          - generic [ref=e469]:
+            - img "Tripadvisor" [ref=e472]
+            - generic [ref=e473]: Tripadvisor Foundation
+          - generic [ref=e476]:
+            - heading "Show some love to small businesses" [level=2] [ref=e477]
+            - generic [ref=e478]: Donate to Kiva.org today to provide loans to local entrepreneurs and the Tripadvisor Foundation will match it, up to $150,000 USD collectively. Terms apply.
+            - link "Donate now" [ref=e481] [cursor=pointer]:
+              - /url: https://www.kiva.org/impact-dashboard/tripadvisor/donate/TAF-2025
+        - generic [ref=e484]:
+          - heading "Inspiration to get you going" [level=2] [ref=e487]
+          - generic [ref=e488]:
+            - button "Previous" [disabled] [ref=e490]:
+              - img [ref=e491]
+            - list [ref=e495]:
+              - listitem [ref=e496]:
+                - generic [ref=e497]:
+                  - link [ref=e499] [cursor=pointer]:
+                    - /url: https://www.tripadvisor.com/Articles-lsmT0Jg4noPs-Theme_parks_around_the_world.html
+                  - link "8 trip-worthy theme parks around the world" [ref=e503] [cursor=pointer]:
+                    - /url: https://www.tripadvisor.com/Articles-lsmT0Jg4noPs-Theme_parks_around_the_world.html
+                    - generic [ref=e505]: 8 trip-worthy theme parks around the world
+                  - button "Save to a trip" [ref=e507] [cursor=pointer]:
+                    - img [ref=e508]
+              - listitem [ref=e510]:
+                - generic [ref=e511]:
+                  - link [ref=e513] [cursor=pointer]:
+                    - /url: https://www.tripadvisor.com/Articles-lMjigQlB2jg0-Midnight_sun_around_the_world.html
+                  - link "Where to chase the midnight sun this summer" [ref=e517] [cursor=pointer]:
+                    - /url: https://www.tripadvisor.com/Articles-lMjigQlB2jg0-Midnight_sun_around_the_world.html
+                    - generic [ref=e519]: Where to chase the midnight sun this summer
+                  - button "Save to a trip" [ref=e521] [cursor=pointer]:
+                    - img [ref=e522]
+              - listitem [ref=e524]:
+                - generic [ref=e525]:
+                  - link [ref=e527] [cursor=pointer]:
+                    - /url: https://www.tripadvisor.com/Articles-lokp4pb8g4Po-National_parks_around_the_world.html
+                  - link "11 breathtaking national parks around the world" [ref=e531] [cursor=pointer]:
+                    - /url: https://www.tripadvisor.com/Articles-lokp4pb8g4Po-National_parks_around_the_world.html
+                    - generic [ref=e533]: 11 breathtaking national parks around the world
+                  - button "Save to a trip" [ref=e535] [cursor=pointer]:
+                    - img [ref=e536]
+              - listitem [ref=e538]:
+                - generic [ref=e539]:
+                  - link [ref=e541] [cursor=pointer]:
+                    - /url: https://www.tripadvisor.com/Articles-lgYb3OHqFpN4-Places_that_look_grownup_but_are_secretly_perfect_for_kids.html
+                  - link "7 places that look grown-up but are secretly perfect for kids" [ref=e545] [cursor=pointer]:
+                    - /url: https://www.tripadvisor.com/Articles-lgYb3OHqFpN4-Places_that_look_grownup_but_are_secretly_perfect_for_kids.html
+                    - generic [ref=e547]: 7 places that look grown-up but are secretly perfect for kids
+                  - button "Save to a trip" [ref=e549] [cursor=pointer]:
+                    - img [ref=e550]
+            - button "Next" [ref=e553] [cursor=pointer]:
+              - img [ref=e554]
+        - generic [ref=e556]:
+          - generic [ref=e558]:
+            - heading "Take a trip just for the food" [level=2] [ref=e559]
+            - generic [ref=e560]: Tours where the meal is the main attraction
+          - generic [ref=e561]:
+            - button "Previous" [disabled] [ref=e563]:
+              - img [ref=e564]
+            - list [ref=e568]:
+              - listitem [ref=e569]:
+                - generic [ref=e570]:
+                  - link "Travelers' Choice 2026 Winner Phuket Southern Flavors Phuket Food Tour with 15+ Tastings 5 of 5 bubbles (1,686) from $59 per adult" [ref=e571] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g293920-d14105176-Southern_Flavors_Phuket_Food_Tour_with_15_Tastings-Phuket.html
+                    - img "Travelers' Choice 2026 Winner" [ref=e576]
+                    - generic [ref=e577]:
+                      - generic [ref=e579]: Phuket
+                      - generic [ref=e580]: Southern Flavors Phuket Food Tour with 15+ Tastings
+                      - generic [ref=e583]:
+                        - generic [ref=e585]: "5.0"
+                        - generic [ref=e586]:
+                          - img "5 of 5 bubbles" [ref=e587]
+                          - generic [ref=e595]: (1,686)
+                      - generic [ref=e596]: from $59 per adult
+                  - button "Save to a trip" [ref=e598] [cursor=pointer]:
+                    - img [ref=e599]
+              - listitem [ref=e601]:
+                - generic [ref=e602]:
+                  - 'link "Cancun Cancun Authentic Downtown Food Tour: Tacos and Local Flavors 5 of 5 bubbles (6) from $78 per adult" [ref=e603] [cursor=pointer]':
+                    - /url: /AttractionProductReview-g150807-d16822581-Cancun_Authentic_Downtown_Food_Tour_Tacos_and_Local_Flavors-Cancun_Yucatan_Peninsu.html
+                    - generic [ref=e608]:
+                      - generic [ref=e610]: Cancun
+                      - generic [ref=e611]: "Cancun Authentic Downtown Food Tour: Tacos and Local Flavors"
+                      - generic [ref=e614]:
+                        - generic [ref=e616]: "5.0"
+                        - generic [ref=e617]:
+                          - img "5 of 5 bubbles" [ref=e618]
+                          - generic [ref=e626]: (6)
+                      - generic [ref=e627]: from $78 per adult
+                  - button "Save to a trip" [ref=e629] [cursor=pointer]:
+                    - img [ref=e630]
+              - listitem [ref=e632]:
+                - generic [ref=e633]:
+                  - link "New Delhi Chandni Chowk Delhi Food Tour with 15+ Tastings 4.9 of 5 bubbles (273) from $39 per adult" [ref=e634] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g304551-d13969525-Chandni_Chowk_Delhi_Food_Tour_with_15_Tastings-New_Delhi_National_Capital_Territor.html
+                    - generic [ref=e639]:
+                      - generic [ref=e641]: New Delhi
+                      - generic [ref=e642]: Chandni Chowk Delhi Food Tour with 15+ Tastings
+                      - generic [ref=e645]:
+                        - generic [ref=e647]: "4.9"
+                        - generic [ref=e648]:
+                          - img "4.9 of 5 bubbles" [ref=e649]
+                          - generic [ref=e657]: (273)
+                      - generic [ref=e658]: from $39 per adult
+                  - button "Save to a trip" [ref=e660] [cursor=pointer]:
+                    - img [ref=e661]
+              - listitem [ref=e663]:
+                - generic [ref=e664]:
+                  - link "Sydney Sydney Food Tour with 6 Authentic Tastings by Secret Food Tours 4.8 of 5 bubbles (262) from $123 per adult" [ref=e665] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g255060-d16862029-Sydney_Food_Tour_with_6_Authentic_Tastings_by_Secret_Food_Tours-Sydney_New_South_W.html
+                    - generic [ref=e670]:
+                      - generic [ref=e672]: Sydney
+                      - generic [ref=e673]: Sydney Food Tour with 6 Authentic Tastings by Secret Food Tours
+                      - generic [ref=e676]:
+                        - generic [ref=e678]: "4.8"
+                        - generic [ref=e679]:
+                          - img "4.8 of 5 bubbles" [ref=e680]
+                          - generic [ref=e688]: (262)
+                      - generic [ref=e689]: from $123 per adult
+                  - button "Save to a trip" [ref=e691] [cursor=pointer]:
+                    - img [ref=e692]
+              - listitem [ref=e694]:
+                - generic [ref=e695]:
+                  - link "Seoul Downtown Seoul Guided Food & Market Tour with 8+ Local Tastings 4.9 of 5 bubbles (524) from $98 per adult" [ref=e696] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g294197-d17597945-Downtown_Seoul_Guided_Food_Market_Tour_with_8_Local_Tastings-Seoul.html
+                    - generic [ref=e701]:
+                      - generic [ref=e703]: Seoul
+                      - generic [ref=e704]: Downtown Seoul Guided Food & Market Tour with 8+ Local Tastings
+                      - generic [ref=e707]:
+                        - generic [ref=e709]: "4.9"
+                        - generic [ref=e710]:
+                          - img "4.9 of 5 bubbles" [ref=e711]
+                          - generic [ref=e719]: (524)
+                      - generic [ref=e720]: from $98 per adult
+                  - button "Save to a trip" [ref=e722] [cursor=pointer]:
+                    - img [ref=e723]
+              - listitem [ref=e725]:
+                - generic [ref=e726]:
+                  - link "Milan Milan’s Most Authentic Street Food Tour – Local & Milanese 4.8 of 5 bubbles (499) from $114 per adult" [ref=e727] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g187849-d15217446-Milan_s_Most_Authentic_Street_Food_Tour_Local_Milanese-Milan_Lombardy.html
+                    - generic [ref=e732]:
+                      - generic [ref=e734]: Milan
+                      - generic [ref=e735]: Milan’s Most Authentic Street Food Tour – Local & Milanese
+                      - generic [ref=e738]:
+                        - generic [ref=e740]: "4.8"
+                        - generic [ref=e741]:
+                          - img "4.8 of 5 bubbles" [ref=e742]
+                          - generic [ref=e750]: (499)
+                      - generic [ref=e751]: from $114 per adult
+                  - button "Save to a trip" [ref=e753] [cursor=pointer]:
+                    - img [ref=e754]
+              - listitem [ref=e756]:
+                - generic [ref=e757]:
+                  - 'link "Travelers'' Choice 2026 Winner Nashville Nashville: Food Tour with 5+ Tastings of Local Delicacies 4.9 of 5 bubbles (2,279) from $100 per adult" [ref=e758] [cursor=pointer]':
+                    - /url: /AttractionProductReview-g55229-d17306516-Nashville_Food_Tour_with_5_Tastings_of_Local_Delicacies-Nashville_Davidson_County_T.html
+                    - img "Travelers' Choice 2026 Winner" [ref=e763]
+                    - generic [ref=e764]:
+                      - generic [ref=e766]: Nashville
+                      - generic [ref=e767]: "Nashville: Food Tour with 5+ Tastings of Local Delicacies"
+                      - generic [ref=e770]:
+                        - generic [ref=e772]: "4.9"
+                        - generic [ref=e773]:
+                          - img "4.9 of 5 bubbles" [ref=e774]
+                          - generic [ref=e782]: (2,279)
+                      - generic [ref=e783]: from $100 per adult
+                  - button "Save to a trip" [ref=e785] [cursor=pointer]:
+                    - img [ref=e786]
+              - listitem [ref=e788]:
+                - generic [ref=e789]:
+                  - link "Paris Paris Le Marais Food Tour With 10+ Tastings, Cheese, Wine & More 4.9 of 5 bubbles (741) from $106 per adult" [ref=e790] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g187147-d12398521-Paris_Le_Marais_Food_Tour_With_10_Tastings_Cheese_Wine_More-Paris_Ile_de_France.html
+                    - generic [ref=e795]:
+                      - generic [ref=e797]: Paris
+                      - generic [ref=e798]: Paris Le Marais Food Tour With 10+ Tastings, Cheese, Wine & More
+                      - generic [ref=e801]:
+                        - generic [ref=e803]: "4.9"
+                        - generic [ref=e804]:
+                          - img "4.9 of 5 bubbles" [ref=e805]
+                          - generic [ref=e813]: (741)
+                      - generic [ref=e814]: from $106 per adult
+                  - button "Save to a trip" [ref=e816] [cursor=pointer]:
+                    - img [ref=e817]
+              - listitem [ref=e819]:
+                - generic [ref=e820]:
+                  - 'link "Copenhagen Original Copenhagen food tour: 8 tastings, full meal & VIP access 4.8 of 5 bubbles (449) from $151 per adult" [ref=e821] [cursor=pointer]':
+                    - /url: /AttractionProductReview-g189541-d11453299-Original_Copenhagen_food_tour_8_tastings_full_meal_VIP_access-Copenhagen_Zealand.html
+                    - generic [ref=e826]:
+                      - generic [ref=e828]: Copenhagen
+                      - generic [ref=e829]: "Original Copenhagen food tour: 8 tastings, full meal & VIP access"
+                      - generic [ref=e832]:
+                        - generic [ref=e834]: "4.8"
+                        - generic [ref=e835]:
+                          - img "4.8 of 5 bubbles" [ref=e836]
+                          - generic [ref=e844]: (449)
+                      - generic [ref=e845]: from $151 per adult
+                  - button "Save to a trip" [ref=e847] [cursor=pointer]:
+                    - img [ref=e848]
+              - listitem [ref=e850]:
+                - generic [ref=e851]:
+                  - link "Travelers' Choice 2026 Winner Buenos Aires Local Foodie Adventure in Buenos Aires with Sherpa Food Tours 5 of 5 bubbles (7,168) from $90 per adult" [ref=e852] [cursor=pointer]:
+                    - /url: /AttractionProductReview-g312741-d19498870-Local_Foodie_Adventure_in_Buenos_Aires_with_Sherpa_Food_Tours-Buenos_Aires_Capital.html
+                    - img "Travelers' Choice 2026 Winner" [ref=e857]
+                    - generic [ref=e858]:
+                      - generic [ref=e860]: Buenos Aires
+                      - generic [ref=e861]: Local Foodie Adventure in Buenos Aires with Sherpa Food Tours
+                      - generic [ref=e864]:
+                        - generic [ref=e866]: "5.0"
+                        - generic [ref=e867]:
+                          - img "5 of 5 bubbles" [ref=e868]
+                          - generic [ref=e876]: (7,168)
+                      - generic [ref=e877]: from $90 per adult
+                  - button "Save to a trip" [ref=e879] [cursor=pointer]:
+                    - img [ref=e880]
+            - button "Next" [ref=e883] [cursor=pointer]:
+              - img [ref=e884]
+        - generic [ref=e888]:
+          - generic [ref=e893]:
+            - text: Sponsored by
+            - link "Universal Orlando Resort" [ref=e894] [cursor=pointer]:
+              - /url: https://www.universalorlando.com/
+          - generic [ref=e897]:
+            - heading "A Week of Vacation Awesome for the Whole Family" [level=1] [ref=e898]
+            - generic [ref=e899]: Universal Orlando Resort – A full week of vacation fun with 4 amazing theme parks and your choice of incredible hotels.
+            - link "Learn more" [ref=e902] [cursor=pointer]:
+              - /url: https://www.universalorlando.com/
+        - generic [ref=e903]:
+          - heading "Your next trip is waiting" [level=2] [ref=e905]
+          - generic [ref=e907]:
+            - heading "Weekend getaways from Phnom Penh" [level=3] [ref=e910]
+            - generic [ref=e911]:
+              - button "Previous" [disabled] [ref=e913]:
+                - img [ref=e914]
+              - list [ref=e918]:
+                - listitem [ref=e919]:
+                  - link "Ho Chi Minh City, Vietnam" [ref=e920] [cursor=pointer]:
+                    - /url: /Tourism-g293925-Ho_Chi_Minh_City-Vacations.html
+                    - generic [ref=e926]: Ho Chi Minh City, Vietnam
+                - listitem [ref=e927]:
+                  - link "Vung Tau, Vietnam" [ref=e928] [cursor=pointer]:
+                    - /url: /Tourism-g303946-Vung_Tau_Ba_Ria_Vung_Tau_Province-Vacations.html
+                    - generic [ref=e934]: Vung Tau, Vietnam
+                - listitem [ref=e935]:
+                  - link "Duong Dong, Vietnam" [ref=e936] [cursor=pointer]:
+                    - /url: /Tourism-g1184679-Duong_Dong_Phu_Quoc_Island_Kien_Giang_Province-Vacations.html
+                    - generic [ref=e942]: Duong Dong, Vietnam
+                - listitem [ref=e943]:
+                  - link "An Thoi, Vietnam" [ref=e944] [cursor=pointer]:
+                    - /url: /Tourism-g12520037-An_Thoi_Phu_Quoc_Island_Kien_Giang_Province-Vacations.html
+                    - generic [ref=e950]: An Thoi, Vietnam
+                - listitem [ref=e951]:
+                  - link "Da Lat, Vietnam" [ref=e952] [cursor=pointer]:
+                    - /url: /Tourism-g293922-Da_Lat_Lam_Dong_Province-Vacations.html
+                    - generic [ref=e958]: Da Lat, Vietnam
+                - listitem [ref=e959]:
+                  - link "Mui Ne, Vietnam" [ref=e960] [cursor=pointer]:
+                    - /url: /Tourism-g1009804-Mui_Ne_Phan_Thiet_Binh_Thuan_Province-Vacations.html
+                    - generic [ref=e966]: Mui Ne, Vietnam
+              - button "Next" [ref=e968] [cursor=pointer]:
+                - img [ref=e969]
+        - generic [ref=e971]:
+          - heading "Iconic places you need to see" [level=2] [ref=e974]
+          - generic [ref=e975]:
+            - button "Previous" [disabled] [ref=e977]:
+              - img [ref=e978]
+            - list [ref=e982]:
+              - listitem [ref=e983]:
+                - link "Rome, Italy" [ref=e984] [cursor=pointer]:
+                  - /url: /Tourism-g187791-Rome_Lazio-Vacations.html
+                  - generic [ref=e990]: Rome, Italy
+              - listitem [ref=e991]:
+                - link "Paris, France" [ref=e992] [cursor=pointer]:
+                  - /url: /Tourism-g187147-Paris_Ile_de_France-Vacations.html
+                  - generic [ref=e998]: Paris, France
+              - listitem [ref=e999]:
+                - link "Las Vegas, NV" [ref=e1000] [cursor=pointer]:
+                  - /url: /Tourism-g45963-Las_Vegas_Nevada-Vacations.html
+                  - generic [ref=e1006]: Las Vegas, NV
+              - listitem [ref=e1007]:
+                - link "London, UK" [ref=e1008] [cursor=pointer]:
+                  - /url: /Tourism-g186338-London_England-Vacations.html
+                  - generic [ref=e1014]: London, UK
+              - listitem [ref=e1015]:
+                - link "Florence, Italy" [ref=e1016] [cursor=pointer]:
+                  - /url: /Tourism-g187895-Florence_Tuscany-Vacations.html
+                  - generic [ref=e1022]: Florence, Italy
+              - listitem [ref=e1023]:
+                - link "New York City, NY" [ref=e1024] [cursor=pointer]:
+                  - /url: /Tourism-g60763-New_York_City_New_York-Vacations.html
+                  - generic [ref=e1030]: New York City, NY
+              - listitem [ref=e1031]:
+                - link "Barcelona, Spain" [ref=e1032] [cursor=pointer]:
+                  - /url: /Tourism-g187497-Barcelona_Catalonia-Vacations.html
+                  - generic [ref=e1038]: Barcelona, Spain
+              - listitem [ref=e1039]:
+                - link "Oahu, HI" [ref=e1040] [cursor=pointer]:
+                  - /url: /Tourism-g29222-Oahu_Hawaii-Vacations.html
+                  - generic [ref=e1046]: Oahu, HI
+              - listitem [ref=e1047]:
+                - link "Amsterdam, The Netherlands" [ref=e1048] [cursor=pointer]:
+                  - /url: /Tourism-g188590-Amsterdam_North_Holland_Province-Vacations.html
+                  - generic [ref=e1054]: Amsterdam, The Netherlands
+              - listitem [ref=e1055]:
+                - link "Reykjavik, Iceland" [ref=e1056] [cursor=pointer]:
+                  - /url: /Tourism-g189970-Reykjavik_Capital_Region-Vacations.html
+                  - generic [ref=e1062]: Reykjavik, Iceland
+            - button "Next" [ref=e1064] [cursor=pointer]:
+              - img [ref=e1065]
+        - generic [ref=e1070]:
+          - img "Travelers' Choice 2026 Winner" [ref=e1071]
+          - heading "Travelers' Choice Awards Best of the Best" [level=2] [ref=e1072]
+          - generic [ref=e1073]: Among our top 1% of places, stays, eats, and experiences—decided by you.
+          - link "See the winners" [ref=e1075] [cursor=pointer]:
+            - /url: /TravelersChoice
+            - generic [ref=e1076]: See the winners
+      - generic [ref=e1078]:
+        - 'heading "Tripadvisor: join the largest travel community" [level=2] [ref=e1079]'
+        - generic [ref=e1080]: "As the world's largest travel guidance platform, Tripadvisor helps you take better trips. And now it pays to plan, book, and review with us: Join Tripadvisor Rewards today and get $30 off Things to Do. Plus, you can check out hotels, restaurants, and more on our site or in the app—they're all backed by more than a billion reviews and opinions from travelers who have been there."
+    - contentinfo [ref=e1081]:
+      - generic [ref=e1083]:
+        - generic [ref=e1085]:
+          - generic [ref=e1086]: About Tripadvisor
+          - region "About Tripadvisor" [ref=e1087]:
+            - list [ref=e1089]:
+              - listitem [ref=e1090]:
+                - link "About Us" [ref=e1091] [cursor=pointer]:
+                  - /url: https://tripadvisor.mediaroom.com/us-about-us
+              - listitem [ref=e1092]:
+                - link "Press" [ref=e1093] [cursor=pointer]:
+                  - /url: https://tripadvisor.mediaroom.com/us-contact-us
+              - listitem [ref=e1094]:
+                - link "Resources and Policies" [ref=e1095] [cursor=pointer]:
+                  - /url: https://tripadvisor.mediaroom.com/us-resources
+              - listitem [ref=e1096]:
+                - link "Careers" [ref=e1097] [cursor=pointer]:
+                  - /url: https://careers.tripadvisor.com
+              - listitem [ref=e1098]:
+                - link "Investor Relations" [ref=e1099] [cursor=pointer]:
+                  - /url: https://ir.tripadvisor.com
+              - listitem [ref=e1100]:
+                - link "Trust & Safety" [ref=e1101] [cursor=pointer]:
+                  - /url: /Trust
+              - listitem [ref=e1102]:
+                - link "Contact us" [ref=e1103] [cursor=pointer]:
+                  - /url: https://tripadvisor.mediaroom.com/US-contact-us
+              - listitem [ref=e1104]:
+                - link "Bug Bounty Program" [ref=e1105] [cursor=pointer]:
+                  - /url: https://bugcrowd.com/tripadvisor-bb-og?preview=ad3c6233f795a3434126cac51dd32699
+              - listitem [ref=e1106]:
+                - link "Tripadvisor Technology Blog" [ref=e1107] [cursor=pointer]:
+                  - /url: https://medium.com/tripadvisor
+        - generic [ref=e1109]:
+          - generic [ref=e1110]: Explore
+          - region "Explore" [ref=e1111]:
+            - list [ref=e1113]:
+              - listitem [ref=e1114]:
+                - link "Write a review" [ref=e1115] [cursor=pointer]:
+                  - /url: /UserReview
+              - listitem [ref=e1116]:
+                - link "Add a Place" [ref=e1117] [cursor=pointer]:
+                  - /url: /AddListing
+              - listitem [ref=e1118]:
+                - link "Join" [ref=e1119] [cursor=pointer]:
+                  - /url: /MemberProfile
+              - listitem [ref=e1120]:
+                - link "Travelers' Choice" [ref=e1121] [cursor=pointer]:
+                  - /url: /TravelersChoice
+              - listitem [ref=e1122]:
+                - link "Help Center" [ref=e1123] [cursor=pointer]:
+                  - /url: https://www.tripadvisorsupport.com/en-US/hc/traveler
+              - listitem [ref=e1124]:
+                - link "Travel Stories" [ref=e1125] [cursor=pointer]:
+                  - /url: /Articles
+        - generic [ref=e1127]:
+          - generic [ref=e1128]: Do Business With Us
+          - region "Do Business With Us" [ref=e1129]:
+            - list [ref=e1131]:
+              - listitem [ref=e1132]:
+                - link "Owners" [ref=e1133] [cursor=pointer]:
+                  - /url: /Owners
+              - listitem [ref=e1134]:
+                - link "Business Advantage" [ref=e1135] [cursor=pointer]:
+                  - /url: /business/business-advantage
+              - listitem [ref=e1136]:
+                - link "Sponsored Placements" [ref=e1137] [cursor=pointer]:
+                  - /url: /business/sponsored-placements
+              - listitem [ref=e1138]:
+                - link "Advertise with Us" [ref=e1139] [cursor=pointer]:
+                  - /url: /InformationCenter-endfqnXtXXeirYJ59IOzZk
+              - listitem [ref=e1140]:
+                - link "Access our Content API" [ref=e1141] [cursor=pointer]:
+                  - /url: /developers
+              - listitem [ref=e1142]:
+                - link "Become an Affiliate" [ref=e1143] [cursor=pointer]:
+                  - /url: /affiliates
+        - generic [ref=e1145]:
+          - generic [ref=e1146]: Get The App
+          - region "Get The App" [ref=e1147]:
+            - list [ref=e1149]:
+              - listitem [ref=e1150]:
+                - link "iPhone App" [ref=e1151] [cursor=pointer]:
+                  - /url: /app?is_retargeting=true&source_caller=ui&shortlink=qdwtxjza&c=OSM_SEO_Footer%20Banner&pid=On_Site&af_xp=custom&af_reengagement_window=30d
+              - listitem [ref=e1152]:
+                - link "Android App" [ref=e1153] [cursor=pointer]:
+                  - /url: /app?is_retargeting=true&source_caller=ui&shortlink=qdwtxjza&c=OSM_SEO_Footer%20Banner&pid=On_Site&af_xp=custom&af_reengagement_window=30d
+        - generic [ref=e1155]:
+          - generic [ref=e1156]: Tripadvisor Sites
+          - region "Tripadvisor Sites" [ref=e1157]:
+            - list [ref=e1159]:
+              - listitem [ref=e1160]:
+                - text: Book the best restaurants with
+                - link "TheFork" [ref=e1161] [cursor=pointer]:
+                  - /url: https://www.thefork.com/
+              - listitem [ref=e1162]:
+                - text: Book tours and attraction tickets on
+                - link "Viator" [ref=e1163] [cursor=pointer]:
+                  - /url: https://www.viator.com/
+              - listitem [ref=e1164]:
+                - text: Read cruise reviews on
+                - link "Cruise Critic" [ref=e1165] [cursor=pointer]:
+                  - /url: https://www.cruisecritic.com/
+        - generic [ref=e1166]:
+          - generic [ref=e1167]:
+            - img "Tripadvisor" [ref=e1169]
+            - generic [ref=e1170]:
+              - generic [ref=e1172]: © 2026 Tripadvisor LLC All rights reserved.
+              - generic [ref=e1173]:
+                - link "Terms of Use" [ref=e1174] [cursor=pointer]:
+                  - /url: https://tripadvisor.mediaroom.com/us-terms-of-use
+                  - generic [ref=e1175]: Terms of Use
+                - link "Privacy and Cookies Statement" [ref=e1176] [cursor=pointer]:
+                  - /url: https://tripadvisor.mediaroom.com/us-privacy-policy
+                  - generic [ref=e1177]: Privacy and Cookies Statement
+                - button "Cookie consent" [ref=e1178] [cursor=pointer]:
+                  - generic [ref=e1179]: Cookie consent
+                - link "How the site works" [ref=e1180] [cursor=pointer]:
+                  - /url: /pages/serviceEN.html
+                  - generic [ref=e1181]: How the site works
+                - link "Contact us" [ref=e1182] [cursor=pointer]:
+                  - /url: https://tripadvisor.mediaroom.com/US-contact-us
+                  - generic [ref=e1183]: Contact us
+                - link "Accessibility Statement" [ref=e1184] [cursor=pointer]:
+                  - /url: /Trust-lgF5hKLTqw3U.html
+                  - generic [ref=e1185]: Accessibility Statement
+          - generic [ref=e1186]:
+            - generic [ref=e1189]:
+              - paragraph [ref=e1190]: This is the version of our website addressed to speakers of English in the United States. If you are a resident of another country or region, please select the appropriate version of Tripadvisor for your country or region in the drop-down menu.
+              - paragraph [ref=e1191]: Tripadvisor LLC makes no guarantees for availability of prices advertised on our sites and applications. Listed prices may require a stay of a particular length or have blackout dates, qualifications or other applicable restrictions. Tripadvisor LLC is not responsible for any content on external web sites that are not owned or operated by Tripadvisor . Indicative hotel prices displayed on our “Explore” pages are estimates extrapolated from historic pricing data.
+              - paragraph [ref=e1192]: Tripadvisor LLC is not a booking agent or tour operator. When you book with one of our partners, please be sure to check their site for a full disclosure of all applicable fees.
+            - button "Read more" [ref=e1194] [cursor=pointer]:
+              - generic [ref=e1195]: Read more
+              - img [ref=e1197]
+        - generic [ref=e1199]:
+          - 'button "Currency: $ USD" [ref=e1201] [cursor=pointer]':
+            - generic [ref=e1202]: $ USD
+            - img [ref=e1203]
+          - 'button "Region: United States" [ref=e1206] [cursor=pointer]':
+            - generic [ref=e1207]: United States
+            - img [ref=e1208]
+        - generic [ref=e1211]:
+          - link "Facebook" [ref=e1212] [cursor=pointer]:
+            - /url: http://www.facebook.com/TripAdvisor
+            - img [ref=e1213]
+          - link "X" [ref=e1215] [cursor=pointer]:
+            - /url: https://twitter.com/TripAdvisor
+            - img [ref=e1216]
+          - link "Pinterest" [ref=e1218] [cursor=pointer]:
+            - /url: https://www.pinterest.com/tripadvisor/
+            - img [ref=e1219]
+          - link "Instagram" [ref=e1221] [cursor=pointer]:
+            - /url: https://instagram.com/tripadvisor/
+            - img [ref=e1222]
+          - link "Youtube" [ref=e1225] [cursor=pointer]:
+            - /url: https://www.youtube.com/TripAdvisor
+            - img [ref=e1226]
+          - link "TikTok" [ref=e1228] [cursor=pointer]:
+            - /url: https://www.tiktok.com/@tripadvisor
+            - img [ref=e1229]
+  - complementary "AI Chat Assistant" [ref=e1231]:
+    - generic [ref=e1232]:
+      - generic [ref=e1234]:
+        - generic [ref=e1235]:
+          - button "All chats" [ref=e1236] [cursor=pointer]:
+            - img [ref=e1237]
+          - button "AI Assistant" [ref=e1239] [cursor=pointer]
+        - generic [ref=e1240]:
+          - button "New chat" [ref=e1242] [cursor=pointer]:
+            - img [ref=e1243]
+            - text: New chat
+          - button "Close" [ref=e1249] [cursor=pointer]:
+            - img [ref=e1250]
+      - generic [ref=e2624]:
+        - generic [ref=e2626]:
+          - generic [ref=e2627]:
+            - generic [ref=e2628]:
+              - generic [ref=e2629]: Let's plan your next trip
+              - generic [ref=e2630]: Get recommendations tailored just for you
+            - generic [ref=e2632]:
+              - button "Dates" [ref=e2633] [cursor=pointer]:
+                - img [ref=e2634]
+                - generic [ref=e2636]: Dates
+              - button "Travelers" [ref=e2637] [cursor=pointer]:
+                - img [ref=e2638]
+                - generic [ref=e2640]: Travelers
+              - button "Recents" [ref=e2641] [cursor=pointer]:
+                - img [ref=e2642]
+                - generic [ref=e2644]: Recents
+          - generic [ref=e2645]:
+            - generic [ref=e2646]: Ask anything
+            - generic [ref=e2647]:
+              - button "Budget-friendly stays in Bangkok with great reviews" [ref=e2649] [cursor=pointer]:
+                - generic [ref=e2651]:
+                  - img [ref=e2653]
+                  - text: Budget-friendly stays in Bangkok with great reviews
+              - button "Boutique hotels in Ho Chi Minh City with rooftop views" [ref=e2656] [cursor=pointer]:
+                - generic [ref=e2658]:
+                  - img [ref=e2660]
+                  - text: Boutique hotels in Ho Chi Minh City with rooftop views
+              - button "Kid-friendly attractions in London adults enjoy too" [ref=e2663] [cursor=pointer]:
+                - generic [ref=e2665]:
+                  - img [ref=e2667]
+                  - text: Kid-friendly attractions in London adults enjoy too
+        - generic [ref=e2672]:
+          - button "See question suggestions" [ref=e2675] [cursor=pointer]:
+            - generic [ref=e2677]:
+              - img
+          - textbox "Ask anything" [active] [ref=e2681]:
+            - /placeholder: Ask anything or type "/" to see options
+          - button "Send message" [disabled] [ref=e2684]:
+            - img [ref=e2685]
+  - generic: Cookies Settings
