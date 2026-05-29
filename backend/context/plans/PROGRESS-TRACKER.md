@@ -187,10 +187,10 @@
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
-| `POST /v1/transportation/bookings` (M4a) | ⬜ Not Started | — | Pending follow-up branch | — |
-| `POST /v1/hotels/{hotelId}/bookings` (M4b) | ⬜ Not Started | — | Pending follow-up branch | — |
-| `POST /v1/guides/{guideId}/bookings` (M4c) | ⬜ Not Started | — | Pending follow-up branch | — |
-| `POST /v1/trips/{tripId}/bookings` (M4d) | ⬜ Not Started | — | Pending follow-up branch | — |
+| `POST /v1/transportation/bookings` (M4a) | 🟢 Complete | Agent | BookTransportationUseCase in TransportationModule | 2026-05-29 |
+| `POST /v1/hotels/{hotelId}/bookings` (M4b) | 🟢 Complete | Agent | BookHotelRoomUseCase in HotelsModule | 2026-05-29 |
+| `POST /v1/guides/{guideId}/bookings` (M4c) | 🟢 Complete | Agent | BookGuideUseCase in GuidesModule | 2026-05-29 |
+| `POST /v1/trips/{tripId}/bookings` (M4d) | 🟢 Complete | Agent | BookSingleTripUseCase in TripsModule | 2026-05-29 |
 
 **Verification (foundation):**
 - [x] Lint clean / build clean / `tsc --noEmit` clean

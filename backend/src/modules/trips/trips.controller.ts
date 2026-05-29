@@ -1,14 +1,26 @@
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Headers,
+  Param,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { parseAcceptLanguage } from '../../common/i18n';
 import {
   ListTripsUseCase,
   GetTripDetailUseCase,
   GetRelatedTripsUseCase,
   GetTripShareUrlUseCase,
+  BookSingleTripUseCase,
 } from './use-cases';
-import { ListTripsDto } from './dto';
+import { ListTripsDto, BookSingleTripDto } from './dto';
+import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 
 @Controller('trips')
 export class TripsController {
@@ -17,6 +29,7 @@ export class TripsController {
     private readonly getTripDetail: GetTripDetailUseCase,
     private readonly getRelatedTrips: GetRelatedTripsUseCase,
     private readonly getTripShareUrl: GetTripShareUrlUseCase,
+    private readonly bookSingleTrip: BookSingleTripUseCase,
   ) {}
 
   @Public()
@@ -41,5 +54,15 @@ export class TripsController {
   @Get(':id/share')
   share(@Param('id') id: string) {
     return this.getTripShareUrl.execute(id);
+  }
+
+  @Post(':tripId/bookings')
+  book(
+    @CurrentUser() user: JwtPayload,
+    @Param('tripId') tripId: string,
+    @Body() dto: BookSingleTripDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.bookSingleTrip.execute(user, tripId, dto, idempotencyKey);
   }
 }

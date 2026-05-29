@@ -13,14 +13,14 @@
 
 The product supports **4 booking methods**, not 3. Three are composed-trip flows from `docs/workflows/`; the fourth is the à-la-carte scenario the current `requirements.md` was already targeting (a tourist in Siem Reap who just wants a tuk-tuk, a hotel room, or a 1-day tour — without going through a journey-map customizer).
 
-| # | Method | Composed? | Configuration phase? | Source |
-|---|--------|-----------|----------------------|--------|
-| **M1** | Public package + customize | ✅ Multi-resource | ✅ Required | `docs/workflows/package-booking/` |
-| **M2** | Private prebuilt + customize / book as-is | ✅ Multi-resource | ✅ Required | `docs/workflows/customize-package/01-...` |
-| **M3** | Build from scratch | ✅ Multi-resource | ✅ Required (skeleton + wizard) | `docs/workflows/customize-package/02-...` |
-| **M4** | Single-resource quick-book | ❌ Single resource | ❌ Skipped (direct hold) | Current `requirements.md` (Phase 5 plan) |
+| # | Method | Path | Composed? | Configuration phase? | Folder | Source |
+|---|--------|------|-----------|----------------------|--------|--------|
+| **M1** | Public package + customize | `template` | ✅ Multi-resource | ✅ Required | `template-booking/public-package/` | `docs/workflows/package-booking/` |
+| **M2** | Private prebuilt (template-driven) + customize / book as-is | `template` | ✅ Multi-resource | ✅ Required | `template-booking/private-package/` | `docs/workflows/customize-package/01-...` |
+| **M3** | Build from scratch (template path, no seed) | `template` | ✅ Multi-resource | ✅ Required (skeleton + wizard) | `template-booking/build-from-scratch/` | `docs/workflows/customize-package/02-...` |
+| **M4** | Single-resource quick-book | `specific` | ❌ Single resource | ❌ Skipped (direct hold) | `specific-booking/` (4 sub-methods) | Current `requirements.md` (Phase 5 plan) |
 
-All 4 methods converge on the same atomic `Booking` write — they only differ in **how the booking input is assembled** before the commit.
+All 4 methods converge on the same atomic `Booking` write via `src/modules/bookings/use-cases/commit-booking.use-case.ts` — they only differ in **how the booking input is assembled** before the commit. M1/M2/M3 share the *template path* (multi-resource journey, optionally seeded from a `Trip` template); M4 is the *specific path* (single resource, direct hold).
 
 ---
 
@@ -479,9 +479,9 @@ This is the section we'll use when editing `requirements.md` line by line.
 ### Phase 5b — next branch — M1 / M2 / M3 + configuration store
 
 - `journey-configurations/` shared module
-- `public-package-config/` (M1)
-- `private-prebuilt-config/` (M2)
-- `build-from-scratch/` (M3)
+- `template-booking/public-package/` (M1)
+- `template-booking/private-package/` (M2)
+- `template-booking/build-from-scratch/` (M3)
 - `availability/check`, `availability/confirm`, `journey-drafts` endpoints
 - Unified `POST /v1/bookings` accepting `configurationId` (delegates to same `commit-booking.use-case.ts`)
 - Full E2E + 90 % coverage gate

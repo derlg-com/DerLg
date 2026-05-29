@@ -6,3 +6,4 @@ export * from './cancel-booking.use-case';
 export * from './get-booking-qr.use-case';
 export * from './get-booking-ical.use-case';
 export * from './expire-hold.use-case';
+export * from './template-booking.use-case';

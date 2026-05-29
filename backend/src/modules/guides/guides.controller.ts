@@ -1,13 +1,25 @@
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Headers,
+  Param,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { parseAcceptLanguage } from '../../common/i18n';
 import {
   ListGuidesUseCase,
   GetGuideDetailUseCase,
   GetGuideAvailabilityUseCase,
+  BookGuideUseCase,
 } from './use-cases';
-import { ListGuidesDto, AvailabilityQueryDto } from './dto';
+import { ListGuidesDto, AvailabilityQueryDto, BookGuideDto } from './dto';
+import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 
 @Controller('guides')
 export class GuidesController {
@@ -15,6 +27,7 @@ export class GuidesController {
     private readonly listGuides: ListGuidesUseCase,
     private readonly getGuideDetail: GetGuideDetailUseCase,
     private readonly getGuideAvailability: GetGuideAvailabilityUseCase,
+    private readonly bookGuide: BookGuideUseCase,
   ) {}
 
   @Public()
@@ -33,5 +46,15 @@ export class GuidesController {
   @Get(':id/availability')
   availability(@Param('id') id: string, @Query() query: AvailabilityQueryDto) {
     return this.getGuideAvailability.execute(id, query);
+  }
+
+  @Post(':guideId/bookings')
+  book(
+    @CurrentUser() user: JwtPayload,
+    @Param('guideId') guideId: string,
+    @Body() dto: BookGuideDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.bookGuide.execute(user, guideId, dto, idempotencyKey);
   }
 }

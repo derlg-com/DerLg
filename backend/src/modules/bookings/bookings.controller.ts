@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -18,11 +19,13 @@ import {
   CancelBookingUseCase,
   GetBookingQrUseCase,
   GetBookingIcalUseCase,
+  TemplateBookingUseCase,
 } from './use-cases';
 import {
   ListBookingsQueryDto,
   UpdateBookingDto,
   CancelBookingDto,
+  CreateTemplateBookingDto,
 } from './dto';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 
@@ -35,11 +38,21 @@ export class BookingsController {
     private readonly cancelBooking: CancelBookingUseCase,
     private readonly getBookingQr: GetBookingQrUseCase,
     private readonly getBookingIcal: GetBookingIcalUseCase,
+    private readonly templateBooking: TemplateBookingUseCase,
   ) {}
 
   @Get()
   list(@CurrentUser() user: JwtPayload, @Query() query: ListBookingsQueryDto) {
     return this.listBookings.execute(user, query);
+  }
+
+  @Post('template')
+  template(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateTemplateBookingDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.templateBooking.execute(user, dto, idempotencyKey);
   }
 
   @Get(':id')

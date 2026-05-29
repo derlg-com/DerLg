@@ -1,61 +1,78 @@
 {
   "module": "bookings",
-  "description": "Tools for the core booking engine covering all item types (trips, hotels, transport, guides). These are the unified booking management endpoints. The Vibe Booking AI agent uses these to create multi-item holds, list user bookings, and handle cancellations.",
+  "description": "Tools for the unified booking management engine. All booking lifecycle operations (list, detail, update, cancel, QR, iCal) go through these endpoints regardless of booking type. The Vibe Booking AI agent uses these to manage existing bookings and create multi-item template bookings.",
   "baseUrl": "http://localhost:3001/v1",
   "tools": [
     {
-      "name": "create_booking",
-      "description": "Create a new booking with a 15-minute hold for one or more items (TRIP, HOTEL, TRANSPORT, GUIDE). The booking enters HOLD status pending payment. Use this unified endpoint for multi-item bookings. Returns a booking reference for user-facing display.",
+      "name": "create_template_booking",
+      "description": "Create a multi-item booking (template path) with a 15-minute hold. Use for trip packages or when booking multiple resource types together. Each item specifies its type, resourceId, dates, quantity, and unit price. Returns a BookingDetail with all items.",
       "method": "POST",
-      "path": "/bookings",
+      "path": "/bookings/template",
       "auth": true,
       "parameters": {
+        "headers": {
+          "Idempotency-Key": {
+            "type": "string",
+            "description": "Optional unique key to prevent duplicate bookings on retry",
+            "required": false
+          }
+        },
         "body": {
+          "tripTemplateId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional: UUID of the trip template that seeded this itinerary (M2 private packages)",
+            "required": false
+          },
           "items": {
             "type": "array",
-            "description": "List of items to book",
+            "description": "List of items to book (must have at least one)",
             "required": true,
             "items": {
-              "item_type": {
+              "type": {
                 "type": "string",
-                "enum": ["TRIP", "HOTEL", "TRANSPORT", "GUIDE"],
-                "description": "Type of item"
+                "enum": ["hotel", "guide", "transportation", "trip"],
+                "description": "Booking type"
               },
-              "item_id": {
+              "resourceId": {
                 "type": "string",
                 "format": "uuid",
-                "description": "Item UUID"
+                "description": "UUID of the resource to book"
+              },
+              "startDate": {
+                "type": "string",
+                "format": "date",
+                "description": "Start date (YYYY-MM-DD)"
+              },
+              "endDate": {
+                "type": "string",
+                "format": "date",
+                "description": "End date (YYYY-MM-DD)"
               },
               "quantity": {
                 "type": "integer",
                 "minimum": 1,
-                "description": "Quantity"
+                "description": "Quantity (e.g. nights for hotel, days for guide)"
               },
-              "metadata": {
-                "type": "object",
-                "description": "Type-specific data (e.g., check-in/check-out dates, guest count, pickup location)"
+              "unitPriceUsd": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Unit price in USD"
               }
             }
           },
-          "currency": {
+          "specialRequests": {
             "type": "string",
-            "enum": ["USD", "KHR", "CNY"],
-            "description": "Preferred currency (default: USD)",
-            "required": false
-          },
-          "guest_email": {
-            "type": "string",
-            "format": "email",
-            "description": "Required if booking as a guest (not authenticated)",
+            "description": "Special requests for the whole booking (max 1000 chars)",
             "required": false
           }
         }
       },
-      "returns": "Booking with id, reference, status (HOLD), total_price_usd, hold_expires_at (15 minutes)"
+      "returns": "BookingDetail with id, reference, status (HOLD), totalUsd, subtotalUsd, expiresAt (15 min), items[]"
     },
     {
       "name": "list_bookings",
-      "description": "List all bookings for the authenticated user, filterable by status. Use to show the user their upcoming, past, or cancelled bookings, or to check if they have an existing booking for a specific trip.",
+      "description": "List all bookings for the authenticated user, filterable by status and method. Use to show the user their upcoming, past, or cancelled bookings.",
       "method": "GET",
       "path": "/bookings",
       "auth": true,
@@ -63,8 +80,14 @@
         "query": {
           "status": {
             "type": "string",
-            "enum": ["upcoming", "past", "cancelled", "all"],
-            "description": "Filter bookings by lifecycle status (default: all)",
+            "enum": ["HOLD", "PENDING_PAYMENT", "CONFIRMED", "CANCELLED", "EXPIRED"],
+            "description": "Filter by booking status",
+            "required": false
+          },
+          "method": {
+            "type": "string",
+            "enum": ["single", "template"],
+            "description": "Filter by booking method",
             "required": false
           },
           "page": {
@@ -79,11 +102,11 @@
           }
         }
       },
-      "returns": "Paginated list of BookingSummary objects with id, reference, type, status, total_price_usd, payment_status"
+      "returns": "Paginated list of Booking objects with id, reference, method, status, totalUsd, startDate, endDate"
     },
     {
       "name": "get_booking_detail",
-      "description": "Get full details of a specific booking including all items, pricing, hold expiry, and cancellation info. Use to answer user questions about a specific booking.",
+      "description": "Get full details of a specific booking including all items, pricing, hold expiry, and cancellation info.",
       "method": "GET",
       "path": "/bookings/{id}",
       "auth": true,
@@ -97,11 +120,60 @@
           }
         }
       },
-      "returns": "Full Booking object with items array (item_type, name, unit_price_usd, total_price_usd), hold_expires_at, refund details"
+      "returns": "BookingDetail with items[] (bookingType, resourceId, startDate, endDate, quantity, unitPriceUsd, subtotalUsd, snapshot)"
+    },
+    {
+      "name": "update_booking",
+      "description": "Update a booking that is still in HOLD status. Allows modifying dates, guest counts, or special requests. Only works on HOLD bookings — confirmed bookings must be cancelled instead.",
+      "method": "PATCH",
+      "path": "/bookings/{id}",
+      "auth": true,
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID",
+            "required": true
+          }
+        },
+        "body": {
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "description": "New start date",
+            "required": false
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "description": "New end date",
+            "required": false
+          },
+          "guestsAdults": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Updated adult guest count",
+            "required": false
+          },
+          "guestsChildren": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Updated child guest count",
+            "required": false
+          },
+          "specialRequests": {
+            "type": "string",
+            "description": "Updated special requests (max 1000 chars)",
+            "required": false
+          }
+        }
+      },
+      "returns": "Updated BookingDetail"
     },
     {
       "name": "cancel_booking",
-      "description": "Cancel an existing booking. Refund amount depends on the cancellation policy of the booked item(s) and time before the trip. Always confirm with the user before calling this — cancellation may be irreversible.",
+      "description": "Cancel an existing booking. Refund amount depends on the cancellation policy and time before the start date. Always confirm with the user before calling — cancellation is irreversible.",
       "method": "POST",
       "path": "/bookings/{id}/cancel",
       "auth": true,
@@ -117,12 +189,12 @@
         "body": {
           "reason": {
             "type": "string",
-            "description": "Cancellation reason (max 500 characters)",
+            "description": "Cancellation reason (max 500 chars)",
             "required": false
           }
         }
       },
-      "returns": "refund_amount_usd, refund_percentage, refund_method"
+      "returns": "Updated BookingDetail with status CANCELLED, refundPercentage, cancelledAt"
     },
     {
       "name": "get_booking_qr",
@@ -140,7 +212,25 @@
           }
         }
       },
-      "returns": "qr_data (raw QR string), qr_image_url (displayable)"
+      "returns": "qrData (raw QR string), qrImageUrl (displayable)"
+    },
+    {
+      "name": "get_booking_ical",
+      "description": "Download an iCalendar (.ics) file for a booking. Returns a text/calendar response with Content-Disposition attachment header. Use when the user wants to add the booking to their calendar.",
+      "method": "GET",
+      "path": "/bookings/{id}/ical",
+      "auth": true,
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Booking UUID",
+            "required": true
+          }
+        }
+      },
+      "returns": "text/calendar file download (Content-Disposition: attachment; filename=booking-{reference}.ics)"
     }
   ]
 }

@@ -5,7 +5,7 @@
   "tools": [
     {
       "name": "list_guides",
-      "description": "Browse and filter verified tour guides in Cambodia. Use when the user wants a local guide, needs someone who speaks a specific language (EN/ZH/KM), or has a specialty preference (Temples, Nature, Food, History, Adventure). Returns paginated list of guide summaries.",
+      "description": "Browse and filter verified tour guides in Cambodia. Use when the user wants a local guide, needs someone who speaks a specific language, or has a specialty preference. Returns paginated list of guide summaries.",
       "method": "GET",
       "path": "/guides",
       "auth": false,
@@ -13,46 +13,28 @@
         "query": {
           "language": {
             "type": "string",
-            "enum": ["EN", "ZH", "KM"],
-            "description": "Filter by spoken language. Use ZH for Chinese-speaking guides.",
+            "description": "Filter by spoken language (value must match SupportedLanguage enum in DB)",
             "required": false
           },
-          "specialty": {
+          "speciality": {
             "type": "string",
-            "enum": ["Temples", "Nature", "Food", "History", "Adventure"],
-            "description": "Guide specialty area",
+            "description": "Guide speciality area",
             "required": false
           },
-          "location": {
+          "q": {
             "type": "string",
-            "description": "Province or city (e.g., 'Siem Reap', 'Phnom Penh')",
-            "required": false
-          },
-          "gender": {
-            "type": "string",
-            "enum": ["Male", "Female", "Other", "PreferNotToSay"],
-            "description": "Guide gender preference",
-            "required": false
-          },
-          "is_verified": {
-            "type": "boolean",
-            "description": "Set true to show only background-checked verified guides",
-            "required": false
-          },
-          "min_price": {
-            "type": "number",
-            "description": "Minimum price per day in USD",
-            "required": false
-          },
-          "max_price": {
-            "type": "number",
-            "description": "Maximum price per day in USD",
+            "description": "Free-text search (min 2 chars)",
             "required": false
           },
           "sort": {
             "type": "string",
-            "enum": ["recommended", "rating_desc", "price_asc", "price_desc"],
-            "description": "Sort order (default: recommended)",
+            "description": "Sort field (module-specific)",
+            "required": false
+          },
+          "lang": {
+            "type": "string",
+            "enum": ["en", "zh", "km"],
+            "description": "Preferred response language (default: en)",
             "required": false
           },
           "page": {
@@ -67,11 +49,11 @@
           }
         }
       },
-      "returns": "Paginated list of guides with id, name, languages, specialties, location, price_per_day_usd, price_per_hour_usd, is_verified, rating_average"
+      "returns": "Paginated list of guides with id, name, languages, specialities, location, pricePerDayUsd, isVerified, ratingAverage"
     },
     {
       "name": "get_guide_detail",
-      "description": "Get the full profile of a specific tour guide including bio, experience, certifications, photo gallery, and reviews from verified past bookings. Use when the user wants to learn more about a particular guide.",
+      "description": "Get the full profile of a specific tour guide including bio, experience, certifications, and photo gallery. Use when the user wants to learn more about a particular guide.",
       "method": "GET",
       "path": "/guides/{id}",
       "auth": false,
@@ -85,11 +67,11 @@
           }
         }
       },
-      "returns": "Full guide profile with bio, experience_years, certifications, gallery_image_urls, status (ACTIVE | INACTIVE | SUSPENDED)"
+      "returns": "Full guide profile with bio, experienceYears, certifications, galleryImageUrls, status (ACTIVE | INACTIVE | SUSPENDED)"
     },
     {
       "name": "check_guide_availability",
-      "description": "Check if a specific guide is available for the requested date range and get a price estimate (daily rate × number of days). Always call this before creating a guide booking.",
+      "description": "Check if a specific guide is available for the requested date range. Always call this before creating a guide booking. Date range max 90 days.",
       "method": "GET",
       "path": "/guides/{id}/availability",
       "auth": false,
@@ -103,13 +85,13 @@
           }
         },
         "query": {
-          "start_date": {
+          "from": {
             "type": "string",
             "format": "date",
             "description": "Start date of the desired booking (YYYY-MM-DD)",
             "required": true
           },
-          "end_date": {
+          "to": {
             "type": "string",
             "format": "date",
             "description": "End date of the desired booking (YYYY-MM-DD)",
@@ -117,11 +99,11 @@
           }
         }
       },
-      "returns": "is_available (boolean), price_estimate_usd, days count, conflicting_bookings array"
+      "returns": "isAvailable (boolean), priceEstimateUsd, conflictingBookings array"
     },
     {
       "name": "create_guide_booking",
-      "description": "Create a tour guide booking with a 15-minute hold. Use after confirming availability and user consent. The booking enters HOLD status until payment is completed. Guide contact details are revealed 24 hours before the start date.",
+      "description": "Create a tour guide booking with a 15-minute hold. Use after confirming availability and user consent. The booking enters HOLD status until payment is completed. Requires user authentication. Supports Idempotency-Key header.",
       "method": "POST",
       "path": "/guides/{guideId}/bookings",
       "auth": true,
@@ -134,88 +116,40 @@
             "required": true
           }
         },
+        "headers": {
+          "Idempotency-Key": {
+            "type": "string",
+            "description": "Optional unique key to prevent duplicate bookings on retry",
+            "required": false
+          }
+        },
         "body": {
-          "start_date": {
+          "startDate": {
             "type": "string",
             "format": "date",
             "description": "Booking start date (YYYY-MM-DD)",
             "required": true
           },
-          "end_date": {
+          "endDate": {
             "type": "string",
             "format": "date",
             "description": "Booking end date (YYYY-MM-DD)",
             "required": true
           },
-          "linked_trip_booking_id": {
+          "linkedTripBookingId": {
             "type": "string",
             "format": "uuid",
             "description": "Optional: link to an existing trip booking",
             "required": false
           },
-          "special_requests": {
+          "specialRequests": {
             "type": "string",
-            "description": "Special requests such as dietary needs, accessibility requirements, or specific interests (max 1000 chars)",
+            "description": "Special requests (max 1000 chars)",
             "required": false
           }
         }
       },
-      "returns": "Booking object with id, reference (e.g. GDE-ABC123), guide_name, dates, days, status (HOLD), total_price_usd, hold_expires_at"
-    },
-    {
-      "name": "get_guide_booking",
-      "description": "Get details of a specific guide booking. Guide contact info is revealed 24 hours before the start date.",
-      "method": "GET",
-      "path": "/guides/{guideId}/bookings/{bookingId}",
-      "auth": true,
-      "parameters": {
-        "path": {
-          "guideId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Guide UUID",
-            "required": true
-          },
-          "bookingId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Booking UUID",
-            "required": true
-          }
-        }
-      },
-      "returns": "Full booking details with status (HOLD | PENDING_PAYMENT | CONFIRMED | CANCELLED | EXPIRED)"
-    },
-    {
-      "name": "cancel_guide_booking",
-      "description": "Cancel a guide booking. Refund depends on cancellation policy and timing relative to start date. Returns refund amount and percentage. Use only when user explicitly requests cancellation.",
-      "method": "POST",
-      "path": "/guides/{guideId}/bookings/{bookingId}/cancel",
-      "auth": true,
-      "parameters": {
-        "path": {
-          "guideId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Guide UUID",
-            "required": true
-          },
-          "bookingId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Booking UUID",
-            "required": true
-          }
-        },
-        "body": {
-          "reason": {
-            "type": "string",
-            "description": "Cancellation reason (max 500 characters)",
-            "required": false
-          }
-        }
-      },
-      "returns": "refund_amount_usd, refund_percentage, refund_method"
+      "returns": "BookingDetail with id, reference, status (HOLD), totalUsd, expiresAt (15 min), items[]"
     }
   ]
 }
