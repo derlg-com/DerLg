@@ -89,8 +89,12 @@ export class AiToolsService {
       const booked = await this.prisma.bookingItem.count({
         where: {
           tripId: dto.item_id,
-          date,
-          booking: { status: { in: ['reserved', 'confirmed'] } },
+          startDate: { lte: date },
+          endDate: { gte: date },
+          booking: {
+            status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            deletedAt: null,
+          },
         },
       });
       return {
@@ -103,8 +107,12 @@ export class AiToolsService {
       const booked = await this.prisma.bookingItem.count({
         where: {
           guideId: dto.item_id,
-          date,
-          booking: { status: { in: ['reserved', 'confirmed'] } },
+          startDate: { lte: date },
+          endDate: { gte: date },
+          booking: {
+            status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            deletedAt: null,
+          },
         },
       });
       return { available: booked === 0 };
@@ -118,8 +126,12 @@ export class AiToolsService {
     const bookedRoomIds = await this.prisma.bookingItem.findMany({
       where: {
         hotelRoomId: { in: rooms.map((r) => r.id) },
-        date,
-        booking: { status: { in: ['reserved', 'confirmed'] } },
+        startDate: { lte: date },
+        endDate: { gte: date },
+        booking: {
+          status: { in: ['hold', 'pending_payment', 'confirmed'] },
+          deletedAt: null,
+        },
       },
       select: { hotelRoomId: true },
     });
@@ -161,13 +173,21 @@ export class AiToolsService {
 
     const subtotal = unitPrice * dto.people_count;
     const travelDate = new Date(dto.travel_date);
+    const singleResourceKind =
+      dto.item_type === 'trip'
+        ? 'trip'
+        : dto.item_type === 'hotel'
+          ? 'hotel'
+          : 'guide';
 
     const booking = await this.prisma.booking.create({
       data: {
         userId: dto.user_id,
         reference,
+        method: 'single_resource',
+        singleResourceKind,
         startDate: travelDate,
-        status: 'reserved',
+        status: 'hold',
         expiresAt,
         subtotalUsd: subtotal,
         totalUsd: subtotal,
@@ -178,10 +198,16 @@ export class AiToolsService {
             ...(dto.item_type === 'trip' ? { tripId: dto.item_id } : {}),
             ...(dto.item_type === 'hotel' ? { hotelRoomId: dto.item_id } : {}),
             ...(dto.item_type === 'guide' ? { guideId: dto.item_id } : {}),
-            date: travelDate,
+            startDate: travelDate,
+            endDate: travelDate,
             quantity: dto.people_count,
             unitPriceUsd: unitPrice,
             subtotalUsd: subtotal,
+            snapshot: {
+              source: 'ai-tools',
+              itemType: dto.item_type,
+              itemId: dto.item_id,
+            },
           },
         },
       },
