@@ -43,12 +43,20 @@ export class GetGuideAvailabilityUseCase {
         const bookingItems = await this.prisma.bookingItem.findMany({
           where: {
             guideId,
-            date: { gte: fromDate, lt: toDate },
+            startDate: { lt: toDate },
+            endDate: { gte: fromDate },
             booking: {
-              status: { in: [BookingStatus.reserved, BookingStatus.confirmed] },
+              status: {
+                in: [
+                  BookingStatus.hold,
+                  BookingStatus.pending_payment,
+                  BookingStatus.confirmed,
+                ],
+              },
+              deletedAt: null,
             },
           },
-          select: { date: true },
+          select: { startDate: true, endDate: true },
         });
 
         return {

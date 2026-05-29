@@ -57,14 +57,20 @@ export class GetHotelRoomsUseCase {
             where: {
               hotelRoomId: { not: null },
               hotelRoom: { hotelId },
-              date: { gte: checkInDate, lt: checkOutDate },
+              startDate: { lt: checkOutDate },
+              endDate: { gte: checkInDate },
               booking: {
                 status: {
-                  in: [BookingStatus.reserved, BookingStatus.confirmed],
+                  in: [
+                    BookingStatus.hold,
+                    BookingStatus.pending_payment,
+                    BookingStatus.confirmed,
+                  ],
                 },
+                deletedAt: null,
               },
             },
-            select: { hotelRoomId: true, date: true },
+            select: { hotelRoomId: true, startDate: true, endDate: true },
           }),
         ]);
 

@@ -1,7 +1,8 @@
 import type { BusyRange } from '../interfaces/availability.interface';
 
 export type BookingItemDate = {
-  date: Date;
+  startDate: Date;
+  endDate: Date;
 };
 
 /** Force-UTC next-day helper — safe on any server timezone. */
@@ -12,9 +13,9 @@ function nextDay(isoDate: string): string {
 }
 
 /**
- * Pure function. Converts a list of confirmed booking item dates into
+ * Pure function. Converts a list of confirmed booking item intervals into
  * merged busy ranges within the requested [from, to) window.
- * Each BookingItem.date represents one booked day.
+ * Each BookingItem spans [startDate, endDate] (inclusive on both ends).
  */
 export function buildBusyRanges(
   items: BookingItemDate[],
@@ -26,29 +27,33 @@ export function buildBusyRanges(
   const fromStr = from.toISOString().slice(0, 10);
   const toStr = to.toISOString().slice(0, 10);
 
-  // Collect unique booked days within range, sorted ascending
-  const days = Array.from(
-    new Set(
-      items
-        .map((i) => i.date.toISOString().slice(0, 10))
-        .filter((d) => d >= fromStr && d < toStr),
-    ),
-  ).sort();
+  // Expand each item's interval into its set of days, clipped to [from, to)
+  const days = new Set<string>();
+  for (const item of items) {
+    const cursor = new Date(item.startDate.getTime());
+    const end = new Date(item.endDate.getTime());
+    while (cursor <= end) {
+      const d = cursor.toISOString().slice(0, 10);
+      if (d >= fromStr && d < toStr) days.add(d);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
 
-  if (days.length === 0) return [];
+  const sorted = Array.from(days).sort();
+  if (sorted.length === 0) return [];
 
   // Merge consecutive days into ranges
   const ranges: BusyRange[] = [];
-  let rangeStart = days[0];
-  let rangeEnd = days[0];
+  let rangeStart = sorted[0];
+  let rangeEnd = sorted[0];
 
-  for (let i = 1; i < days.length; i++) {
-    if (days[i] === nextDay(rangeEnd)) {
-      rangeEnd = days[i];
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === nextDay(rangeEnd)) {
+      rangeEnd = sorted[i];
     } else {
       ranges.push({ from: rangeStart, to: rangeEnd });
-      rangeStart = days[i];
-      rangeEnd = days[i];
+      rangeStart = sorted[i];
+      rangeEnd = sorted[i];
     }
   }
   ranges.push({ from: rangeStart, to: rangeEnd });
