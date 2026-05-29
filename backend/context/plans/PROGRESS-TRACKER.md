@@ -159,30 +159,52 @@
 
 ---
 
-### Phase 5: Booking Engine (Week 5–6) — 🟡 In Progress
+### Phase 5: Booking Engine (Week 5–6) — 🟡 Phase 5a Foundation Complete, M4 Endpoints Deferred
+
+**Phase 5a: Shared Foundation** (commit range `edb4957..33cc748`)
 
 | Deliverable | Status | Owner | Notes | Completed |
 |-------------|--------|-------|-------|-----------|
-| `BookingsModule` scaffold | ⬜ Not Started | — | — | — |
-| Guide booking endpoint | ⬜ Not Started | — | — | — |
-| Hotel booking endpoint | ⬜ Not Started | — | — | — |
-| Transportation booking endpoint | ⬜ Not Started | — | — | — |
-| `GET /v1/bookings` (unified) | ⬜ Not Started | — | — | — |
-| `GET /v1/bookings/{id}` | ⬜ Not Started | — | — | — |
-| `PATCH /v1/bookings/{id}` | ⬜ Not Started | — | — | — |
-| `POST /v1/bookings/{id}/cancel` | ⬜ Not Started | — | — | — |
-| `GET /v1/bookings/{id}/qr` | ⬜ Not Started | — | — | — |
-| `GET /v1/bookings/{id}/ical` | ⬜ Not Started | — | — | — |
-| Overlap protection (Prisma tx) | ⬜ Not Started | — | — | — |
-| Redis hold (15-min TTL) | ⬜ Not Started | — | — | — |
-| Booking status state machine | ⬜ Not Started | — | — | — |
+| Schema migration: `BookingMethod`, `SingleResourceKind`, `snapshot`, soft delete | 🟢 Complete | Agent | `20260529171749_add_booking_method_and_snapshot` | 2026-05-29 |
+| `BookingsModule` scaffold | 🟢 Complete | Agent | use-case pattern; exports `CommitBookingUseCase` + `ExpireHoldUseCase` | 2026-05-29 |
+| `CommitBookingUseCase` (atomic write boundary) | 🟢 Complete | Agent | Per-item dispatch: hotel→counter, others→overlap. Critical-path test #4 (5/5). | 2026-05-29 |
+| `GET /v1/bookings` (unified) | 🟢 Complete | Agent | Paginated; `?status` + `?method` filters | 2026-05-29 |
+| `GET /v1/bookings/{id}` | 🟢 Complete | Agent | items[] populated; 403 cross-user | 2026-05-29 |
+| `PATCH /v1/bookings/{id}` | 🟢 Complete | Agent | HOLD-only; re-runs overlap | 2026-05-29 |
+| `POST /v1/bookings/{id}/cancel` | 🟢 Complete | Agent | Tiered refund + hold release. Critical-path test #5 (5/5). | 2026-05-29 |
+| `GET /v1/bookings/{id}/qr` | 🟢 Complete | Agent | Frontend URL placeholder; Phase 6 will populate | 2026-05-29 |
+| `GET /v1/bookings/{id}/ical` | 🟢 Complete | Agent | RFC 5545 with CRLF; Content-Disposition header | 2026-05-29 |
+| Overlap protection (Prisma tx) | 🟢 Complete | Agent | `checkOverlap` util; 9/9 tests | 2026-05-29 |
+| Redis hold (15-min TTL) | 🟢 Complete | Agent | `set-hold` / `release-hold` injectable utils; env-overridable | 2026-05-29 |
+| Booking status state machine | 🟢 Complete | Agent | `assertTransition`; 11/11 tests | 2026-05-29 |
+| `ExpireHoldUseCase` cron entrypoint | 🟢 Complete | Agent | Schedule wiring deferred to Phase 8 | 2026-05-29 |
+| Domain event emission stubs | 🟢 Complete | Agent | `booking.created` / `cancelled` / `expired` payloads per EVENT-CATALOG | 2026-05-29 |
+| `@nestjs/event-emitter` install + register | 🟢 Complete | Agent | `EventEmitterModule.forRoot()` at app root | 2026-05-29 |
 
-**Verification:**
-- [ ] E2E: create → hold → expiry → EXPIRED
-- [ ] E2E: double-book same dates → 409
-- [ ] Unit: refund calculation tiers
+**Phase 5a Test Posture:** Critical paths only (5 unit-test files, 39/39 passing) — `check-overlap`, `compute-refund`, `transition-status`, `commit-booking`, `cancel-booking`. ⚠️ Controller integration, full E2E (`bookings.e2e-spec.ts`), property-based, and the 90% TEST-PLAN.md coverage gate are **deferred to a follow-up branch** and remain a hard merge prerequisite.
 
-**Blockers:** None
+**Phase 5b/5c — M4 sub-method endpoints deferred to follow-up branches** (one per sub-method, each `~2-file PR`):
+
+| Deliverable | Status | Owner | Notes | Completed |
+|-------------|--------|-------|-------|-----------|
+| `POST /v1/transportation/bookings` (M4a) | ⬜ Not Started | — | Pending follow-up branch | — |
+| `POST /v1/hotels/{hotelId}/bookings` (M4b) | ⬜ Not Started | — | Pending follow-up branch | — |
+| `POST /v1/guides/{guideId}/bookings` (M4c) | ⬜ Not Started | — | Pending follow-up branch | — |
+| `POST /v1/trips/{tripId}/bookings` (M4d) | ⬜ Not Started | — | Pending follow-up branch | — |
+
+**Verification (foundation):**
+- [x] Lint clean / build clean / `tsc --noEmit` clean
+- [x] 39 critical-path unit tests pass
+- [x] Schema migration applied locally
+- [ ] E2E: create → hold → expiry → EXPIRED *(deferred)*
+- [ ] E2E: double-book same dates → 409 *(deferred)*
+
+**Side-effects from schema migration (Phase 5a, edb4957):**
+- 7 catalog files updated to use new `startDate`/`endDate` interval semantics + new `BookingStatus.hold` value (was `reserved`)
+- `tsconfig.json`: `ignoreDeprecations` "6.0" → "5.0" (TS 5.9 compat); `resolveJsonModule: true` added so seed scripts compile
+- `docker-compose.yml`: postgres service added so `prisma migrate dev` runs locally
+
+**Blockers:** None for foundation. Follow-up M4 branches block on this branch landing first.
 
 ---
 
