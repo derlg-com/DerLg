@@ -25,7 +25,9 @@ describe('BookHotelRoomUseCase', () => {
     translations: [{ name: 'Indochine Hotel' }],
   });
 
-  const roomFactory = (over: Partial<{ priceUsd: Prisma.Decimal; maxOccupancy: number }> = {}) => ({
+  const roomFactory = (
+    over: Partial<{ priceUsd: Prisma.Decimal; maxOccupancy: number }> = {},
+  ) => ({
     id: 'room-1',
     hotelId: 'hotel-1',
     roomType: 'deluxe',
@@ -65,7 +67,9 @@ describe('BookHotelRoomUseCase', () => {
 
   it('per-night pricing: subtotal = priceUsd × nights, quantity = nights', async () => {
     prisma.hotel.findFirst.mockResolvedValue(hotelFactory());
-    prisma.hotelRoom.findFirst.mockResolvedValue(roomFactory({ priceUsd: D('100') }));
+    prisma.hotelRoom.findFirst.mockResolvedValue(
+      roomFactory({ priceUsd: D('100') }),
+    );
 
     await useCase.execute(user, 'hotel-1', baseDto);
 
@@ -124,7 +128,9 @@ describe('BookHotelRoomUseCase', () => {
 
   it('throws BKNG_EXCEEDS_OCCUPANCY when total guests exceeds maxOccupancy', async () => {
     prisma.hotel.findFirst.mockResolvedValue(hotelFactory());
-    prisma.hotelRoom.findFirst.mockResolvedValue(roomFactory({ maxOccupancy: 2 }));
+    prisma.hotelRoom.findFirst.mockResolvedValue(
+      roomFactory({ maxOccupancy: 2 }),
+    );
 
     try {
       await useCase.execute(user, 'hotel-1', {
@@ -142,7 +148,9 @@ describe('BookHotelRoomUseCase', () => {
 
   it('snapshot captures hotel name, room type, occupancy, and per-night price', async () => {
     prisma.hotel.findFirst.mockResolvedValue(hotelFactory());
-    prisma.hotelRoom.findFirst.mockResolvedValue(roomFactory({ maxOccupancy: 4 }));
+    prisma.hotelRoom.findFirst.mockResolvedValue(
+      roomFactory({ maxOccupancy: 4 }),
+    );
 
     await useCase.execute(user, 'hotel-1', { ...baseDto, guestsChildren: 1 });
 

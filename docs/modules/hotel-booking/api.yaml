@@ -12,45 +12,30 @@ paths:
   /hotels:
     get:
       summary: List hotels with filtering
-      description: |
-        List hotels with filtering, sorting, and pagination.
-        Returns a paginated list of hotels matching the query parameters.
-        Results include basic hotel information suitable for card/list views.
       tags: [Hotels]
       parameters:
         - $ref: '#/components/parameters/AcceptLanguage'
-        - name: location
+        - name: starRating
           in: query
           schema:
-            type: string
-        - name: min_price
-          in: query
-          schema:
-            type: number
-        - name: max_price
-          in: query
-          schema:
-            type: number
-        - name: star_rating
-          in: query
-          schema:
-            type: number
+            type: integer
             minimum: 1
             maximum: 5
-        - name: amenities
+        - name: q
           in: query
+          description: Free-text search (min 2 chars)
           schema:
-            type: array
-            items:
-              type: string
-          style: form
-          explode: true
+            type: string
+            minLength: 2
         - name: sort
           in: query
           schema:
             type: string
-            enum: [recommended, price_asc, price_desc, rating_desc]
-            default: recommended
+        - name: lang
+          in: query
+          schema:
+            type: string
+            enum: [en, zh, km]
         - name: page
           in: query
           schema:
@@ -68,143 +53,81 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [success, data]
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: object
-                    required: [items, total, page, limit]
-                    properties:
-                      items:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/HotelSummary'
-                      total:
-                        type: integer
-                      page:
-                        type: integer
-                      limit:
-                        type: integer
+                $ref: '#/components/schemas/PaginatedHotels'
 
-  /hotels/{slug}:
+  /hotels/{id}:
     get:
-      summary: Get hotel detail with rooms
-      description: |
-        Get detailed information for a specific hotel by its URL-friendly slug.
-        Returns hotel summary plus full details including description, address,
-        location coordinates, gallery images, policies, and available room types.
+      summary: Get hotel detail
       tags: [Hotels]
       parameters:
         - $ref: '#/components/parameters/AcceptLanguage'
-        - name: slug
+        - name: id
           in: path
           required: true
           schema:
             type: string
+            format: uuid
       responses:
         '200':
-          description: Hotel detail with room types
+          description: Hotel detail
           content:
             application/json:
               schema:
                 type: object
-                required: [success, data]
                 properties:
                   success:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/HotelDetail'
         '404':
-          description: Hotel not found
+          description: Hotel not found (HTL_NOT_FOUND)
 
-  /hotels/{hotelId}/rooms/{roomId}/availability:
+  /hotels/{id}/rooms:
     get:
-      summary: Check room availability for date range
-      description: |
-        Check real-time room availability for a specific date range.
-        Returns per-night availability count and pricing.
-        Use this before creating a booking to confirm the room is available
-        for the selected dates and guest count.
+      summary: List rooms with availability for a date range
       tags: [Hotels]
-      x-nfr-cache-ttl: 3600
-      x-nfr-response-time-sla: 200ms
-      x-nfr-overbooking-protection: per-night inventory check with HOLD status
       parameters:
-        - name: hotelId
+        - name: id
           in: path
           required: true
           schema:
             type: string
             format: uuid
-        - name: roomId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: check_in_date
+        - name: checkIn
           in: query
           required: true
           schema:
             type: string
             format: date
-        - name: check_out_date
+        - name: checkOut
           in: query
           required: true
           schema:
             type: string
             format: date
-        - name: guests_adults
-          in: query
-          required: true
-          schema:
-            type: integer
-            minimum: 1
       responses:
         '200':
-          description: Availability and pricing
+          description: List of rooms with availability
           content:
             application/json:
               schema:
                 type: object
-                required: [success, data]
                 properties:
                   success:
                     type: boolean
                   data:
-                    type: object
-                    required: [is_available, price_total_usd, nights]
-                    properties:
-                      is_available:
-                        type: boolean
-                      price_total_usd:
-                        type: number
-                      nights:
-                        type: integer
-                      availability_per_night:
-                        type: object
-                        additionalProperties:
-                          type: object
-                          properties:
-                            available:
-                              type: integer
-                            price:
-                              type: number
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoomAvailability'
+        '400':
+          description: Invalid date range (checkOut must be after checkIn)
 
   /hotels/{hotelId}/bookings:
     post:
-      summary: Create a hotel room booking
-      description: |
-        Create a hotel room booking with a temporary hold.
-        The booking is placed in HOLD status for 15 minutes while the user
-        completes payment. If payment is not received within the hold period,
-        the booking automatically expires and the room is released.
+      summary: Create a hotel room booking (15-minute hold)
       tags: [Bookings]
       x-nfr-hold-ttl: 900
       x-idempotency-key: true
-      x-nfr-response-time-sla: 500ms
       security:
         - bearerAuth: []
       parameters:
@@ -214,174 +137,37 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateHotelBookingRequest'
+              $ref: '#/components/schemas/BookHotelRoomRequest'
       responses:
         '201':
-          description: Booking created with hold
+          description: Booking created in HOLD status
           content:
             application/json:
               schema:
                 type: object
-                required: [success, data]
                 properties:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/HotelBooking'
+                    $ref: '#/components/schemas/BookingDetail'
         '400':
-          description: Invalid booking data or exceeds max occupancy
-        '409':
-          description: Room not available for selected dates
-
-  /hotels/{hotelId}/bookings/{bookingId}:
-    get:
-      summary: Get hotel booking detail
-      description: |
-        Get detailed information for a specific hotel booking.
-        Returns booking details including room information, dates, guest count,
-        pricing, and current status.
-      tags: [Bookings]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: hotelId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: bookingId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Booking detail
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [success, data]
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/HotelBooking'
+          description: Invalid dates or exceeds max occupancy (BKNG_INVALID_DATE_RANGE, BKNG_EXCEEDS_OCCUPANCY)
+        '401':
+          description: Unauthorized
         '404':
-          description: Booking not found
-
-    patch:
-      summary: Update a hotel booking
-      description: |
-        Update an existing hotel booking before it is confirmed.
-        Allows modifying dates, guest count, or special requests.
-        Changes are subject to room availability and may affect pricing.
-        Confirmed bookings cannot be modified — use cancel instead.
-      tags: [Bookings]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: hotelId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: bookingId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateHotelBookingRequest'
-      responses:
-        '200':
-          description: Booking updated
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [success, data]
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    $ref: '#/components/schemas/HotelBooking'
-        '400':
-          description: Invalid update or room no longer available
+          description: Hotel or room not found (HTL_NOT_FOUND, HTL_ROOM_NOT_FOUND)
         '409':
-          description: Room not available for new dates
-
-  /hotels/{hotelId}/bookings/{bookingId}/cancel:
-    post:
-      summary: Cancel a hotel booking
-      description: |
-        Cancel a hotel booking. Refund amount depends on the hotel's
-        cancellation policy and how close to check-in the cancellation occurs.
-        Returns refund details if applicable.
-      tags: [Bookings]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: hotelId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: bookingId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  maxLength: 500
-      responses:
-        '200':
-          description: Booking cancelled with refund details
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [success, data]
-                properties:
-                  success:
-                    type: boolean
-                  data:
-                    type: object
-                    required: [refund_amount_usd, refund_percentage]
-                    properties:
-                      refund_amount_usd:
-                        type: number
-                      refund_percentage:
-                        type: integer
-                      refund_method:
-                        type: string
-        '400':
-          description: Cannot cancel — within non-refundable window
-        '403':
-          description: Not authorized to cancel this booking
+          description: Room not available for selected dates (BKNG_CONFLICT)
 
 components:
   securitySchemes:
@@ -397,177 +183,194 @@ components:
       required: false
       schema:
         type: string
+        enum: [en, zh, km]
         default: en
 
   schemas:
     HotelSummary:
       type: object
-      required: [id, slug, name]
+      required: [id, starRating]
       properties:
         id:
           type: string
           format: uuid
-        slug:
-          type: string
-        name:
-          type: string
-        cover_image_url:
-          type: string
-          format: uri
-        location:
-          type: string
-        star_rating:
-          type: number
+        starRating:
+          type: integer
           minimum: 1
           maximum: 5
-        price_per_night_from:
-          type: number
-          description: Lowest room price
+        images:
+          type: array
+          items:
+            type: string
         amenities:
           type: array
           items:
             type: string
-        rating_average:
+        latitude:
           type: number
-        rating_count:
-          type: integer
+        longitude:
+          type: number
+        name:
+          type: string
+          description: Translated name (from translations)
+        address:
+          type: string
+          description: Translated address (from translations)
+        description:
+          type: string
+          description: Translated description (from translations)
 
     HotelDetail:
-      allOf:
-        - $ref: '#/components/schemas/HotelSummary'
-        - type: object
-          properties:
-            description:
-              type: string
-            address:
-              type: string
-            latitude:
-              type: number
-            longitude:
-              type: number
-            gallery_image_urls:
-              type: array
-              items:
-                type: string
-                format: uri
-            check_in_time:
-              type: string
-            check_out_time:
-              type: string
-            cancellation_policy:
-              type: string
-            rooms:
-              type: array
-              items:
-                $ref: '#/components/schemas/Room'
+      $ref: '#/components/schemas/HotelSummary'
 
-    Room:
+    RoomAvailability:
       type: object
-      required: [id, name, max_occupancy, price_per_night_usd, total_rooms]
       properties:
         id:
           type: string
           format: uuid
-        name:
+        roomType:
           type: string
-        description:
+        priceUsd:
           type: string
-        bed_configuration:
-          type: string
-        max_occupancy:
+          description: Decimal price per night in USD
+        maxOccupancy:
           type: integer
-        size_sqm:
-          type: integer
-        amenities:
-          type: array
-          items:
-            type: string
-        image_urls:
-          type: array
-          items:
-            type: string
-            format: uri
-        price_per_night_usd:
-          type: number
-        total_rooms:
-          type: integer
+        isAvailable:
+          type: boolean
 
-    CreateHotelBookingRequest:
+    PaginatedHotels:
       type: object
-      required: [room_id, check_in_date, check_out_date, guests_adults]
       properties:
-        room_id:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/HotelSummary'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+
+    BookHotelRoomRequest:
+      type: object
+      required: [roomId, checkInDate, checkOutDate, guestsAdults]
+      properties:
+        roomId:
           type: string
           format: uuid
-        check_in_date:
+        checkInDate:
           type: string
           format: date
-        check_out_date:
+        checkOutDate:
           type: string
           format: date
-        guests_adults:
+        guestsAdults:
           type: integer
           minimum: 1
-        guests_children:
+        guestsChildren:
           type: integer
+          minimum: 0
           default: 0
-        special_requests:
+        specialRequests:
           type: string
+          maxLength: 1000
 
-    UpdateHotelBookingRequest:
+    BookingItem:
       type: object
       properties:
-        check_in_date:
+        id:
+          type: string
+          format: uuid
+        bookingType:
+          type: string
+          enum: [hotel, guide, transportation, trip]
+        resourceId:
+          type: string
+          format: uuid
+        startDate:
           type: string
           format: date
-        check_out_date:
+        endDate:
           type: string
           format: date
-        guests_adults:
+        quantity:
           type: integer
-          minimum: 1
-        guests_children:
-          type: integer
-        special_requests:
-          type: string
+        unitPriceUsd:
+          type: number
+        subtotalUsd:
+          type: number
+        snapshot:
+          type: object
+          description: Immutable snapshot of resource details at booking time
 
-    HotelBooking:
+    BookingDetail:
       type: object
-      required: [id, hotel_id, room_id, room_name, check_in_date, check_out_date, guests_adults, status, total_price_usd]
       properties:
         id:
           type: string
           format: uuid
         reference:
           type: string
-        hotel_id:
+          description: Human-readable reference (e.g. HTL-ABC123)
+        userId:
           type: string
           format: uuid
-        room_id:
+        method:
+          type: string
+          enum: [single, template]
+        singleResourceKind:
+          type: string
+          nullable: true
+        tripTemplateId:
           type: string
           format: uuid
-        room_name:
-          type: string
-        check_in_date:
-          type: string
-          format: date
-        check_out_date:
-          type: string
-          format: date
-        guests_adults:
-          type: integer
-        guests_children:
-          type: integer
-        special_requests:
-          type: string
+          nullable: true
         status:
           type: string
           enum: [HOLD, PENDING_PAYMENT, CONFIRMED, CANCELLED, EXPIRED]
-        total_price_usd:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        totalUsd:
           type: number
-        hold_expires_at:
+        subtotalUsd:
+          type: number
+        discountUsd:
+          type: number
+        expiresAt:
           type: string
           format: date-time
-        created_at:
+          description: Hold expiry (15 minutes from creation)
+        cancelledAt:
           type: string
           format: date-time
+          nullable: true
+        refundPercentage:
+          type: integer
+          nullable: true
+        qrCodeUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingItem'
