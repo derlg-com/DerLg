@@ -12,6 +12,7 @@ import {
   GetBookingQrUseCase,
   GetBookingIcalUseCase,
   ExpireHoldUseCase,
+  TemplateBookingUseCase,
 } from './use-cases';
 import {
   SetHoldUtil,
@@ -32,6 +33,7 @@ import {
     GetBookingQrUseCase,
     GetBookingIcalUseCase,
     ExpireHoldUseCase,
+    TemplateBookingUseCase,
     SetHoldUtil,
     ReleaseHoldUtil,
     IdempotencyUtil,
