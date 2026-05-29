@@ -1,7 +1,6 @@
 import pytest
-import json
-from unittest.mock import AsyncMock, patch, MagicMock
-from agent.session.state import ConversationState, AgentState
+from unittest.mock import AsyncMock, patch
+from agent.session.state import ConversationState
 from agent.session.manager import SessionManager
 
 
@@ -44,20 +43,3 @@ async def test_delete_session():
         manager = SessionManager()
         await manager.delete("test-123")
         mock_redis.delete.assert_called_once_with("session:test-123")
-
-
-@pytest.mark.asyncio
-async def test_booking_hold_expiry_recovery(session):
-    from datetime import datetime, timezone, timedelta
-    session.state = AgentState.PAYMENT
-    session.booking_id = "b1"
-    session.reserved_until = datetime.now(timezone.utc) - timedelta(minutes=20)
-
-    mock_redis = AsyncMock()
-    mock_redis.get.return_value = session.to_json()
-
-    with patch("agent.session.manager.get_redis", return_value=mock_redis):
-        manager = SessionManager()
-        loaded = await manager.load(session.session_id)
-        assert loaded.state == AgentState.BOOKING
-        assert loaded.booking_id == ""

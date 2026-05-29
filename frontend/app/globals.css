@@ -1,26 +1,151 @@
 @import "tailwindcss";
 
+/* DerLg Design Theme — Cambodia travel palette
+ * Source of truth: frontend/context/ui-context.md
+ * Primary: Deep Green (#1b4f2e) — nature, premium service, trust
+ * Secondary: Vibrant Gold (#cdae4a) — temple gold, call-to-actions
+ * Both legacy token names (--color-primary etc. used by Tailwind v4 utility
+ * classes like bg-primary) and ui-context aliases (--accent-primary, etc.)
+ * are exposed so existing components and future components can both consume
+ * the canonical palette.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Brand */
+  --color-primary: 27 79 46;             /* #1b4f2e — Deep Green */
+  --color-primary-foreground: 255 255 255;
+  --color-secondary: 205 174 74;         /* #cdae4a — Vibrant Gold */
+  --color-secondary-foreground: 27 79 46;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Surfaces */
+  --color-background: 255 255 255;
+  --color-foreground: 30 41 59;          /* #1e293b — slate-800 */
+  --color-card: 248 250 252;             /* #f8fafc — slate-50 surface */
+  --color-card-foreground: 30 41 59;
+  --color-popover: 255 255 255;
+  --color-popover-foreground: 30 41 59;
+
+  /* Neutral */
+  --color-muted: 248 250 252;
+  --color-muted-foreground: 71 85 105;   /* #475569 — slate-600, 7.0:1 on #fff (AA) */
+  --color-accent: 230 240 232;           /* tinted soft sage */
+  --color-accent-foreground: 27 79 46;
+
+  /* Lines & Inputs */
+  --color-border: 226 232 240;           /* #e2e8f0 */
+  --color-input: 226 232 240;
+  --color-ring: 27 79 46;
+
+  /* Status */
+  --color-destructive: 185 28 28;        /* #b91c1c — red-700, 7.4:1 on #fff (AA) */
+  --color-destructive-foreground: 255 255 255;
+  --color-success: 21 128 61;            /* #15803d — green-700, 5.8:1 on #fff */
+  --color-warning: 161 98 7;             /* #a16207 — amber-700, 5.4:1 on #fff */
+
+  /* ui-context.md aliases */
+  --bg-base: #ffffff;
+  --bg-surface: #f8fafc;
+  --text-primary: #1e293b;
+  --text-muted: #64748b;
+  --accent-primary: #1b4f2e;
+  --accent-hover: #144e2e;
+  --accent-second: #cdae4a;
+  --border-default: #e2e8f0;
+  --state-error: #ef4444;
+  --state-success: #309059;
+
+  /* Logo palette extras */
+  --logo-mid-green: #309059;
+  --logo-soft-green: #58b279;
+  --logo-forest-green: #367b5c;
+  --logo-pale-sage: #72a48c;
+  --logo-moss: #676222;
+
+  /* Radii */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-primary: 88 178 121;          /* #58b279 — soft green for dark mode */
+    --color-primary-foreground: 10 25 16;
+    --color-secondary: 205 174 74;        /* gold stays vibrant */
+    --color-secondary-foreground: 10 25 16;
+
+    --color-background: 10 25 16;          /* deep forest near-black */
+    --color-foreground: 237 237 237;
+    --color-card: 18 38 26;
+    --color-card-foreground: 237 237 237;
+    --color-popover: 18 38 26;
+    --color-popover-foreground: 237 237 237;
+
+    --color-muted: 24 44 32;
+    --color-muted-foreground: 163 163 163;
+    --color-accent: 27 79 46;
+    --color-accent-foreground: 205 174 74;
+
+    --color-border: 38 58 46;
+    --color-input: 38 58 46;
+    --color-ring: 88 178 121;
+
+    --bg-base: #0a1910;
+    --bg-surface: #12261a;
+    --text-primary: #ededed;
+    --text-muted: #a3a3a3;
+    --accent-primary: #58b279;
+    --accent-hover: #309059;
+    --accent-second: #cdae4a;
+    --border-default: #263a2e;
+  }
+}
+
+@theme inline {
+  --color-background: rgb(var(--color-background));
+  --color-foreground: rgb(var(--color-foreground));
+  --color-primary: rgb(var(--color-primary));
+  --color-primary-foreground: rgb(var(--color-primary-foreground));
+  --color-secondary: rgb(var(--color-secondary));
+  --color-secondary-foreground: rgb(var(--color-secondary-foreground));
+  --color-card: rgb(var(--color-card));
+  --color-card-foreground: rgb(var(--color-card-foreground));
+  --color-popover: rgb(var(--color-popover));
+  --color-popover-foreground: rgb(var(--color-popover-foreground));
+  --color-muted: rgb(var(--color-muted));
+  --color-muted-foreground: rgb(var(--color-muted-foreground));
+  --color-accent: rgb(var(--color-accent));
+  --color-accent-foreground: rgb(var(--color-accent-foreground));
+  --color-border: rgb(var(--color-border));
+  --color-input: rgb(var(--color-input));
+  --color-ring: rgb(var(--color-ring));
+  --color-destructive: rgb(var(--color-destructive));
+  --color-destructive-foreground: rgb(var(--color-destructive-foreground));
+  --color-success: rgb(var(--color-success));
+  --color-warning: rgb(var(--color-warning));
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, "Noto Sans Khmer", "Noto Sans SC", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --radius: 0.75rem;
+}
+
+/* Khmer script — proper line height + font fallback (R10.9) */
+:lang(km) {
+  font-family: "Noto Sans Khmer", var(--font-sans);
+  line-height: 1.7;
+}
+
+/* Reduced-motion accessibility (R21.5) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
 }

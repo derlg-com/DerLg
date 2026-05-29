@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react'
 import { useVibeBookingStore } from '@/stores/vibe-booking.store'
+import { useTranslations } from '@/lib/i18n'
 
 interface Props {
   onSend: (text: string) => void
@@ -12,6 +13,7 @@ export default function ChatPanel({ onSend }: Props) {
   const { messages, isTyping, connectionStatus } = useVibeBookingStore()
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const t = useTranslations()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -28,24 +30,33 @@ export default function ChatPanel({ onSend }: Props) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-        <span className="font-semibold text-sm">DerLg AI Concierge</span>
-        <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
-          connectionStatus === 'connected' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-        }`}>
-          {connectionStatus}
+        <span className="font-semibold text-sm">{t('chat.title')}</span>
+        <span
+          className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+            connectionStatus === 'connected'
+              ? 'bg-green-100 text-green-700'
+              : 'bg-gray-100 text-gray-500'
+          }`}
+        >
+          {t(`common.${connectionStatus}`)}
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-              msg.role === 'user'
-                ? 'bg-primary text-primary-foreground'
-                : msg.type === 'error'
-                ? 'bg-destructive/10 text-destructive'
-                : 'bg-muted text-foreground'
-            }`}>
+          <div
+            key={msg.id}
+            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                msg.role === 'user'
+                  ? 'bg-primary text-primary-foreground'
+                  : msg.type === 'error'
+                    ? 'bg-destructive/10 text-destructive'
+                    : 'bg-muted text-foreground'
+              }`}
+            >
               {msg.content}
             </div>
           </div>
@@ -53,7 +64,7 @@ export default function ChatPanel({ onSend }: Props) {
         {isTyping && (
           <div className="flex justify-start">
             <div className="bg-muted rounded-2xl px-3 py-2 text-sm text-muted-foreground animate-pulse">
-              Thinking…
+              {t('common.thinking')}
             </div>
           </div>
         )}
@@ -64,7 +75,8 @@ export default function ChatPanel({ onSend }: Props) {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Tell me about your dream trip…"
+          placeholder={t('chat.placeholder')}
+          aria-label={t('chat.placeholder')}
           className="flex-1 rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
           disabled={connectionStatus !== 'connected'}
         />
@@ -73,7 +85,7 @@ export default function ChatPanel({ onSend }: Props) {
           disabled={!input.trim() || connectionStatus !== 'connected'}
           className="rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-40"
         >
-          Send
+          {t('common.send')}
         </button>
       </form>
     </div>

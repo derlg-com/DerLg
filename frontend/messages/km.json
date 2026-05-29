@@ -1,0 +1,81 @@
+{
+  "common": {
+    "send": "ផ្ញើ",
+    "thinking": "កំពុងគិត…",
+    "connecting": "កំពុងតភ្ជាប់…",
+    "connected": "បានតភ្ជាប់",
+    "disconnected": "ផ្តាច់ការតភ្ជាប់",
+    "retry": "ព្យាយាមម្តងទៀត",
+    "cancel": "បោះបង់",
+    "confirm": "បញ្ជាក់",
+    "close": "បិទ",
+    "share": "ចែករំលែក",
+    "download": "ទាញយក",
+    "loading": "កំពុងផ្ទុក…",
+    "error": "មានបញ្ហា",
+    "tryAgain": "សាកម្តងទៀត",
+    "reset": "កំណត់ឡើងវិញ"
+  },
+  "chat": {
+    "title": "DerLg ទីប្រឹក្សាការធ្វើដំណើរ AI",
+    "placeholder": "ប្រាប់ខ្ញុំអំពីការធ្វើដំណើរក្នុងសុបិន្តរបស់អ្នក…",
+    "welcome": "សូមស្វាគមន៍មកកាន់ DerLg! ខ្ញុំជាអ្នកណែនាំការធ្វើដំណើររបស់អ្នក។",
+    "resume": "សូមស្វាគមន៍ត្រឡប់មកវិញ! ខ្ញុំចងចាំការសន្ទនាមុនរបស់អ្នក។"
+  },
+  "content": {
+    "trips": "ដំណើរកម្សាន្ត",
+    "hotels": "សណ្ឋាគារ",
+    "transport": "ការដឹកជញ្ជូន",
+    "itinerary": "កាលវិភាគ",
+    "weather": "អាកាសធាតុ",
+    "budget": "ការប៉ាន់ស្មានថវិកា",
+    "comparison": "ការប្រៀបធៀប",
+    "gallery": "វិចិត្រសាល",
+    "bookNow": "កក់ឥឡូវនេះ",
+    "viewDetails": "មើលលម្អិត",
+    "perNight": "ក្នុងមួយយប់",
+    "rating": "ការវាយតម្លៃ",
+    "duration": "រយៈពេល"
+  },
+  "booking": {
+    "summary": "សេចក្តីសង្ខេបការកក់",
+    "total": "សរុប",
+    "confirmBooking": "បញ្ជាក់ការកក់",
+    "expiresIn": "ផុតកំណត់នៅ {minutes}នាទី {seconds}វិនាទី",
+    "expired": "ការកក់ផុតកំណត់",
+    "paymentMethod": "វិធីបង់ប្រាក់",
+    "cardNumber": "លេខប័ណ្ណ",
+    "expiry": "កាលបរិច្ឆេទផុតកំណត់",
+    "cvc": "CVC",
+    "scanQr": "ស្កេន QR ដើម្បីបង់ប្រាក់",
+    "paymentSuccess": "ការទូទាត់ជោគជ័យ!",
+    "paymentFailed": "ការទូទាត់បរាជ័យ",
+    "bookingConfirmed": "ការកក់ត្រូវបានបញ្ជាក់",
+    "reference": "លេខយោង",
+    "addToCalendar": "បន្ថែមទៅប្រតិទិន",
+    "downloadReceipt": "ទាញយកវិក្កយបត្រ"
+  },
+  "hotel": {
+    "perNight": "យប់",
+    "viewDetails": "មើលលម្អិត"
+  },
+  "transport": {
+    "select": "ជ្រើសរើស"
+  },
+  "budget": {
+    "title": "ការប៉ាន់ស្មានថវិកា"
+  },
+  "compare": {
+    "title": "ប្រៀបធៀបជម្រើស",
+    "book": "កក់"
+  },
+  "weather": {
+    "fiveDay": "ការព្យាករណ៍ ៥ ថ្ងៃ"
+  },
+  "paymentStatus": {
+    "pending": "កំពុងរង់ចាំ",
+    "succeeded": "ជោគជ័យ",
+    "failed": "បរាជ័យ",
+    "retry": "ព្យាយាមបង់ម្តងទៀត"
+  }
+}
