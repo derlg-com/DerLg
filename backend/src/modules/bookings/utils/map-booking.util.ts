@@ -10,6 +10,7 @@ export function mapBooking(row: BookingWithItems) {
     userId: row.userId,
     method: row.method,
     singleResourceKind: row.singleResourceKind,
+    tripTemplateId: row.tripTemplateId,
     status: row.status,
     startDate: row.startDate.toISOString().slice(0, 10),
     endDate: row.endDate?.toISOString().slice(0, 10) ?? null,
