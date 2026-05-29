@@ -4,3 +4,7 @@ export * from './transition-status.util';
 export * from './generate-reference.util';
 export * from './map-booking.util';
 export * from './build-ical.util';
+export * from './set-hold.util';
+export * from './release-hold.util';
+export * from './idempotency.util';
+export * from './check-room-availability.util';
