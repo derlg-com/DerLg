@@ -11,6 +11,7 @@ export interface BookingCreatedEvent {
   userId: string;
   method: BookingMethod;
   singleResourceKind: SingleResourceKind | null;
+  tripTemplateId: string | null;
   reference: string;
   totalUsd: number;
   startDate: string;

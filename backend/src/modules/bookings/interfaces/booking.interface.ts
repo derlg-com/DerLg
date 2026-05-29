@@ -11,6 +11,7 @@ export interface Booking {
   userId: string;
   method: BookingMethod;
   singleResourceKind: SingleResourceKind | null;
+  tripTemplateId: string | null;
   status: BookingStatus;
   startDate: string;
   endDate: string | null;

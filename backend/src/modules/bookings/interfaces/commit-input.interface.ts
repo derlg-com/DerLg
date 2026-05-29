@@ -29,5 +29,8 @@ export interface CommitInput {
   metadata: {
     method: BookingMethod;
     singleResourceKind?: SingleResourceKind;
+    /** UUID of the Trip template that seeded this itinerary, if any. Omit for
+     *  build-from-scratch, public-package, or single-resource bookings. */
+    tripTemplateId?: string;
   };
 }
