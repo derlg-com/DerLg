@@ -77,15 +77,19 @@ describe('CommitBookingUseCase', () => {
   });
 
   beforeEach(async () => {
-    const tx = {
+    const tx: {
+      bookingItem: { findMany: jest.Mock };
+      booking: { create: jest.Mock };
+      hotelRoom: { findFirst: jest.Mock };
+    } = {
       bookingItem: { findMany: jest.fn().mockResolvedValue([]) },
       booking: { create: jest.fn().mockResolvedValue(createdBookingFactory()) },
       hotelRoom: { findFirst: jest.fn().mockResolvedValue({ totalRooms: 1 }) },
     };
     const $transaction = jest
       .fn()
-      .mockImplementation(async (cb: (tx: typeof tx) => Promise<unknown>) =>
-        cb(tx),
+      .mockImplementation(
+        async (cb: (innerTx: typeof tx) => Promise<unknown>) => cb(tx),
       );
 
     prisma = { $transaction, _tx: tx };
