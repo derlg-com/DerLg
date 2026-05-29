@@ -94,9 +94,12 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         session = ConversationState(session_id=session_id)
 
     session.user_id = user_id
-    lang = auth.get("preferred_language", "EN").upper()
-    if lang in ("EN", "KH", "ZH"):
-        session.preferred_language = lang
+    # Accept both old uppercase (EN/ZH/KH) and new lowercase (en/zh/km) — normalize to uppercase for session
+    raw_lang = str(auth.get("preferred_language", "EN")).upper()
+    # Map KH → KH (Khmer), also accept KM as alias
+    lang_map = {"EN": "EN", "ZH": "ZH", "KH": "KH", "KM": "KH", "ZH-CN": "ZH"}
+    lang = lang_map.get(raw_lang, "EN")
+    session.preferred_language = lang
 
     welcome_text = WELCOME[session.preferred_language] if is_new else RESUME[session.preferred_language]
     await websocket.send_json({
@@ -131,17 +134,68 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 await websocket.send_json({"type": "typing_start"})
                 try:
                     async for event in run_agent_streaming(session, content):
-                        if event["type"] == "agent_stream_chunk":
+                        if event["type"] in ("agent_stream_chunk", "agent_tool_status"):
                             await websocket.send_json(event)
                         elif event["type"] == "final":
                             await session_manager.save(session)
                             await websocket.send_json({"type": "typing_end"})
+                            if event.get("requires_payment"):
+                                await websocket.send_json({"type": "requires_payment", **event["requires_payment"]})
                             agent_msg: dict = {"type": "agent_message", "text": event["text"]}
                             if event.get("content_payload"):
                                 agent_msg["content_payload"] = event["content_payload"]
                             await websocket.send_json(agent_msg)
                 except Exception as exc:
                     logger.error("agent_error", session_id=session_id, error=str(exc))
+                    await websocket.send_json({"type": "typing_end"})
+                    await websocket.send_json({"type": "error", "message": "Something went wrong. Please try again."})
+
+            elif msg.get("type") == "user_action":
+                action_type = str(msg.get("action_type", ""))
+                payload = msg.get("payload") or {}
+                # Synthesize a user message so the agent can respond to the action
+                action_text = f"[Action: {action_type}] {json.dumps(payload)}" if payload else f"[Action: {action_type}]"
+                content = _sanitize_input(action_text)
+                if not content:
+                    continue
+                await websocket.send_json({"type": "typing_start"})
+                try:
+                    async for event in run_agent_streaming(session, content):
+                        if event["type"] in ("agent_stream_chunk", "agent_tool_status"):
+                            await websocket.send_json(event)
+                        elif event["type"] == "final":
+                            await session_manager.save(session)
+                            await websocket.send_json({"type": "typing_end"})
+                            if event.get("requires_payment"):
+                                await websocket.send_json({"type": "requires_payment", **event["requires_payment"]})
+                            agent_msg = {"type": "agent_message", "text": event["text"]}
+                            if event.get("content_payload"):
+                                agent_msg["content_payload"] = event["content_payload"]
+                            await websocket.send_json(agent_msg)
+                except Exception as exc:
+                    logger.error("user_action_error", session_id=session_id, error=str(exc))
+                    await websocket.send_json({"type": "typing_end"})
+                    await websocket.send_json({"type": "error", "message": "Something went wrong. Please try again."})
+
+            elif msg.get("type") == "payment_completed":
+                booking_id = str(msg.get("booking_id", ""))
+                confirm_text = f"Payment completed for booking {booking_id}. Please confirm the booking and provide next steps."
+                await websocket.send_json({"type": "typing_start"})
+                try:
+                    async for event in run_agent_streaming(session, confirm_text):
+                        if event["type"] in ("agent_stream_chunk", "agent_tool_status"):
+                            await websocket.send_json(event)
+                        elif event["type"] == "final":
+                            await session_manager.save(session)
+                            await websocket.send_json({"type": "typing_end"})
+                            if event.get("requires_payment"):
+                                await websocket.send_json({"type": "requires_payment", **event["requires_payment"]})
+                            agent_msg = {"type": "agent_message", "text": event["text"]}
+                            if event.get("content_payload"):
+                                agent_msg["content_payload"] = event["content_payload"]
+                            await websocket.send_json(agent_msg)
+                except Exception as exc:
+                    logger.error("payment_completed_error", session_id=session_id, error=str(exc))
                     await websocket.send_json({"type": "typing_end"})
                     await websocket.send_json({"type": "error", "message": "Something went wrong. Please try again."})
 

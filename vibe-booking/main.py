@@ -20,6 +20,14 @@ async def lifespan(app: FastAPI):
         sentry_sdk.init(dsn=settings.sentry_dsn)
     yield
     await close_redis()
+    # Close singleton HTTP clients
+    from agent.models.factory import _nvidia_client, _ollama_client
+    from agent.backend_client import get_backend_client
+    if _nvidia_client is not None:
+        await _nvidia_client.aclose()
+    if _ollama_client is not None:
+        await _ollama_client.aclose()
+    await get_backend_client().aclose()
 
 
 def _validate_startup() -> None:

@@ -15,7 +15,7 @@ export default function BudgetEstimateRenderer({ item }: Props) {
       <div className="space-y-1">
         {Object.entries(breakdown).map(([k, v]) => (
           <div key={k} className="flex justify-between text-xs">
-            <span className="capitalize text-muted-foreground">{k}</span>
+            <span className="capitalize text-muted-foreground">{t(`budget.${k}`) || k}</span>
             <span>{formatCurrency(v, locale)}</span>
           </div>
         ))}

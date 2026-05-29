@@ -63,7 +63,11 @@
     "select": "选择"
   },
   "budget": {
-    "title": "预算估算"
+    "title": "预算估算",
+    "accommodation": "住宿",
+    "food_drink": "餐饮",
+    "local_transport": "本地交通",
+    "activities_tours": "活动与旅游"
   },
   "compare": {
     "title": "对比选项",

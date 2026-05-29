@@ -35,17 +35,24 @@ class OllamaClient(ModelClient):
         return self._parse(resp.json())
 
     def _convert_tools(self, tools: list[dict]) -> list[dict]:
-        return [
-            {
-                "type": "function",
-                "function": {
-                    "name": t["name"],
-                    "description": t.get("description", ""),
-                    "parameters": t.get("input_schema", {}),
-                },
-            }
-            for t in tools
-        ]
+        """Convert tools to Ollama format. Accepts OpenAI-style tools
+        ({"type": "function", "function": {...}}) or legacy flat format."""
+        result = []
+        for t in tools:
+            if "function" in t:
+                # Already OpenAI-style — Ollama accepts this format directly
+                result.append(t)
+            else:
+                # Legacy flat format fallback
+                result.append({
+                    "type": "function",
+                    "function": {
+                        "name": t["name"],
+                        "description": t.get("description", ""),
+                        "parameters": t.get("input_schema", {}),
+                    },
+                })
+        return result
 
     def _parse(self, data: dict) -> ModelResponse:
         message = data.get("message", {})

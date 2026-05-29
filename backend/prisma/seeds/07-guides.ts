@@ -70,7 +70,7 @@ export = async function seed(prisma: PrismaClient): Promise<void> {
     const user = await prisma.user.create({
       data: {
         supabaseUid: `guide-supabase-${Math.random().toString(36).substring(2, 10)}`,
-        email: `guide.${firstName}.${i + 1}@derlg.demo`,
+        email: `guide.${firstName}.${i + 1}.${Date.now()}@derlg.demo`,
         role: 'guide',
         preferredLanguage: 'en',
         fullName: g.bio.split(' ')[0], // First name from bio

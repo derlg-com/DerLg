@@ -12,9 +12,10 @@ const mkItem = <T,>(type: string, data: T): ContentItem => ({
   id: `item-${type}`,
   type: type as ContentItem['type'],
   data: data as Record<string, unknown>,
-  status: 'rendered',
-  metadata: undefined,
+  status: 'ready',
+  metadata: {},
   actions: [],
+  timestamp: new Date().toISOString(),
 });
 
 describe('BudgetEstimateRenderer', () => {

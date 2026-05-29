@@ -99,6 +99,7 @@ interface VibeBookingState {
   setConnectionStatus: (s: VibeBookingState['connectionStatus']) => void
   setSessionId: (id: string) => void
   clearMessages: () => void
+  removeMessage: (id: string) => void
 
   // Content
   contentItems: ContentItem[]
@@ -139,7 +140,7 @@ export const useVibeBookingStore = create<VibeBookingState>()(
         let resultId = ''
         set((s) => {
           const last = s.messages[s.messages.length - 1]
-          if (last && last.role === 'assistant' && last.type === 'text') {
+          if (last && last.role === 'assistant' && last.type === 'text' && last.content !== '') {
             last.content += delta
             resultId = last.id
           } else {
@@ -165,6 +166,10 @@ export const useVibeBookingStore = create<VibeBookingState>()(
       setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
       setSessionId: (sessionId) => set({ sessionId }),
       clearMessages: () => set({ messages: [] }),
+      removeMessage: (id: string) =>
+        set((s) => {
+          s.messages = s.messages.filter((m) => m.id !== id)
+        }),
 
       // Content
       contentItems: [],
