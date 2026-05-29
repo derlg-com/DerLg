@@ -9,6 +9,8 @@ import {
   GetBookingDetailUseCase,
   UpdateBookingUseCase,
   CancelBookingUseCase,
+  GetBookingQrUseCase,
+  GetBookingIcalUseCase,
 } from './use-cases';
 import {
   SetHoldUtil,
@@ -26,6 +28,8 @@ import {
     GetBookingDetailUseCase,
     UpdateBookingUseCase,
     CancelBookingUseCase,
+    GetBookingQrUseCase,
+    GetBookingIcalUseCase,
     SetHoldUtil,
     ReleaseHoldUtil,
     IdempotencyUtil,

@@ -7,13 +7,17 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   ListBookingsUseCase,
   GetBookingDetailUseCase,
   UpdateBookingUseCase,
   CancelBookingUseCase,
+  GetBookingQrUseCase,
+  GetBookingIcalUseCase,
 } from './use-cases';
 import {
   ListBookingsQueryDto,
@@ -29,6 +33,8 @@ export class BookingsController {
     private readonly getBookingDetail: GetBookingDetailUseCase,
     private readonly updateBooking: UpdateBookingUseCase,
     private readonly cancelBooking: CancelBookingUseCase,
+    private readonly getBookingQr: GetBookingQrUseCase,
+    private readonly getBookingIcal: GetBookingIcalUseCase,
   ) {}
 
   @Get()
@@ -60,5 +66,23 @@ export class BookingsController {
     @Body() dto: CancelBookingDto,
   ) {
     return this.cancelBooking.execute(user, id, dto);
+  }
+
+  @Get(':id/qr')
+  qr(@CurrentUser() user: JwtPayload, @Param('id', ParseUUIDPipe) id: string) {
+    return this.getBookingQr.execute(user, id);
+  }
+
+  @Get(':id/ical')
+  async ical(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { filename, body } = await this.getBookingIcal.execute(user, id);
+    res
+      .header('Content-Type', 'text/calendar; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="${filename}"`)
+      .send(body);
   }
 }
