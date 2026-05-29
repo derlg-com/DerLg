@@ -5,7 +5,7 @@
   "tools": [
     {
       "name": "list_vehicles",
-      "description": "Search and filter available transportation vehicles in Cambodia. Use this when the user needs transport between cities, a private car for sightseeing, a tuk-tuk for short trips, or a bus for budget travel. Supports filtering by vehicle type, capacity, AC availability, and date range.",
+      "description": "Search and filter available transportation vehicles in Cambodia. Use this when the user needs transport between cities, a private car for sightseeing, a tuk-tuk for short trips, or a bus for budget travel.",
       "method": "GET",
       "path": "/transportation/vehicles",
       "auth": false,
@@ -17,32 +17,20 @@
             "description": "Vehicle type filter",
             "required": false
           },
-          "capacity": {
-            "type": "integer",
-            "description": "Minimum passenger capacity required",
-            "required": false
-          },
-          "has_ac": {
-            "type": "boolean",
-            "description": "Filter for vehicles with air conditioning",
-            "required": false
-          },
-          "start_date": {
+          "q": {
             "type": "string",
-            "format": "date",
-            "description": "Required availability from this date (YYYY-MM-DD)",
-            "required": false
-          },
-          "end_date": {
-            "type": "string",
-            "format": "date",
-            "description": "Required availability until this date (YYYY-MM-DD)",
+            "description": "Free-text search (min 2 chars)",
             "required": false
           },
           "sort": {
             "type": "string",
-            "enum": ["price_asc", "price_desc", "rating_desc"],
-            "description": "Sort order (default: price_asc)",
+            "description": "Sort field (module-specific)",
+            "required": false
+          },
+          "lang": {
+            "type": "string",
+            "enum": ["en", "zh", "km"],
+            "description": "Preferred response language (default: en)",
             "required": false
           },
           "page": {
@@ -57,11 +45,11 @@
           }
         }
       },
-      "returns": "Paginated list of vehicles with id, type, name, capacity, price_per_day_usd, price_per_km_usd, has_ac, has_wifi, rating_average"
+      "returns": "Paginated list of vehicles with id, type, name, capacity, pricePerDayUsd, pricePerKmUsd, hasAc, hasWifi, ratingAverage"
     },
     {
       "name": "get_vehicle_detail",
-      "description": "Get full details of a specific vehicle including specifications, photos, amenities, and pricing. Driver details are not included until 24 hours before the booking start date.",
+      "description": "Get full details of a specific vehicle including specifications, photos, amenities, and pricing.",
       "method": "GET",
       "path": "/transportation/vehicles/{id}",
       "auth": false,
@@ -75,11 +63,11 @@
           }
         }
       },
-      "returns": "Full vehicle details including description, luggage_capacity, image_urls, rating_count, status"
+      "returns": "Full vehicle details including description, luggageCapacity, imageUrls, ratingCount, status"
     },
     {
       "name": "check_vehicle_availability",
-      "description": "Check if a specific vehicle is available for the given date range and get a price estimate. Always call this before creating a booking. Returns availability status and any conflicting bookings.",
+      "description": "Check if a specific vehicle is available for the given date range. Always call this before creating a booking. Date range max 90 days.",
       "method": "GET",
       "path": "/transportation/vehicles/{id}/availability",
       "auth": false,
@@ -93,13 +81,13 @@
           }
         },
         "query": {
-          "start_date": {
+          "from": {
             "type": "string",
             "format": "date",
             "description": "Start date of the desired booking (YYYY-MM-DD)",
             "required": true
           },
-          "end_date": {
+          "to": {
             "type": "string",
             "format": "date",
             "description": "End date of the desired booking (YYYY-MM-DD)",
@@ -107,42 +95,49 @@
           }
         }
       },
-      "returns": "is_available (boolean), price_estimate_usd, conflicting_bookings array"
+      "returns": "isAvailable (boolean), priceEstimateUsd, conflictingBookings array"
     },
     {
       "name": "create_transportation_booking",
-      "description": "Book a vehicle for the user with a 15-minute hold. Use after confirming availability and user consent. Requires pickup and dropoff locations. The booking enters HOLD status until payment is completed.",
+      "description": "Book a vehicle for the user with a 15-minute hold. Use after confirming availability and user consent. Requires pickup and dropoff locations. Supports Idempotency-Key header.",
       "method": "POST",
       "path": "/transportation/bookings",
       "auth": true,
       "parameters": {
+        "headers": {
+          "Idempotency-Key": {
+            "type": "string",
+            "description": "Optional unique key to prevent duplicate bookings on retry",
+            "required": false
+          }
+        },
         "body": {
-          "vehicle_id": {
+          "vehicleId": {
             "type": "string",
             "format": "uuid",
             "description": "Vehicle UUID to book",
             "required": true
           },
-          "start_date": {
+          "startDate": {
             "type": "string",
             "format": "date",
             "description": "Booking start date (YYYY-MM-DD)",
             "required": true
           },
-          "end_date": {
+          "endDate": {
             "type": "string",
             "format": "date",
             "description": "Booking end date (YYYY-MM-DD)",
             "required": true
           },
-          "pickup_location": {
+          "pickupLocation": {
             "type": "string",
-            "description": "Pickup address or location name (e.g., 'Phnom Penh Airport')",
+            "description": "Pickup address or location name (max 500 chars)",
             "required": true
           },
-          "dropoff_location": {
+          "dropoffLocation": {
             "type": "string",
-            "description": "Drop-off address or location name (e.g., 'Siem Reap City Center')",
+            "description": "Drop-off address or location name (max 500 chars)",
             "required": true
           },
           "stops": {
@@ -151,78 +146,19 @@
             "description": "Optional intermediate stops along the route",
             "required": false
           },
-          "estimated_distance_km": {
-            "type": "integer",
-            "description": "Estimated trip distance in km (needed for per-km priced vehicles)",
-            "required": false
-          }
-        }
-      },
-      "returns": "Booking object with booking_id, vehicle, status (HOLD), total_price_usd, hold expiry"
-    },
-    {
-      "name": "get_transportation_booking",
-      "description": "Retrieve full details of a transportation booking. Driver info (name, phone, plate) is only revealed 24 hours before the booking start date.",
-      "method": "GET",
-      "path": "/transportation/bookings/{id}",
-      "auth": true,
-      "parameters": {
-        "path": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Booking UUID",
-            "required": true
-          }
-        }
-      },
-      "returns": "Full booking details with vehicle, route, status (HOLD | PENDING_PAYMENT | CONFIRMED | COMPLETED | CANCELLED), driver (revealed 24h before)"
-    },
-    {
-      "name": "list_transportation_bookings",
-      "description": "List all transportation bookings for the current user. Use to show the user their transport reservations or check the status of past bookings.",
-      "method": "GET",
-      "path": "/transportation/bookings",
-      "auth": true,
-      "parameters": {
-        "query": {
-          "status": {
-            "type": "string",
-            "enum": ["HOLD", "PENDING_PAYMENT", "CONFIRMED", "COMPLETED", "CANCELLED"],
-            "description": "Filter by booking status",
+          "estimatedDistanceKm": {
+            "type": "number",
+            "description": "Estimated trip distance in km (for per-km priced vehicles)",
             "required": false
           },
-          "page": {
-            "type": "integer",
-            "description": "Page number (default: 1)",
-            "required": false
-          },
-          "limit": {
-            "type": "integer",
-            "description": "Results per page (max 50, default: 20)",
-            "required": false
-          }
-        }
-      },
-      "returns": "Paginated list of transportation bookings"
-    },
-    {
-      "name": "cancel_transportation_booking",
-      "description": "Cancel a transportation booking. Refund tiers: 100% if cancelled ≥7 days before, 50% if 1–7 days before, 0% if <24 hours before start. Use only when the user explicitly requests cancellation.",
-      "method": "PATCH",
-      "path": "/transportation/bookings/{id}/cancel",
-      "auth": true,
-      "parameters": {
-        "path": {
-          "id": {
+          "specialRequests": {
             "type": "string",
-            "format": "uuid",
-            "description": "Booking UUID",
-            "required": true
+            "description": "Special requests (max 1000 chars)",
+            "required": false
           }
         }
       },
-      "returns": "booking_id, status (CANCELLED), refund_amount_usd"
+      "returns": "BookingDetail with id, reference, status (HOLD), totalUsd, expiresAt (15 min), items[]"
     }
   ]
 }

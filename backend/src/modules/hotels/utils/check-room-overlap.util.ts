@@ -1,23 +1,26 @@
 /**
- * Pure function. Returns true if a booking item overlaps the requested date range.
- * BookingItem.date is the check-in date; the booking spans [date, date + (endDate - startDate)).
- * For simplicity, overlap is detected when bookingDate is within [checkIn, checkOut).
+ * Pure function. Returns true if a booking item interval overlaps the requested check-in/out range.
+ * Half-open semantics: [itemStart, itemEnd] overlaps [checkIn, checkOut) iff
+ *   itemStart < checkOut AND itemEnd >= checkIn.
  */
 export function doesBookingOverlap(
-  bookingDate: Date,
+  itemStart: Date,
+  itemEnd: Date,
   checkIn: Date,
   checkOut: Date,
 ): boolean {
-  return bookingDate >= checkIn && bookingDate < checkOut;
+  return itemStart < checkOut && itemEnd >= checkIn;
 }
 
 export type BookingItemSlim = {
   hotelRoomId: string | null;
-  date: Date;
+  startDate: Date;
+  endDate: Date;
 };
 
 /**
- * Given the room IDs that have confirmed bookings, return the set of overlapping room IDs.
+ * Given the booking items confirmed for a hotel, return the set of room IDs
+ * whose intervals overlap the requested [checkIn, checkOut) window.
  */
 export function overlappingRoomIds(
   bookingItems: BookingItemSlim[],
@@ -26,7 +29,10 @@ export function overlappingRoomIds(
 ): Set<string> {
   const result = new Set<string>();
   for (const item of bookingItems) {
-    if (item.hotelRoomId && doesBookingOverlap(item.date, checkIn, checkOut)) {
+    if (
+      item.hotelRoomId &&
+      doesBookingOverlap(item.startDate, item.endDate, checkIn, checkOut)
+    ) {
       result.add(item.hotelRoomId);
     }
   }

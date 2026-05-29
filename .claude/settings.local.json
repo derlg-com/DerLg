@@ -27,7 +27,18 @@
       "Bash(docker-compose up *)",
       "Bash(docker compose *)",
       "Bash(Select-String -Pattern 'PASS|FAIL|✓|✕|Tests:' -Context 0,5)",
-      "PowerShell(npx jest --config ./test/jest-e2e.json --runInBand test/auth.e2e-spec.ts --verbose 2>$null)"
+      "PowerShell(npx jest --config ./test/jest-e2e.json --runInBand test/auth.e2e-spec.ts --verbose 2>$null)",
+      "Bash(npx prisma@6.19.3 format)",
+      "Bash(./node_modules/.bin/prisma validate *)",
+      "Bash(./node_modules/.bin/prisma migrate *)",
+      "Bash(./node_modules/.bin/prisma db *)",
+      "Bash(./node_modules/.bin/prisma generate *)",
+      "Bash(git stash *)",
+      "Bash(tee /tmp/derlg-server.log)",
+      "Bash(curl -s -X POST http://localhost:3001/v1/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"alice@test.com\",\"password\":\"Passw0rd!\",\"fullName\":\"Alice\"}')",
+      "Bash(curl -s -X POST http://localhost:3001/v1/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"alice@test.com\",\"password\":\"Passw0rd!\",\"name\":\"Alice\"}')",
+      "Bash(docker exec *)",
+      "Bash(grep -v \":0$\")"
     ]
   }
 }
