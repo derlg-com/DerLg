@@ -75,10 +75,9 @@ enum BookingType {
 }
 
 enum BookingMethod {
-  public_package // M1
-  private_prebuilt // M2
-  build_from_scratch // M3
-  single_resource // M4
+  public_package // M1: fixed product, package-level capacity, atomic price
+  custom_itinerary // merged M2 + M3: multi-resource itinerary (seeded from Trip template OR built from scratch)
+  single_resource // M4: one resource (transportation / hotel-room / guide / single-trip)
 
   @@map("booking_method")
 }
@@ -371,11 +370,12 @@ model Trip {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
-  translations   TripTranslation[]
-  itineraryItems TripItineraryItem[]
-  reviews        Review[]
-  favorites      Favorite[]
-  bookingItems   BookingItem[]
+  translations       TripTranslation[]
+  itineraryItems     TripItineraryItem[]
+  reviews            Review[]
+  favorites          Favorite[]
+  bookingItems       BookingItem[]
+  bookingsAsTemplate Booking[]           @relation("BookingTripTemplate")
 
   @@index([category])
   @@index([isPublished])
@@ -641,6 +641,12 @@ model Booking {
   method             BookingMethod
   singleResourceKind SingleResourceKind? @map("single_resource_kind")
 
+  // NEW — link to the Trip that seeded this itinerary, if any.
+  // Null for build-from-scratch, public-package, or single-resource bookings.
+  // Populated for "private package" bookings to enable bundle-discount comparisons
+  // and analytics ("how many people booked from Package X?").
+  tripTemplateId String? @map("trip_template_id") @db.Uuid
+
   // Dates
   startDate DateTime  @map("start_date") @db.Date
   endDate   DateTime? @map("end_date") @db.Date
@@ -670,6 +676,7 @@ model Booking {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz() // NEW
 
   user         User           @relation(fields: [userId], references: [id])
+  tripTemplate Trip?          @relation("BookingTripTemplate", fields: [tripTemplateId], references: [id], onDelete: SetNull)
   items        BookingItem[]
   payments     Payment[]
   notification Notification[]
@@ -677,6 +684,7 @@ model Booking {
   @@index([userId])
   @@index([status])
   @@index([method]) // NEW
+  @@index([tripTemplateId]) // NEW
   @@index([expiresAt])
   @@index([startDate])
   @@index([createdAt])
