@@ -94,6 +94,7 @@ interface VibeBookingState {
   sessionId: string | null
   addMessage: (message: ChatMessage) => void
   appendToStreamingMessage: (delta: string) => string
+  finalizeStreamingMessage: (text: string) => string
   setTyping: (v: boolean) => void
   setStreaming: (v: boolean) => void
   setConnectionStatus: (s: VibeBookingState['connectionStatus']) => void
@@ -120,6 +121,10 @@ interface VibeBookingState {
   booking: BookingState
   setBooking: (booking: BookingState) => void
   clearBooking: () => void
+
+  // Auth (deferred guest login)
+  authModalOpen: boolean
+  setAuthModalOpen: (v: boolean) => void
 }
 
 export const useVibeBookingStore = create<VibeBookingState>()(
@@ -157,6 +162,17 @@ export const useVibeBookingStore = create<VibeBookingState>()(
               timestamp: new Date().toISOString(),
             })
             resultId = id
+          }
+        })
+        return resultId
+      },
+      finalizeStreamingMessage: (text) => {
+        let resultId = ''
+        set((s) => {
+          const last = s.messages[s.messages.length - 1]
+          if (last && last.role === 'assistant' && last.type === 'text') {
+            last.content = text
+            resultId = last.id
           }
         })
         return resultId
@@ -207,6 +223,10 @@ export const useVibeBookingStore = create<VibeBookingState>()(
       booking: { status: 'idle' },
       setBooking: (booking) => set({ booking }),
       clearBooking: () => set({ booking: { status: 'idle' } }),
+
+      // Auth (deferred guest login)
+      authModalOpen: false,
+      setAuthModalOpen: (authModalOpen) => set({ authModalOpen }),
     })),
     {
       name: 'derlg:vibe-booking',

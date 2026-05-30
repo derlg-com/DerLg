@@ -4,6 +4,7 @@ import re
 import uuid
 from datetime import datetime, timezone
 from fastapi import WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
 from agent.session.state import ConversationState
 from agent.session.manager import SessionManager
 from agent.core import run_agent_streaming
@@ -12,6 +13,16 @@ from utils.redis import check_rate_limit
 
 active_connections: dict[str, WebSocket] = {}
 session_manager = SessionManager()
+
+
+async def _safe_close(websocket: WebSocket, code: int = 1000) -> None:
+    """Close only if still connected — prevents the ASGI double-close
+    RuntimeError under React StrictMode double-mount churn (Issue 11)."""
+    if websocket.application_state != WebSocketState.DISCONNECTED:
+        try:
+            await websocket.close(code=code)
+        except RuntimeError:
+            pass
 
 _INJECTION_PATTERNS = re.compile(
     r"(<script|javascript:|on\w+=|</?\w+\s*>|"
@@ -62,7 +73,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     if token:
         user_id_from_jwt = _verify_jwt(token)
         if not user_id_from_jwt:
-            await websocket.close(code=1008)
+            await _safe_close(websocket, code=1008)
             return
 
     await websocket.accept()
@@ -71,12 +82,12 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         raw = await asyncio.wait_for(websocket.receive_text(), timeout=10.0)
         auth = json.loads(raw)
     except Exception:
-        await websocket.close(code=4000)
+        await _safe_close(websocket, code=4000)
         return
 
     if auth.get("type") != "auth" or not auth.get("user_id"):
         await websocket.send_json({"type": "error", "message": "Auth required"})
-        await websocket.close(code=4001)
+        await _safe_close(websocket, code=4001)
         return
 
     user_id: str = user_id_from_jwt or auth["user_id"]
@@ -93,7 +104,17 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     if is_new:
         session = ConversationState(session_id=session_id)
 
-    session.user_id = user_id
+    # Deferred auth: a token may arrive in the initial header OR inside the auth
+    # message (browsers can't set WS headers). A verified token re-binds the
+    # session to the real user UUID and unlocks booking; otherwise stay a guest.
+    msg_token = str(auth.get("token", "")).strip()
+    verified_id = user_id_from_jwt or (_verify_jwt(msg_token) if msg_token else None)
+    if verified_id:
+        session.user_id = verified_id
+        session.is_authenticated = True
+    else:
+        session.user_id = user_id
+        session.is_authenticated = False
     # Accept both old uppercase (EN/ZH/KH) and new lowercase (en/zh/km) — normalize to uppercase for session
     raw_lang = str(auth.get("preferred_language", "EN")).upper()
     # Map KH → KH (Khmer), also accept KM as alias
@@ -136,6 +157,10 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     async for event in run_agent_streaming(session, content):
                         if event["type"] in ("agent_stream_chunk", "agent_tool_status"):
                             await websocket.send_json(event)
+                        elif event["type"] == "requires_login":
+                            await session_manager.save(session)
+                            await websocket.send_json({"type": "typing_end"})
+                            await websocket.send_json(event)
                         elif event["type"] == "final":
                             await session_manager.save(session)
                             await websocket.send_json({"type": "typing_end"})
@@ -163,6 +188,10 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     async for event in run_agent_streaming(session, content):
                         if event["type"] in ("agent_stream_chunk", "agent_tool_status"):
                             await websocket.send_json(event)
+                        elif event["type"] == "requires_login":
+                            await session_manager.save(session)
+                            await websocket.send_json({"type": "typing_end"})
+                            await websocket.send_json(event)
                         elif event["type"] == "final":
                             await session_manager.save(session)
                             await websocket.send_json({"type": "typing_end"})
@@ -184,6 +213,10 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 try:
                     async for event in run_agent_streaming(session, confirm_text):
                         if event["type"] in ("agent_stream_chunk", "agent_tool_status"):
+                            await websocket.send_json(event)
+                        elif event["type"] == "requires_login":
+                            await session_manager.save(session)
+                            await websocket.send_json({"type": "typing_end"})
                             await websocket.send_json(event)
                         elif event["type"] == "final":
                             await session_manager.save(session)

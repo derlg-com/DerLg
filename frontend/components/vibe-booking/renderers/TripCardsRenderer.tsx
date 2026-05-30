@@ -1,9 +1,11 @@
 'use client'
 import Image from 'next/image'
+import { v4 as uuid } from 'uuid'
 import type { ContentItem } from '@/stores/vibe-booking.store'
 import type { TripCardsPayloadSchema } from '@/schemas/vibe-booking'
 import type { z } from 'zod'
 import { useLanguageStore } from '@/lib/i18n'
+import { useVibeBookingStore } from '@/stores/vibe-booking.store'
 import { formatCurrency } from '@/lib/format'
 
 interface Props {
@@ -15,7 +17,25 @@ type Data = z.infer<typeof TripCardsPayloadSchema>['data']
 
 export default function TripCardsRenderer({ item, onAction }: Props) {
   const locale = useLanguageStore((s) => s.locale)
+  const addContentItem = useVibeBookingStore((s) => s.addContentItem)
   const { trips } = item.data as Data
+
+  const showOnMap = (trip: Data['trips'][number]) => {
+    if (trip.lat == null || trip.lng == null) return
+    addContentItem({
+      id: uuid(),
+      type: 'map_view',
+      data: {
+        center: { lat: trip.lat, lng: trip.lng },
+        markers: [{ id: trip.id, lat: trip.lat, lng: trip.lng, label: trip.name }],
+      },
+      actions: [],
+      metadata: { title: trip.name },
+      status: 'ready',
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   return (
     <div className="p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -53,6 +73,14 @@ export default function TripCardsRenderer({ item, onAction }: Props) {
                   Details
                 </button>
               </div>
+              {trip.lat != null && trip.lng != null && (
+                <button
+                  onClick={() => showOnMap(trip)}
+                  className="w-full text-xs text-primary hover:underline pt-1 text-left"
+                >
+                  📍 Show on map
+                </button>
+              )}
             </div>
           </div>
         ))}

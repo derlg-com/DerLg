@@ -14,6 +14,7 @@
   "dependencies": {
     "@stripe/react-stripe-js": "^6.4.0",
     "@stripe/stripe-js": "^9.6.0",
+    "@vis.gl/react-google-maps": "1.5.5",
     "framer-motion": "^12.38.0",
     "immer": "^11.1.8",
     "lucide-react": "^1.16.0",

@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useVibeBookingStore } from '@/stores/vibe-booking.store'
 import { ContentPayloadSchema } from '@/schemas/vibe-booking'
+import { getStoredToken } from '@/lib/auth'
 import type { ContentItem, ContentAction, ContentMetadata } from '@/stores/vibe-booking.store'
 import type { WsOutbound } from '@/types/vibe-booking'
 
@@ -77,6 +78,7 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
           type: 'auth',
           user_id: userId,
           preferred_language: language,
+          ...(getStoredToken() ? { token: getStoredToken() } : {}),
           ...(store.sessionId ? { session_id: store.sessionId } : {}),
         }),
       )
@@ -151,7 +153,7 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
             // Update the last message with the final text
             const newText = data.text ?? ''
             if (lastMsg.content !== newText) {
-              useVibeBookingStore.getState().messages[currentMessages.length - 1].content = newText
+              store.finalizeStreamingMessage(newText)
             }
           } else {
             msgId = uuid()
@@ -190,6 +192,22 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
               store.addContentItem(item)
             }
           }
+          break
+        }
+
+        case 'requires_login': {
+          store.setTyping(false)
+          store.setStreaming(false)
+          if (data.text) {
+            store.addMessage({
+              id: uuid(),
+              role: 'assistant',
+              content: data.text,
+              type: 'text',
+              timestamp: new Date().toISOString(),
+            })
+          }
+          store.setAuthModalOpen(true)
           break
         }
 
@@ -325,5 +343,13 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
     [send, store],
   )
 
-  return { sendMessage, sendAction }
+  // Reconnect on the same session_id after login so the auth message carries
+  // the freshly stored token and the agent re-binds the session to the user.
+  const reauth = useCallback(() => {
+    retries.current = 0
+    ws.current?.close()
+    connectRef.current?.()
+  }, [])
+
+  return { sendMessage, sendAction, reauth }
 }
