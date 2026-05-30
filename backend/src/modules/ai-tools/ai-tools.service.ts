@@ -156,8 +156,12 @@ export class AiToolsService {
       const booked = await this.prisma.bookingItem.count({
         where: {
           tripId: dto.item_id,
-          date,
-          booking: { status: { in: ['reserved', 'confirmed'] } },
+          startDate: { lte: date },
+          endDate: { gte: date },
+          booking: {
+            status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            deletedAt: null,
+          },
         },
       });
       return {
@@ -170,8 +174,12 @@ export class AiToolsService {
       const booked = await this.prisma.bookingItem.count({
         where: {
           guideId: dto.item_id,
-          date,
-          booking: { status: { in: ['reserved', 'confirmed'] } },
+          startDate: { lte: date },
+          endDate: { gte: date },
+          booking: {
+            status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            deletedAt: null,
+          },
         },
       });
       return { available: booked === 0 };
@@ -203,8 +211,12 @@ export class AiToolsService {
     const bookedRoomIds = await this.prisma.bookingItem.findMany({
       where: {
         hotelRoomId: { in: rooms.map((r) => r.id) },
-        date,
-        booking: { status: { in: ['reserved', 'confirmed'] } },
+        startDate: { lte: date },
+        endDate: { gte: date },
+        booking: {
+          status: { in: ['hold', 'pending_payment', 'confirmed'] },
+          deletedAt: null,
+        },
       },
       select: { hotelRoomId: true },
     });
@@ -217,6 +229,12 @@ export class AiToolsService {
     const expiresAt = new Date(Date.now() + HOLD_TTL_MIN * 60 * 1000);
     const reference = `DLG-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000 + 10000)}`;
     const travelDate = new Date(dto.travel_date);
+    const singleResourceKind =
+      dto.item_type === 'trip'
+        ? 'trip'
+        : dto.item_type === 'hotel'
+          ? 'hotel'
+          : 'guide';
 
     return this.prisma.$transaction(async (tx) => {
       let unitPrice = 0;

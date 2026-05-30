@@ -1,13 +1,29 @@
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Headers,
+  Param,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { parseAcceptLanguage } from '../../common/i18n';
 import {
   ListHotelsUseCase,
   GetHotelDetailUseCase,
   GetHotelRoomsUseCase,
+  BookHotelRoomUseCase,
 } from './use-cases';
-import { ListHotelsDto, RoomAvailabilityQueryDto } from './dto';
+import {
+  ListHotelsDto,
+  RoomAvailabilityQueryDto,
+  BookHotelRoomDto,
+} from './dto';
+import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 
 @Controller('hotels')
 export class HotelsController {
@@ -15,6 +31,7 @@ export class HotelsController {
     private readonly listHotels: ListHotelsUseCase,
     private readonly getHotelDetail: GetHotelDetailUseCase,
     private readonly getHotelRooms: GetHotelRoomsUseCase,
+    private readonly bookHotelRoom: BookHotelRoomUseCase,
   ) {}
 
   @Public()
@@ -33,5 +50,15 @@ export class HotelsController {
   @Get(':id/rooms')
   rooms(@Param('id') id: string, @Query() query: RoomAvailabilityQueryDto) {
     return this.getHotelRooms.execute(id, query);
+  }
+
+  @Post(':hotelId/bookings')
+  book(
+    @CurrentUser() user: JwtPayload,
+    @Param('hotelId') hotelId: string,
+    @Body() dto: BookHotelRoomDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.bookHotelRoom.execute(user, hotelId, dto, idempotencyKey);
   }
 }

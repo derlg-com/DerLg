@@ -1,0 +1,448 @@
+openapi: 3.0.3
+info:
+  title: DerLg — Bookings API
+  version: 1.0.0
+  description: |
+    Unified booking management engine. All booking lifecycle operations
+    (list, detail, update, cancel, QR, iCal, template creation) go through
+    these endpoints regardless of booking type (hotel, guide, transportation, trip).
+
+    Resource-specific creation endpoints live in their own modules:
+    - POST /hotels/{hotelId}/bookings
+    - POST /guides/{guideId}/bookings
+    - POST /transportation/bookings
+
+servers:
+  - url: http://localhost:3001/v1
+    description: Local development
+
+paths:
+  /bookings:
+    get:
+      summary: List user's bookings
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [HOLD, PENDING_PAYMENT, CONFIRMED, CANCELLED, EXPIRED]
+        - name: method
+          in: query
+          schema:
+            type: string
+            enum: [single, template]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: Paginated list of bookings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBookings'
+        '401':
+          description: Unauthorized
+
+  /bookings/template:
+    post:
+      summary: Create a multi-item template booking (15-minute hold)
+      description: |
+        Creates a booking with one or more items in a single transaction.
+        Used for trip packages (M2) and build-from-scratch itineraries (M3).
+        Items must have at least one entry. The booking enters HOLD status
+        for 15 minutes pending payment.
+      tags: [Bookings]
+      x-nfr-hold-ttl: 900
+      x-idempotency-key: true
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateBookingRequest'
+      responses:
+        '201':
+          description: Booking created in HOLD status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/BookingDetail'
+        '400':
+          description: Validation error or empty items array (BKNG_INVALID_DATE_RANGE)
+        '401':
+          description: Unauthorized
+
+  /bookings/{id}:
+    get:
+      summary: Get booking detail
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: Full booking detail with items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/BookingDetail'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Booking not found (BKNG_NOT_FOUND)
+
+    patch:
+      summary: Update a HOLD booking
+      description: |
+        Update dates, guest counts, or special requests on a booking that is
+        still in HOLD status. Confirmed bookings cannot be modified.
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingRequest'
+      responses:
+        '200':
+          description: Updated booking
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/BookingDetail'
+        '400':
+          description: Invalid update
+        '401':
+          description: Unauthorized
+        '404':
+          description: Booking not found
+
+  /bookings/{id}/cancel:
+    post:
+      summary: Cancel a booking
+      description: |
+        Cancel a booking. Refund percentage is computed based on the
+        cancellation policy and days remaining before startDate.
+        Cancellation is irreversible.
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/BookingDetail'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Booking not found
+
+  /bookings/{id}/qr:
+    get:
+      summary: Get booking QR code
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: QR code data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      qrData:
+                        type: string
+                      qrImageUrl:
+                        type: string
+        '401':
+          description: Unauthorized
+        '404':
+          description: Booking not found
+
+  /bookings/{id}/ical:
+    get:
+      summary: Download iCalendar file for a booking
+      tags: [Bookings]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BookingId'
+      responses:
+        '200':
+          description: iCalendar file
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="booking-HTL-ABC123.ics"'
+          content:
+            text/calendar:
+              schema:
+                type: string
+        '401':
+          description: Unauthorized
+        '404':
+          description: Booking not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    BookingId:
+      name: id
+      in: path
+      required: true
+      description: Booking UUID
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reference:
+          type: string
+          description: Human-readable reference (e.g. HTL-ABC123, GDE-XYZ789)
+        userId:
+          type: string
+          format: uuid
+        method:
+          type: string
+          enum: [single, template]
+        singleResourceKind:
+          type: string
+          nullable: true
+          description: Resource kind for single-item bookings (hotel, guide, transportation, trip)
+        tripTemplateId:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [HOLD, PENDING_PAYMENT, CONFIRMED, CANCELLED, EXPIRED]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        totalUsd:
+          type: number
+        subtotalUsd:
+          type: number
+        discountUsd:
+          type: number
+        expiresAt:
+          type: string
+          format: date-time
+          description: Hold expiry (15 minutes from creation)
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+        refundPercentage:
+          type: integer
+          nullable: true
+        qrCodeUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BookingItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookingType:
+          type: string
+          enum: [hotel, guide, transportation, trip]
+        resourceId:
+          type: string
+          format: uuid
+          nullable: true
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        quantity:
+          type: integer
+        unitPriceUsd:
+          type: number
+        subtotalUsd:
+          type: number
+        snapshot:
+          type: object
+          description: Immutable snapshot of resource details at booking time
+
+    BookingDetail:
+      allOf:
+        - $ref: '#/components/schemas/Booking'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/BookingItem'
+
+    PaginatedBookings:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Booking'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalPages:
+              type: integer
+
+    TemplateItem:
+      type: object
+      required: [type, resourceId, startDate, endDate, quantity, unitPriceUsd]
+      properties:
+        type:
+          type: string
+          enum: [hotel, guide, transportation, trip]
+        resourceId:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        quantity:
+          type: integer
+          minimum: 1
+        unitPriceUsd:
+          type: number
+          minimum: 0
+
+    CreateTemplateBookingRequest:
+      type: object
+      required: [items]
+      properties:
+        tripTemplateId:
+          type: string
+          format: uuid
+          nullable: true
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TemplateItem'
+        specialRequests:
+          type: string
+          maxLength: 1000
+
+    UpdateBookingRequest:
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        guestsAdults:
+          type: integer
+          minimum: 1
+        guestsChildren:
+          type: integer
+          minimum: 0
+        specialRequests:
+          type: string
+          maxLength: 1000
