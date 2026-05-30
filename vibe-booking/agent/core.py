@@ -1,9 +1,11 @@
 import asyncio
 import json
+import re
 from typing import AsyncIterator
 from agent.session.state import ConversationState
 from agent.models.factory import get_model_client
 from agent.tools import ALL_TOOLS, TOOL_DISPATCH
+from agent.tools.geo import lookup_coords
 from agent.prompts.builder import build_system_prompt
 from agent.backend_client import get_backend_client
 from utils.logging import logger
@@ -12,6 +14,23 @@ MAX_TOOL_LOOPS = 5
 MAX_MESSAGES = 20
 MAX_TOKENS = 2048
 
+# Mutations whose user_id must come from the verified session, never the model.
+_USER_SCOPED_TOOLS = ("create_booking_hold", "send_sos_alert")
+
+# Matches raw tool-call JSON the model may leak as visible text instead of a
+# real tool call, e.g. {"name": "search_trips", "parameters": {...}}.
+_TOOL_CALL_JSON = re.compile(
+    r'\{\s*"name"\s*:\s*"[^"]+"\s*,\s*"(?:parameters|arguments)"\s*:\s*\{.*?\}\s*\}',
+    re.DOTALL,
+)
+
+
+def _sanitize_assistant_text(text: str) -> str:
+    """Strip raw tool-call JSON the model may leak into chat text (Issue 9)."""
+    if not text:
+        return text
+    return _TOOL_CALL_JSON.sub("", text).strip()
+
 
 # ---------------------------------------------------------------------------
 # Per-tool normalizers: backend response → frontend ContentPayload
@@ -19,41 +38,53 @@ MAX_TOKENS = 2048
 # Frontend Zod schemas expect camelCase fields.
 # ---------------------------------------------------------------------------
 
+def _strip_none(d: dict) -> dict:
+    """Drop keys whose value is None so the frontend Zod `.optional()` fields
+    (which accept `undefined` but reject `null`) validate instead of silently
+    dropping the whole content payload."""
+    return {k: v for k, v in d.items() if v is not None}
+
+
 def _norm_trip(t: dict) -> dict:
-    return {
+    name = t.get("title") or t.get("name", "")
+    province = t.get("province") or t.get("destination")
+    coords = lookup_coords(province, name, t.get("description"))
+    return _strip_none({
         "id": t.get("id", ""),
-        "name": t.get("title") or t.get("name", ""),
+        "name": name,
         "description": t.get("description"),
-        "province": t.get("province") or t.get("destination"),
+        "province": province,
         "durationDays": t.get("duration_days") or t.get("durationDays", 0),
         "priceUsd": t.get("price_usd") or t.get("priceUsd") or t.get("base_price_usd", 0),
         "imageUrl": t.get("cover_image") or t.get("imageUrl"),
         "rating": t.get("rating"),
         "highlights": t.get("highlights"),
-    }
+        "lat": coords[0] if coords else None,
+        "lng": coords[1] if coords else None,
+    })
 
 
 def _norm_hotel(h: dict) -> dict:
     images = h.get("images") or []
-    return {
+    return _strip_none({
         "id": h.get("id", ""),
         "name": h.get("name", ""),
         "address": h.get("address"),
         "priceUsd": h.get("price_from_usd") or h.get("priceUsd") or 0,
         "rating": h.get("star_rating") or h.get("rating"),
         "imageUrl": images[0] if images else h.get("imageUrl"),
-    }
+    })
 
 
 def _norm_transport(v: dict) -> dict:
-    return {
+    return _strip_none({
         "id": v.get("id", ""),
         "mode": v.get("mode") or v.get("vehicleType", "van"),
         "operator": v.get("operator") or v.get("name", ""),
         "priceUsd": v.get("price_usd") or v.get("priceUsd", 0),
         "durationMinutes": v.get("duration_minutes") or v.get("durationMinutes", 0),
         "departureTime": v.get("departure_date") or v.get("departureTime"),
-    }
+    })
 
 
 def _as_list(data: object) -> list:
@@ -207,6 +238,10 @@ async def _execute_tool(name: str, inp: dict, session: ConversationState) -> dic
     dispatch = TOOL_DISPATCH.get(name)
     if not dispatch:
         return {"success": False, "error": f"Unknown tool: {name}"}
+    # Server-side inject the verified session user id; never trust a model-supplied
+    # user_id for user-scoped mutations (Issue 10).
+    if name in _USER_SCOPED_TOOLS:
+        inp = {**inp, "user_id": session.user_id}
     method, path = dispatch
     backend = get_backend_client()
     kwargs = {"json": inp} if method == "POST" else {"params": inp}
@@ -229,6 +264,7 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
 
         if response.stop_reason == "end_turn":
             text = next((b.text for b in response.content if b.type == "text"), "")
+            text = _sanitize_assistant_text(text)
             session.messages.append({"role": "assistant", "content": text})
             return text, _build_content_payload(all_tool_results)
 
@@ -307,10 +343,10 @@ async def run_agent_streaming(
 
         if response.stop_reason == "end_turn":
             text = next((b.text for b in response.content if b.type == "text"), "")
-            full_text = accumulated_text if streamed else text
+            full_text = _sanitize_assistant_text(accumulated_text if streamed else text)
             # Only emit a stream chunk if we didn't already stream the text
-            if not streamed and text:
-                yield {"type": "agent_stream_chunk", "delta": text}
+            if not streamed and full_text:
+                yield {"type": "agent_stream_chunk", "delta": full_text}
             session.messages.append({"role": "assistant", "content": full_text})
             yield {"type": "final", "text": full_text, "content_payload": _build_content_payload(all_tool_results), "requires_payment": _extract_booking_hold(all_tool_results)}
             return
@@ -318,6 +354,17 @@ async def run_agent_streaming(
         tool_calls = [b for b in response.content if b.type == "tool_use"]
         if not tool_calls:
             break
+
+        # Deferred-auth gate: a guest cannot create a booking hold. Emit
+        # requires_login instead of calling the tool with an invalid user_id.
+        if not session.is_authenticated and any(
+            b.name == "create_booking_hold" for b in tool_calls
+        ):
+            yield {
+                "type": "requires_login",
+                "text": "Please log in or create an account to complete your booking. Your chat will continue right here.",
+            }
+            return
 
         # OpenAI-compatible format: assistant message with tool_calls array
         assistant_msg: dict = {"role": "assistant", "content": None, "tool_calls": []}

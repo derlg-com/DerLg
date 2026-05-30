@@ -12,15 +12,15 @@ import { Type } from 'class-transformer';
 
 export class SearchTripsDto {
   @IsString() destination: string;
-  @IsNumber() @Type(() => Number) duration_days: number;
-  @IsNumber() @Type(() => Number) people_count: number;
-  @IsNumber() @Type(() => Number) budget_usd: number;
+  @IsOptional() @IsNumber() @Type(() => Number) duration_days?: number;
+  @IsOptional() @IsNumber() @Type(() => Number) people_count?: number;
+  @IsOptional() @IsNumber() @Type(() => Number) budget_usd?: number;
 }
 
 export class SearchHotelsDto {
   @IsString() city: string;
-  @IsDateString() check_in: string;
-  @IsDateString() check_out: string;
+  @IsOptional() @IsDateString() check_in?: string;
+  @IsOptional() @IsDateString() check_out?: string;
   @IsOptional() @IsNumber() @Type(() => Number) price_range?: number;
 }
 

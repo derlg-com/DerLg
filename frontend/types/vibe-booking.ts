@@ -32,6 +32,7 @@ export interface WsAuthMessage {
   user_id: string
   preferred_language: 'EN' | 'ZH' | 'KH'
   session_id?: string
+  token?: string
 }
 
 export interface WsUserMessage {

@@ -18,6 +18,8 @@ export const TripSchema = z.object({
   imageUrl: z.string().optional(),
   highlights: z.array(z.string()).optional(),
   includes: z.array(z.string()).optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 })
 
 export const TripCardsPayloadSchema = z.object({

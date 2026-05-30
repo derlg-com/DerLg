@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { SingleResourceKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   SearchTripsDto,
@@ -27,7 +28,11 @@ export class AiToolsService {
     const trips = await this.prisma.trip.findMany({
       where: {
         isPublished: true,
-        ...(dto.duration_days ? { durationDays: dto.duration_days } : {}),
+        // Duration is a ±2-day tolerance window (not exact) so a 5-day trip
+        // still surfaces for a "3 day" request instead of returning empty.
+        ...(dto.duration_days
+          ? { durationDays: { gte: dto.duration_days - 2, lte: dto.duration_days + 2 } }
+          : {}),
         ...(dto.budget_usd ? { basePriceUsd: { lte: dto.budget_usd } } : {}),
         ...(dto.destination
           ? {
@@ -193,8 +198,9 @@ export class AiToolsService {
       const booked = await this.prisma.bookingItem.count({
         where: {
           vehicleId: dto.item_id,
-          date,
-          booking: { status: { in: ['reserved', 'confirmed'] } },
+          startDate: { lte: date },
+          endDate: { gte: date },
+          booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } },
         },
       });
       return {
@@ -229,12 +235,14 @@ export class AiToolsService {
     const expiresAt = new Date(Date.now() + HOLD_TTL_MIN * 60 * 1000);
     const reference = `DLG-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000 + 10000)}`;
     const travelDate = new Date(dto.travel_date);
-    const singleResourceKind =
+    const singleResourceKind: SingleResourceKind =
       dto.item_type === 'trip'
         ? 'trip'
         : dto.item_type === 'hotel'
           ? 'hotel'
-          : 'guide';
+          : dto.item_type === 'transport'
+            ? 'transportation'
+            : 'guide';
 
     return this.prisma.$transaction(async (tx) => {
       let unitPrice = 0;
@@ -249,7 +257,7 @@ export class AiToolsService {
         if (!trip) throw new NotFoundException('Trip not found');
         // Atomic availability check
         const booked = await tx.bookingItem.count({
-          where: { tripId: dto.item_id, date: travelDate, booking: { status: { in: ['reserved', 'confirmed'] } } },
+          where: { tripId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
         });
         if (booked >= trip.maxCapacity) throw new Error('Trip is fully booked for this date');
         unitPrice = Number(trip.basePriceUsd);
@@ -258,7 +266,7 @@ export class AiToolsService {
         const room = await tx.hotelRoom.findUnique({ where: { id: dto.item_id } });
         if (!room) throw new NotFoundException('Hotel room not found');
         const booked = await tx.bookingItem.count({
-          where: { hotelRoomId: dto.item_id, date: travelDate, booking: { status: { in: ['reserved', 'confirmed'] } } },
+          where: { hotelRoomId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
         });
         if (booked > 0) throw new Error('Hotel room is not available for this date');
         unitPrice = Number(room.priceUsd);
@@ -267,7 +275,7 @@ export class AiToolsService {
         const vehicle = await tx.transportationVehicle.findUnique({ where: { id: dto.item_id } });
         if (!vehicle) throw new NotFoundException('Vehicle not found');
         const booked = await tx.bookingItem.count({
-          where: { vehicleId: dto.item_id, date: travelDate, booking: { status: { in: ['reserved', 'confirmed'] } } },
+          where: { vehicleId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
         });
         if (booked >= vehicle.capacity) throw new Error('Vehicle is fully booked for this date');
         unitPrice = Number(vehicle.priceUsd);
@@ -276,7 +284,7 @@ export class AiToolsService {
         const guide = await tx.guide.findUnique({ where: { id: dto.item_id } });
         if (!guide) throw new NotFoundException('Guide not found');
         const booked = await tx.bookingItem.count({
-          where: { guideId: dto.item_id, date: travelDate, booking: { status: { in: ['reserved', 'confirmed'] } } },
+          where: { guideId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
         });
         if (booked > 0) throw new Error('Guide is not available for this date');
         unitPrice = Number(guide.pricePerDayUsd);
@@ -289,8 +297,10 @@ export class AiToolsService {
         data: {
           userId: dto.user_id,
           reference,
+          method: 'single_resource',
+          singleResourceKind,
           startDate: travelDate,
-          status: 'reserved',
+          status: 'hold',
           expiresAt,
           subtotalUsd: subtotal,
           totalUsd: subtotal,
@@ -302,7 +312,9 @@ export class AiToolsService {
               ...(dto.item_type === 'hotel' ? { hotelRoomId: dto.item_id } : {}),
               ...(dto.item_type === 'guide' ? { guideId: dto.item_id } : {}),
               ...(dto.item_type === 'transport' ? { vehicleId: dto.item_id } : {}),
-              date: travelDate,
+              startDate: travelDate,
+              endDate: travelDate,
+              snapshot: {},
               quantity: dto.people_count,
               unitPriceUsd: unitPrice,
               subtotalUsd: subtotal,

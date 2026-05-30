@@ -7,7 +7,7 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "search_trips",
-            "description": "Search Cambodia trip packages. Call after gathering destination, duration, people count, and budget.",
+            "description": "Search Cambodia trip packages by destination. Call immediately; duration, people count, and budget are optional refinements — omit them if the user didn't specify.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -16,7 +16,7 @@ ALL_TOOLS = [
                     "people_count": {"type": "integer", "description": "Number of travelers"},
                     "budget_usd": {"type": "number", "description": "Max budget per person in USD"},
                 },
-                "required": ["destination", "duration_days", "people_count", "budget_usd"],
+                "required": ["destination"],
             },
         },
     },
@@ -94,17 +94,16 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "create_booking_hold",
-            "description": "Create a 15-minute booking hold. Only call after explicit user confirmation.",
+            "description": "Create a 15-minute booking hold. Only call after explicit user confirmation. The user_id is supplied automatically by the server — do not include it.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "user_id": {"type": "string"},
                     "item_type": {"type": "string", "enum": ["trip", "hotel", "guide", "transport"]},
                     "item_id": {"type": "string"},
                     "travel_date": {"type": "string", "description": "YYYY-MM-DD"},
                     "people_count": {"type": "integer"},
                 },
-                "required": ["user_id", "item_type", "item_id", "travel_date", "people_count"],
+                "required": ["item_type", "item_id", "travel_date", "people_count"],
             },
         },
     },
@@ -173,15 +172,14 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "send_sos_alert",
-            "description": "Send SOS emergency alert. Only call when user explicitly requests emergency help.",
+            "description": "Send SOS emergency alert. Only call when user explicitly requests emergency help. The user_id is supplied automatically by the server — do not include it.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "user_id": {"type": "string"},
                     "location": {"type": "string"},
                     "message": {"type": "string"},
                 },
-                "required": ["user_id", "location", "message"],
+                "required": ["location", "message"],
             },
         },
     },

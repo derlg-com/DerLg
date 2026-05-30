@@ -16,6 +16,22 @@
     "tryAgain": "Try Again",
     "reset": "Reset"
   },
+  "auth": {
+    "title": "Log in to complete your booking",
+    "subtitle": "Your chat continues right here after you sign in.",
+    "email": "Email",
+    "password": "Password",
+    "login": "Log in",
+    "register": "Create account",
+    "needAccount": "Need an account? Sign up",
+    "haveAccount": "Have an account? Log in"
+  },
+  "share": {
+    "button": "Share chat",
+    "warning": "Anyone with this link can continue your chat and drive your booking. Share it only with people you trust. Continue?",
+    "copied": "Share link copied to clipboard.",
+    "copyManual": "Copy this link to share your chat:"
+  },
   "chat": {
     "title": "DerLg AI Concierge",
     "placeholder": "Tell me about your dream trip…",

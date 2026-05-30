@@ -5,6 +5,7 @@ from pydantic import BaseModel, field_validator
 class ConversationState(BaseModel):
     session_id: str
     user_id: str = ""
+    is_authenticated: bool = False
     messages: list[dict] = []
     preferred_language: str = "EN"
     last_active: datetime = datetime.utcnow()
