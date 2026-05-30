@@ -36,6 +36,18 @@ export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
   const { layout, panelRef, startDrag, startResize, resetLayout, toggleCollapsed, onKeyDown } =
     useDraggableResizable()
   const setLayout = useVibeBookingStore((s) => s.setLayout)
+  const clearMessages = useVibeBookingStore((s) => s.clearMessages)
+  const clearAllContent = useVibeBookingStore((s) => s.clearAllContent)
+  const clearBooking = useVibeBookingStore((s) => s.clearBooking)
+  const setSessionId = useVibeBookingStore((s) => s.setSessionId)
+
+  const handleReset = () => {
+    resetLayout()
+    clearMessages()
+    clearAllContent()
+    clearBooking()
+    setSessionId('')
+  }
 
   // Initialize default Y/height once on mount
   const initRef = useRef(false)
@@ -96,7 +108,7 @@ export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
               <LanguageSwitcher />
               <button
                 type="button"
-                onClick={resetLayout}
+                onClick={handleReset}
                 className="text-xs px-2 py-1 rounded hover:bg-muted text-muted-foreground"
                 aria-label="Reset panel layout"
               >

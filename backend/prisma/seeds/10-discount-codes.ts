@@ -87,8 +87,9 @@ export = async function seed(prisma: PrismaClient): Promise<void> {
   console.log('  • discount_codes');
 
   for (const d of DISCOUNT_CODES) {
-    await prisma.discountCode.create({
-      data: {
+    await prisma.discountCode.upsert({
+      where: { code: d.code },
+      create: {
         code: d.code,
         discountType: d.discountType,
         value: d.value,
@@ -99,6 +100,7 @@ export = async function seed(prisma: PrismaClient): Promise<void> {
         isActive: d.isActive,
         bookingType: d.bookingType,
       },
+      update: {},
     });
   }
   console.log(`  ✅ Created ${DISCOUNT_CODES.length} discount codes`);

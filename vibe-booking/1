@@ -1,0 +1,27 @@
+INFO:     Will watch for changes in these directories: ['/home/rayu/DerLg/vibe-booking']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [3294323] using WatchFiles
+INFO:     Started server process [3294418]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 45010) - "WebSocket /ws/chat" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 45014) - "WebSocket /ws/chat" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 57830) - "WebSocket /ws/chat" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 47982) - "WebSocket /ws/chat" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     ('127.0.0.1', 50774) - "WebSocket /ws/chat" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     ('127.0.0.1', 50808) - "WebSocket /ws/chat" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 50814) - "WebSocket /ws/chat" [accepted]
+INFO:     connection open
+INFO:     ('127.0.0.1', 50826) - "WebSocket /ws/chat" [accepted]
+INFO:     connection open

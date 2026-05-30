@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import ContentStage from '@/components/vibe-booking/ContentStage';
 import { useVibeBookingStore } from '@/stores/vibe-booking.store';
@@ -8,9 +8,10 @@ const seedItem = (type: ContentItem['type'], data: Record<string, unknown>): Con
   id: `id-${type}-${Math.random().toString(36).slice(2, 8)}`,
   type,
   data,
-  status: 'rendered',
-  metadata: undefined,
+  status: 'ready',
+  metadata: {},
   actions: [],
+  timestamp: new Date().toISOString(),
 });
 
 beforeEach(() => {

@@ -61,6 +61,8 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
     [],
   )
 
+  const connectRef = useRef<(() => void) | null>(null)
+
   const connect = useCallback(() => {
     store.setConnectionStatus('connecting')
     const socket = new WebSocket(`${AI_WS_URL}/ws/chat`)
@@ -79,7 +81,7 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
         }),
       )
       // Heartbeat
-      heartbeatTimer.current && clearInterval(heartbeatTimer.current)
+      if (heartbeatTimer.current) clearInterval(heartbeatTimer.current)
       heartbeatTimer.current = setInterval(() => {
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: 'ping' }))
@@ -102,15 +104,18 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
           store.setStreaming(true)
           break
 
-        case 'typing_end':
+        case 'typing_end': {
           store.setTyping(false)
           store.setStreaming(false)
           break
+        }
 
         case 'conversation_started':
-        case 'conversation_resumed':
+        case 'conversation_resumed': {
+          const currentState = useVibeBookingStore.getState()
+          const isNew = !currentState.sessionId && currentState.messages.length === 0
           if (data.session_id) store.setSessionId(data.session_id)
-          if (data.text) {
+          if (data.text && isNew) {
             store.addMessage({
               id: uuid(),
               role: 'assistant',
@@ -120,6 +125,7 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
             })
           }
           break
+        }
 
         case 'agent_stream_chunk': {
           const delta = String(data.delta ?? '')
@@ -135,32 +141,51 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
             store.setSessionId(data.session_id)
           }
 
-          const msgId = uuid()
-          store.addMessage({
-            id: msgId,
-            role: 'assistant',
-            content: data.text ?? '',
-            type: 'text',
-            timestamp: new Date().toISOString(),
-          })
+          // If streaming produced a message, update it instead of adding a duplicate
+          const currentMessages = useVibeBookingStore.getState().messages
+          const lastMsg = currentMessages[currentMessages.length - 1]
+          let msgId: string
+          if (lastMsg && lastMsg.role === 'assistant' && lastMsg.type === 'text') {
+            // Reuse the streaming message ID and update its content
+            msgId = lastMsg.id
+            // Update the last message with the final text
+            const newText = data.text ?? ''
+            if (lastMsg.content !== newText) {
+              useVibeBookingStore.getState().messages[currentMessages.length - 1].content = newText
+            }
+          } else {
+            msgId = uuid()
+            store.addMessage({
+              id: msgId,
+              role: 'assistant',
+              content: data.text ?? '',
+              type: 'text',
+              timestamp: new Date().toISOString(),
+            })
+          }
 
           const raw = data.content_payload
           if (raw) {
             const parsed = ContentPayloadSchema.safeParse(raw)
             if (parsed.success) {
+              const itemType = parsed.data.type as ContentItem['type']
+              // Deduplicate: remove existing content items of the same type
+              // to prevent duplicate hotel cards, budget estimates, etc.
+              const existingItems = useVibeBookingStore.getState().contentItems
+              const existingOfType = existingItems.filter((i) => i.type === itemType)
+              for (const existing of existingOfType) {
+                store.removeContentItem(existing.id)
+              }
+
               const item: ContentItem = {
                 id: uuid(),
-                type: parsed.data.type as ContentItem['type'],
+                type: itemType,
                 data: (parsed.data as { data?: unknown }).data ?? parsed.data,
                 actions: (raw.actions as ContentAction[]) ?? [],
                 metadata: (raw.metadata as ContentMetadata) ?? {},
                 status: 'ready',
                 timestamp: new Date().toISOString(),
                 linkedMessageId: msgId,
-              }
-              if (raw.metadata?.replace) {
-                const last = store.contentItems.at(-1)
-                if (last) store.removeContentItem(last.id)
               }
               store.addContentItem(item)
             }
@@ -250,13 +275,16 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
       if (retries.current < MAX_RETRIES) {
         const delay = Math.min(1000 * 2 ** retries.current, 30000)
         retries.current++
-        retryTimer.current = setTimeout(connect, delay)
+        retryTimer.current = setTimeout(() => connectRef.current?.(), delay)
       }
     }
 
     socket.onerror = () => store.setConnectionStatus('error')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, language, flushOutbox])
+
+  // Keep ref in sync so onclose can call the latest connect without capturing it
+  useEffect(() => { connectRef.current = connect }, [connect])
 
   useEffect(() => {
     connect()

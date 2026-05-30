@@ -63,7 +63,11 @@
     "select": "Select"
   },
   "budget": {
-    "title": "Budget Estimate"
+    "title": "Budget Estimate",
+    "accommodation": "Accommodation",
+    "food_drink": "Food & Drink",
+    "local_transport": "Local Transport",
+    "activities_tours": "Activities & Tours"
   },
   "compare": {
     "title": "Compare Options",
