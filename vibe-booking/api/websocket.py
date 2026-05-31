@@ -52,6 +52,29 @@ def _sanitize_input(text: str) -> str:
     return _INJECTION_PATTERNS.sub("", text).strip()
 
 
+# Inbound frame contract: type → field that must be a non-empty string.
+_INBOUND_REQUIRED: dict[str, str | None] = {
+    "ping": None,
+    "user_message": "content",
+    "user_action": "action_type",
+    "payment_completed": "booking_id",
+}
+
+
+def _valid_inbound(msg: object) -> bool:
+    """A frame is valid if it's an object with a known `type` and its required
+    field present as a non-empty string. Unknown/malformed frames are rejected."""
+    if not isinstance(msg, dict):
+        return False
+    mtype = msg.get("type")
+    if mtype not in _INBOUND_REQUIRED:
+        return False
+    field = _INBOUND_REQUIRED[mtype]
+    if field is None:
+        return True
+    return isinstance(msg.get(field), str) and bool(msg[field].strip())
+
+
 def _verify_jwt(token: str) -> str | None:
     """Verify an HS256 token signed by the backend (JWT_ACCESS_SECRET).
 
@@ -168,6 +191,11 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             try:
                 msg = json.loads(raw_msg)
             except json.JSONDecodeError:
+                continue
+            # Validate the inbound frame: must be an object with a known type and
+            # its required field(s). Malformed/unknown frames are ignored so a bad
+            # client message can't crash the socket.
+            if not _valid_inbound(msg):
                 continue
 
             if msg.get("type") == "ping":

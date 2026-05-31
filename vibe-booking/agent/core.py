@@ -135,6 +135,48 @@ def _norm_transport(v: dict) -> dict:
     })
 
 
+def _norm_trip_detail(t: dict) -> dict:
+    """Backend TripDetail (camelCase already) → frontend trip_detail payload.
+    Coords come from a geo lookup over meeting point / name / description."""
+    name = t.get("title") or t.get("name", "")
+    coords = lookup_coords(t.get("meetingPoint"), name, t.get("description"))
+    itinerary = [
+        {"day": it.get("dayNumber", 0), "title": it.get("title", ""), "description": it.get("description")}
+        for it in (t.get("itinerary") or [])
+    ]
+    return _strip_none({
+        "id": t.get("id", ""),
+        "name": name,
+        "description": t.get("description"),
+        "priceUsd": t.get("basePriceUsd") or t.get("priceUsd") or 0,
+        "durationDays": t.get("durationDays", 0),
+        "imageUrl": t.get("coverImage"),
+        "images": t.get("images") or None,
+        "included": t.get("includedItems") or None,
+        "excluded": t.get("excludedItems") or None,
+        "itinerary": itinerary or None,
+        "lat": coords[0] if coords else None,
+        "lng": coords[1] if coords else None,
+    })
+
+
+def _norm_hotel_detail(h: dict) -> dict:
+    """Backend HotelDetail → frontend hotel_detail payload (coords are real)."""
+    return _strip_none({
+        "id": h.get("id", ""),
+        "name": h.get("name", ""),
+        "address": h.get("address"),
+        "description": h.get("description"),
+        "priceUsd": h.get("priceUsd") or 0,
+        "rating": h.get("starRating") or h.get("rating"),
+        "imageUrl": (h.get("images") or [None])[0],
+        "images": h.get("images") or None,
+        "amenities": h.get("amenities") or None,
+        "lat": h.get("latitude"),
+        "lng": h.get("longitude"),
+    })
+
+
 def _as_list(data: object) -> list:
     """Backend returns arrays directly; handle both list and dict-with-key."""
     if isinstance(data, list):
@@ -281,6 +323,14 @@ def _build_content_payload(
                     "metadata": {},
                 }
 
+        if tool_name == "get_trip_detail":
+            if isinstance(raw, dict) and raw.get("id"):
+                return {"type": "trip_detail", "data": _norm_trip_detail(raw), "actions": [], "metadata": {}}
+
+        if tool_name == "get_hotel_detail":
+            if isinstance(raw, dict) and raw.get("id"):
+                return {"type": "hotel_detail", "data": _norm_hotel_detail(raw), "actions": [], "metadata": {}}
+
     return None
 
 
@@ -293,6 +343,12 @@ async def _execute_tool(name: str, inp: dict, session: ConversationState) -> dic
     if name in _USER_SCOPED_TOOLS:
         inp = {**inp, "user_id": session.user_id}
     method, path = dispatch
+    # Path templates like "trips/{trip_id}" are filled from input; those keys are
+    # then dropped so they aren't also sent as query params/body.
+    if "{" in path:
+        inp = dict(inp)
+        for key in re.findall(r"\{(\w+)\}", path):
+            path = path.replace("{" + key + "}", str(inp.pop(key, "")))
     backend = get_backend_client()
     kwargs = {"json": inp} if method == "POST" else {"params": inp}
     return await backend.request(method, path, language=session.preferred_language.lower(), **kwargs)

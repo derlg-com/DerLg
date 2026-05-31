@@ -210,6 +210,30 @@ ALL_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_trip_detail",
+            "description": "Get the full details of one trip package (itinerary, photos, inclusions) by its id. Call this when the user wants to view a trip's details.",
+            "parameters": {
+                "type": "object",
+                "properties": {"trip_id": {"type": "string"}},
+                "required": ["trip_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_hotel_detail",
+            "description": "Get the full details of one hotel (amenities, photos, address) by its id. Call this when the user wants to view a hotel's details.",
+            "parameters": {
+                "type": "object",
+                "properties": {"hotel_id": {"type": "string"}},
+                "required": ["hotel_id"],
+            },
+        },
+    },
 ]
 
 # Maps tool name → (HTTP method, backend path) — must match ai-tools.controller.ts exactly
@@ -227,4 +251,7 @@ TOOL_DISPATCH: dict[str, tuple[str, str]] = {
     "send_sos_alert":         ("POST", "ai-tools/sos"),
     "generate_payment_qr":    ("POST", "ai-tools/payments/qr"),
     "get_user_loyalty":       ("GET",  "ai-tools/loyalty"),
+    # Path-templated GETs to the public detail endpoints ({..} filled from input).
+    "get_trip_detail":        ("GET",  "trips/{trip_id}"),
+    "get_hotel_detail":       ("GET",  "hotels/{hotel_id}"),
 }

@@ -6,6 +6,7 @@ breaking a card in the browser (the frontend drops payloads that fail
 ContentPayloadSchema.safeParse).
 """
 import asyncio
+import re
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -30,6 +31,8 @@ BACKEND_ROUTES = {
     "send_sos_alert":         ("POST", "ai-tools/sos",                {"location", "message"}),
     "generate_payment_qr":    ("POST", "ai-tools/payments/qr",        {"booking_id", "provider"}),
     "get_user_loyalty":       ("GET",  "ai-tools/loyalty",            set()),  # user_id server-injected
+    "get_trip_detail":        ("GET",  "trips/{trip_id}",             {"trip_id"}),
+    "get_hotel_detail":       ("GET",  "hotels/{hotel_id}",           {"hotel_id"}),
 }
 
 # user_id is injected server-side for these, so it must NOT be a model-required param.
@@ -183,11 +186,16 @@ def test_every_tool_dispatches_to_its_backend_route():
     mock_backend.request = AsyncMock(return_value={"success": True, "data": {}})
 
     with patch("agent.core.get_backend_client", return_value=mock_backend):
-        for name, (method, path, _) in BACKEND_ROUTES.items():
+        for name, (method, path, required) in BACKEND_ROUTES.items():
             mock_backend.request.reset_mock()
-            asyncio.run(_execute_tool(name, {"probe": "x"}, session))
+            # Provide values for any path-template keys so the path resolves.
+            inp = {"probe": "x"}
+            for key in re.findall(r"\{(\w+)\}", path):
+                inp[key] = "ID1"
+            expected_path = re.sub(r"\{(\w+)\}", "ID1", path)
+            asyncio.run(_execute_tool(name, inp, session))
             args, kwargs = mock_backend.request.call_args
-            assert args[0] == method and args[1] == path, f"{name} routed wrong"
+            assert args[0] == method and args[1] == expected_path, f"{name} routed wrong"
             assert ("json" in kwargs) == (method == "POST")
             assert ("params" in kwargs) == (method == "GET")
             if name in _SERVER_INJECTED:
