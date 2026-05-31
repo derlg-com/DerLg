@@ -6,6 +6,29 @@ from agent.models.client import ModelClient, ModelResponse, ContentBlock
 from config.settings import settings
 from utils.logging import logger
 
+# Retry config for transient NVIDIA failures (esp. 429 rate limits, which were
+# the root cause of "the AI sometimes doesn't call the tool").
+_MAX_ATTEMPTS = 4
+_BASE_BACKOFF = 1.0  # seconds; exponential, capped
+
+
+def _retry_delay(exc: Exception, attempt: int) -> float | None:
+    """Return seconds to wait before retrying a transient error, or None if the
+    error is not retryable. Honors the server's Retry-After header on 429."""
+    if isinstance(exc, (httpx.TimeoutException, httpx.TransportError)):
+        return min(_BASE_BACKOFF * (2 ** attempt), 10.0)
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code
+        if status == 429 or status >= 500:
+            retry_after = exc.response.headers.get("retry-after")
+            if retry_after:
+                try:
+                    return min(float(retry_after), 15.0)
+                except ValueError:
+                    pass
+            return min(_BASE_BACKOFF * (2 ** attempt), 10.0)
+    return None
+
 
 class NvidiaClient(ModelClient):
     """NVIDIA NIM API client (OpenAI-compatible endpoint)."""
@@ -31,7 +54,7 @@ class NvidiaClient(ModelClient):
             "tools": self._convert_tools(tools),
             "max_tokens": max_tokens,
         }
-        for attempt in range(2):
+        for attempt in range(_MAX_ATTEMPTS):
             try:
                 t0 = time.monotonic()
                 resp = await self._client.post("/chat/completions", json=payload)
@@ -47,10 +70,11 @@ class NvidiaClient(ModelClient):
                 )
                 return self._parse(data)
             except Exception as exc:
-                if attempt == 1:
+                delay = _retry_delay(exc, attempt)
+                if delay is None or attempt == _MAX_ATTEMPTS - 1:
                     raise
-                logger.warning("nvidia_retry", error=str(exc))
-                await asyncio.sleep(1)
+                logger.warning("nvidia_retry", attempt=attempt, retry_in=round(delay, 2), error=str(exc))
+                await asyncio.sleep(delay)
         raise RuntimeError("unreachable")
 
     def _convert_tools(self, tools: list[dict]) -> list[dict]:
@@ -172,6 +196,12 @@ class NvidiaClient(ModelClient):
                 choice = chunk.get("choices", [{}])[0]
                 finish_reason = choice.get("finish_reason") or finish_reason
                 delta = choice.get("delta", {})
+
+                # Reasoning delta (reasoning models expose chain-of-thought here,
+                # separate from the final answer). Streamed as a distinct chunk.
+                reasoning_delta = delta.get("reasoning_content") or delta.get("reasoning") or ""
+                if reasoning_delta:
+                    yield {"reasoning": reasoning_delta}
 
                 # Text delta
                 text_delta = delta.get("content") or ""

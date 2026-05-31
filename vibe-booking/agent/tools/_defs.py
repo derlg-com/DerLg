@@ -24,16 +24,16 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "search_hotels",
-            "description": "Search hotels by city, check-in/out dates, and optional price range.",
+            "description": "Search hotels by city, with optional check-in/out dates and price range.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "city": {"type": "string"},
-                    "check_in": {"type": "string", "description": "YYYY-MM-DD"},
-                    "check_out": {"type": "string", "description": "YYYY-MM-DD"},
+                    "check_in": {"type": "string", "description": "YYYY-MM-DD (optional)"},
+                    "check_out": {"type": "string", "description": "YYYY-MM-DD (optional)"},
                     "price_range": {"type": "number", "description": "Max price per night in USD"},
                 },
-                "required": ["city", "check_in", "check_out"],
+                "required": ["city"],
             },
         },
     },
@@ -202,13 +202,11 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_user_loyalty",
-            "description": "Get user's loyalty points balance.",
+            "description": "Get the current user's loyalty points balance. The user_id is supplied automatically by the server — do not include it.",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "user_id": {"type": "string"},
-                },
-                "required": ["user_id"],
+                "properties": {},
+                "required": [],
             },
         },
     },

@@ -39,7 +39,18 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const heartbeatTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const outbox = useRef<WsOutbound[]>(loadQueue())
+  // Tracks the content item optimistically marked "streaming" by an action so
+  // it can be cleared on the real response (typing_end), not a fixed timer.
+  const pendingActionItem = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null)
   const store = useVibeBookingStore()
+
+  const clearPendingAction = useCallback(() => {
+    const pending = pendingActionItem.current
+    if (!pending) return
+    clearTimeout(pending.timer)
+    useVibeBookingStore.getState().updateContentItem(pending.id, { status: 'ready' })
+    pendingActionItem.current = null
+  }, [])
 
   const flushOutbox = useCallback(() => {
     if (ws.current?.readyState !== WebSocket.OPEN) return
@@ -104,11 +115,22 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
         case 'typing_start':
           store.setTyping(true)
           store.setStreaming(true)
+          store.clearReasoning()
           break
+
+        case 'agent_reasoning_chunk': {
+          const delta = String(data.delta ?? '')
+          if (delta) store.appendReasoning(delta)
+          break
+        }
 
         case 'typing_end': {
           store.setTyping(false)
           store.setStreaming(false)
+          store.setToolStatus(null)
+          // Clear any action-triggered optimistic "streaming" card now that the
+          // real response has arrived (replaces the fixed 8s timer — BUG-3).
+          clearPendingAction()
           break
         }
 
@@ -171,25 +193,38 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
             const parsed = ContentPayloadSchema.safeParse(raw)
             if (parsed.success) {
               const itemType = parsed.data.type as ContentItem['type']
-              // Deduplicate: remove existing content items of the same type
-              // to prevent duplicate hotel cards, budget estimates, etc.
+              // Deduplicate by type (one card per type). Reuse the existing
+              // item's id and update it IN PLACE so its React key stays stable
+              // and <Image> does not remount/refetch on every message (the
+              // "image requested many times" churn). Drop any extra duplicates.
               const existingItems = useVibeBookingStore.getState().contentItems
               const existingOfType = existingItems.filter((i) => i.type === itemType)
-              for (const existing of existingOfType) {
-                store.removeContentItem(existing.id)
-              }
+              const data = (parsed.data as { data?: unknown }).data ?? parsed.data
+              const actions = (raw.actions as ContentAction[]) ?? []
+              const metadata = (raw.metadata as ContentMetadata) ?? {}
 
-              const item: ContentItem = {
-                id: uuid(),
-                type: itemType,
-                data: (parsed.data as { data?: unknown }).data ?? parsed.data,
-                actions: (raw.actions as ContentAction[]) ?? [],
-                metadata: (raw.metadata as ContentMetadata) ?? {},
-                status: 'ready',
-                timestamp: new Date().toISOString(),
-                linkedMessageId: msgId,
+              if (existingOfType.length > 0) {
+                const [keep, ...extras] = existingOfType
+                for (const dup of extras) store.removeContentItem(dup.id)
+                store.updateContentItem(keep.id, {
+                  data,
+                  actions,
+                  metadata,
+                  status: 'ready',
+                  linkedMessageId: msgId,
+                })
+              } else {
+                store.addContentItem({
+                  id: uuid(),
+                  type: itemType,
+                  data,
+                  actions,
+                  metadata,
+                  status: 'ready',
+                  timestamp: new Date().toISOString(),
+                  linkedMessageId: msgId,
+                })
               }
-              store.addContentItem(item)
             }
           }
           break
@@ -272,7 +307,9 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
         }
 
         case 'agent_tool_status':
-          // Optional: surface tool execution status in UI later
+          // Surface the running tool name so the loading label can show
+          // "Searching hotels…" instead of a static "Thinking…".
+          store.setToolStatus(data.status === 'running' ? String(data.name ?? '') : null)
           break
 
         case 'error':
@@ -329,10 +366,17 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
 
   const sendAction = useCallback(
     (actionType: string, itemId?: string, payload?: Record<string, unknown>) => {
-      // Optimistic UI: mark the source item as streaming while AI processes
+      // Optimistic UI: mark the source item streaming while the AI processes,
+      // cleared on the real typing_end response (clearPendingAction). The timer
+      // is only a safety fallback if no response arrives.
       if (itemId) {
+        clearPendingAction()
         store.updateContentItem(itemId, { status: 'streaming' })
-        setTimeout(() => store.updateContentItem(itemId, { status: 'ready' }), 8000)
+        const timer = setTimeout(() => {
+          store.updateContentItem(itemId, { status: 'ready' })
+          pendingActionItem.current = null
+        }, 30000)
+        pendingActionItem.current = { id: itemId, timer }
       }
       if (actionType === 'payment_completed') {
         send({ type: 'payment_completed', ...payload } as unknown as WsOutbound)
@@ -340,7 +384,7 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
         send({ type: 'user_action', action_type: actionType, item_id: itemId, payload })
       }
     },
-    [send, store],
+    [send, store, clearPendingAction],
   )
 
   // Reconnect on the same session_id after login so the auth message carries

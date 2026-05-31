@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps'
+import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps'
 import type { ContentItem } from '@/stores/vibe-booking.store'
 import { haversineKm, PHNOM_PENH, type LatLng } from '@/lib/geo'
 
@@ -48,11 +48,14 @@ export default function MapViewRenderer({ item }: Props) {
           <Map
             defaultCenter={center}
             defaultZoom={9}
+            mapId="derlg-vibe-booking"
             gestureHandling="greedy"
             disableDefaultUI
           >
             {markers.map((m) => (
-              <Marker key={m.id} position={{ lat: m.lat, lng: m.lng }} title={m.label} />
+              <AdvancedMarker key={m.id} position={{ lat: m.lat, lng: m.lng }} title={m.label}>
+                <Pin />
+              </AdvancedMarker>
             ))}
           </Map>
         </APIProvider>

@@ -1,5 +1,6 @@
 'use client'
 import Image from 'next/image'
+import { MapPin } from 'lucide-react'
 import { v4 as uuid } from 'uuid'
 import type { ContentItem } from '@/stores/vibe-booking.store'
 import type { TripCardsPayloadSchema } from '@/schemas/vibe-booking'
@@ -62,13 +63,13 @@ export default function TripCardsRenderer({ item, onAction }: Props) {
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => onAction('book_trip', trip.id, { tripId: trip.id })}
-                  className="flex-1 text-xs bg-primary text-primary-foreground rounded-md py-1.5 font-medium"
+                  className="flex-1 text-xs bg-primary text-primary-foreground rounded-md min-h-[44px] px-3 font-medium transition-colors hover:opacity-90 active:opacity-80"
                 >
                   Book Now
                 </button>
                 <button
                   onClick={() => onAction('view_trip_detail', trip.id, { tripId: trip.id })}
-                  className="flex-1 text-xs border border-border rounded-md py-1.5"
+                  className="flex-1 text-xs border border-border rounded-md min-h-[44px] px-3 transition-colors hover:bg-muted active:bg-muted/70"
                 >
                   Details
                 </button>
@@ -76,9 +77,9 @@ export default function TripCardsRenderer({ item, onAction }: Props) {
               {trip.lat != null && trip.lng != null && (
                 <button
                   onClick={() => showOnMap(trip)}
-                  className="w-full text-xs text-primary hover:underline pt-1 text-left"
+                  className="w-full text-xs text-primary hover:underline pt-1 inline-flex items-center gap-1 min-h-[44px] text-left"
                 >
-                  📍 Show on map
+                  <MapPin size={14} aria-hidden /> Show on map
                 </button>
               )}
             </div>

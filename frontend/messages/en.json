@@ -1,4 +1,20 @@
 {
+  "tools": {
+    "running": "Working…",
+    "search_trips": "Searching trips…",
+    "search_hotels": "Searching hotels…",
+    "search_guides": "Finding guides…",
+    "search_transport": "Finding transport…",
+    "check_availability": "Checking availability…",
+    "create_booking_hold": "Holding your booking…",
+    "check_payment_status": "Checking payment…",
+    "estimate_budget": "Estimating budget…",
+    "get_weather": "Checking weather…",
+    "get_emergency_contacts": "Finding emergency contacts…",
+    "send_sos_alert": "Sending SOS alert…",
+    "generate_payment_qr": "Generating payment QR…",
+    "get_user_loyalty": "Checking loyalty points…"
+  },
   "common": {
     "send": "Send",
     "thinking": "Thinking…",
@@ -14,7 +30,8 @@
     "loading": "Loading…",
     "error": "Something went wrong",
     "tryAgain": "Try Again",
-    "reset": "Reset"
+    "reset": "Reset",
+    "thinkingProcess": "Thinking process"
   },
   "auth": {
     "title": "Log in to complete your booking",
