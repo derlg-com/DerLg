@@ -63,10 +63,14 @@ export function useTranslations(namespace?: string) {
   const messages = MESSAGE_BUNDLES[locale] ?? MESSAGE_BUNDLES.en
   const fallback = MESSAGE_BUNDLES.en
 
-  return (key: string, vars?: Record<string, string | number>): string => {
+  return (key: string, vars?: Record<string, string | number>, fallbackKey?: string): string => {
     const fullKey = namespace ? `${namespace}.${key}` : key
-    const found = getMessage(messages, fullKey) ?? getMessage(fallback, fullKey) ?? fullKey
-    return interpolate(found, vars)
+    let found = getMessage(messages, fullKey) ?? getMessage(fallback, fullKey)
+    if (found === undefined && fallbackKey) {
+      const fbKey = namespace ? `${namespace}.${fallbackKey}` : fallbackKey
+      found = getMessage(messages, fbKey) ?? getMessage(fallback, fbKey)
+    }
+    return interpolate(found ?? fullKey, vars)
   }
 }
 

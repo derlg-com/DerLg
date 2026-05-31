@@ -3,6 +3,8 @@
 import { useRef, useEffect, useState } from 'react'
 import { useVibeBookingStore } from '@/stores/vibe-booking.store'
 import { useTranslations } from '@/lib/i18n'
+import MessageActions from '@/components/vibe-booking/MessageActions'
+import { PureMultimodalInput } from '@/components/ui/multimodal-ai-chat-input'
 
 interface Props {
   onSend: (text: string) => void
@@ -10,21 +12,19 @@ interface Props {
 }
 
 export default function ChatPanel({ onSend }: Props) {
-  const { messages, isTyping, connectionStatus } = useVibeBookingStore()
-  const [input, setInput] = useState('')
+  const { messages, isTyping, toolStatus, reasoningText, connectionStatus } = useVibeBookingStore()
+  const [showThinking, setShowThinking] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const t = useTranslations()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping])
+  }, [messages, isTyping, reasoningText])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const text = input.trim()
-    if (!text || connectionStatus !== 'connected') return
-    onSend(text)
-    setInput('')
+  const retryLast = () => {
+    if (connectionStatus !== 'connected') return
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user')
+    if (lastUser?.content) onSend(lastUser.content)
   }
 
   return (
@@ -46,7 +46,7 @@ export default function ChatPanel({ onSend }: Props) {
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div
               className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
@@ -59,35 +59,52 @@ export default function ChatPanel({ onSend }: Props) {
             >
               {msg.content}
             </div>
+            {msg.role === 'assistant' && msg.type !== 'error' && msg.content && (
+              <MessageActions content={msg.content} onRetry={retryLast} />
+            )}
           </div>
         ))}
+        {reasoningText && (
+          <div className="flex justify-start">
+            <div className="max-w-[90%] w-full rounded-2xl border border-border bg-muted/40 text-xs">
+              <button
+                type="button"
+                onClick={() => setShowThinking((v) => !v)}
+                className="flex w-full items-center gap-1.5 px-3 py-2 text-muted-foreground font-medium"
+                aria-expanded={showThinking}
+              >
+                <span className={isTyping ? 'animate-pulse' : ''}>💭</span>
+                {t('common.thinkingProcess')}
+                <span className="ml-auto">{showThinking ? '▾' : '▸'}</span>
+              </button>
+              {showThinking && (
+                <pre className="px-3 pb-2 whitespace-pre-wrap break-words font-sans text-muted-foreground/90 max-h-48 overflow-y-auto">
+                  {reasoningText}
+                </pre>
+              )}
+            </div>
+          </div>
+        )}
         {isTyping && (
           <div className="flex justify-start">
             <div className="bg-muted rounded-2xl px-3 py-2 text-sm text-muted-foreground animate-pulse">
-              {t('common.thinking')}
+              {toolStatus ? t(`tools.${toolStatus}`, undefined, 'tools.running') : t('common.thinking')}
             </div>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="px-4 py-3 border-t border-border flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+      <div className="px-4 py-3 border-t border-border">
+        <PureMultimodalInput
+          messages={messages}
+          onSendMessage={({ input }) => onSend(input)}
+          onStopGenerating={() => {}}
+          isGenerating={isTyping}
+          canSend={connectionStatus === 'connected'}
           placeholder={t('chat.placeholder')}
-          aria-label={t('chat.placeholder')}
-          className="flex-1 rounded-full border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
-          disabled={connectionStatus !== 'connected'}
         />
-        <button
-          type="submit"
-          disabled={!input.trim() || connectionStatus !== 'connected'}
-          className="rounded-full bg-primary text-primary-foreground px-4 py-2 text-sm font-medium disabled:opacity-40"
-        >
-          {t('common.send')}
-        </button>
-      </form>
+      </div>
     </div>
   )
 }

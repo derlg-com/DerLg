@@ -8,6 +8,7 @@ from starlette.websockets import WebSocketState
 from agent.session.state import ConversationState
 from agent.session.manager import SessionManager
 from agent.core import run_agent_streaming
+from agent.backend_client import get_backend_client
 from utils.logging import logger
 from utils.redis import check_rate_limit
 
@@ -45,27 +46,54 @@ RESUME = {
 
 
 def _sanitize_input(text: str) -> str:
+    """Trim to max length and strip injection-like tokens, preserving the rest
+    of the message instead of silently discarding it (M2)."""
     text = text.strip()[:_MAX_CONTENT_LENGTH]
-    if _INJECTION_PATTERNS.search(text):
-        return ""
-    return text
+    return _INJECTION_PATTERNS.sub("", text).strip()
 
 
 def _verify_jwt(token: str) -> str | None:
+    """Verify an HS256 token signed by the backend (JWT_ACCESS_SECRET).
+
+    Fails closed: if no secret is configured, or the signature/expiry is
+    invalid, returns None so the caller treats the request as unauthenticated.
+    """
     try:
         import jwt as pyjwt
-        from config.settings import settings
-        secret = getattr(settings, "jwt_secret", None)
-        if not secret:
-            payload = pyjwt.decode(token, options={"verify_signature": False})
-        else:
-            payload = pyjwt.decode(token, secret, algorithms=["HS256"])
+    except ImportError:
+        logger.error("pyjwt_not_installed")
+        return None
+    from config.settings import settings
+    if not settings.jwt_secret:
+        logger.error("jwt_secret_not_configured")
+        return None
+    try:
+        payload = pyjwt.decode(
+            token,
+            settings.jwt_secret,
+            algorithms=["HS256"],
+            options={"require": ["exp", "sub"], "verify_exp": True, "verify_signature": True},
+        )
         return payload.get("sub") or payload.get("user_id")
-    except Exception:
+    except pyjwt.InvalidTokenError:
         return None
 
 
+def _origin_allowed(origin: str | None) -> bool:
+    """Allow when no Origin header is present (non-browser clients), else the
+    Origin must be in the configured allowlist (CSWSH guard, H4)."""
+    if not origin:
+        return True
+    from config.settings import settings
+    allowed = {o.strip() for o in settings.allowed_ws_origins.split(",") if o.strip()}
+    return origin in allowed
+
+
 async def websocket_endpoint(websocket: WebSocket) -> None:
+    if not _origin_allowed(websocket.headers.get("origin")):
+        await _safe_close(websocket, code=4403)
+        return
+
     auth_header = websocket.headers.get("authorization", "")
     token = auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
 
@@ -115,6 +143,12 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     else:
         session.user_id = user_id
         session.is_authenticated = False
+
+    # Rate-limit on a key the client cannot freely rotate: the verified user id
+    # when authenticated, else the client IP for guests (H2). Never the
+    # client-supplied session_id.
+    client_ip = websocket.client.host if websocket.client else "unknown"
+    rate_limit_key = session.user_id if session.is_authenticated else f"ip:{client_ip}"
     # Accept both old uppercase (EN/ZH/KH) and new lowercase (en/zh/km) — normalize to uppercase for session
     raw_lang = str(auth.get("preferred_language", "EN")).upper()
     # Map KH → KH (Khmer), also accept KM as alias
@@ -148,14 +182,14 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 if not content:
                     continue
 
-                if not await check_rate_limit(session_id):
+                if not await check_rate_limit(rate_limit_key):
                     await websocket.send_json({"type": "error", "message": "Too many messages. Please wait."})
                     continue
 
                 await websocket.send_json({"type": "typing_start"})
                 try:
                     async for event in run_agent_streaming(session, content):
-                        if event["type"] in ("agent_stream_chunk", "agent_tool_status"):
+                        if event["type"] in ("agent_stream_chunk", "agent_reasoning_chunk", "agent_tool_status"):
                             await websocket.send_json(event)
                         elif event["type"] == "requires_login":
                             await session_manager.save(session)
@@ -186,7 +220,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 await websocket.send_json({"type": "typing_start"})
                 try:
                     async for event in run_agent_streaming(session, content):
-                        if event["type"] in ("agent_stream_chunk", "agent_tool_status"):
+                        if event["type"] in ("agent_stream_chunk", "agent_reasoning_chunk", "agent_tool_status"):
                             await websocket.send_json(event)
                         elif event["type"] == "requires_login":
                             await session_manager.save(session)
@@ -208,11 +242,29 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
             elif msg.get("type") == "payment_completed":
                 booking_id = str(msg.get("booking_id", ""))
-                confirm_text = f"Payment completed for booking {booking_id}. Please confirm the booking and provide next steps."
+                # Never trust the client's claim of payment. Require an
+                # authenticated session and confirm with the backend that the
+                # payment actually succeeded before continuing (H3).
+                if not session.is_authenticated or not booking_id:
+                    await websocket.send_json({"type": "error", "message": "Cannot verify payment."})
+                    continue
+                status_resp = await get_backend_client().request(
+                    "GET", "ai-tools/payments/status",
+                    language=session.preferred_language.lower(),
+                    params={"booking_id": booking_id},
+                )
+                pay_status = str((status_resp.get("data") or {}).get("status", "")).lower()
+                if not status_resp.get("success") or pay_status != "succeeded":
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Payment not confirmed yet. Please complete payment first.",
+                    })
+                    continue
+                confirm_text = f"Payment confirmed for booking {booking_id}. Please confirm the booking and provide next steps."
                 await websocket.send_json({"type": "typing_start"})
                 try:
                     async for event in run_agent_streaming(session, confirm_text):
-                        if event["type"] in ("agent_stream_chunk", "agent_tool_status"):
+                        if event["type"] in ("agent_stream_chunk", "agent_reasoning_chunk", "agent_tool_status"):
                             await websocket.send_json(event)
                         elif event["type"] == "requires_login":
                             await session_manager.save(session)

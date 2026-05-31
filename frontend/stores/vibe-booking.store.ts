@@ -90,6 +90,8 @@ interface VibeBookingState {
   messages: ChatMessage[]
   isTyping: boolean
   isStreaming: boolean
+  toolStatus: string | null
+  reasoningText: string
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error'
   sessionId: string | null
   addMessage: (message: ChatMessage) => void
@@ -97,6 +99,9 @@ interface VibeBookingState {
   finalizeStreamingMessage: (text: string) => string
   setTyping: (v: boolean) => void
   setStreaming: (v: boolean) => void
+  setToolStatus: (v: string | null) => void
+  appendReasoning: (delta: string) => void
+  clearReasoning: () => void
   setConnectionStatus: (s: VibeBookingState['connectionStatus']) => void
   setSessionId: (id: string) => void
   clearMessages: () => void
@@ -134,6 +139,8 @@ export const useVibeBookingStore = create<VibeBookingState>()(
       messages: [],
       isTyping: false,
       isStreaming: false,
+      toolStatus: null,
+      reasoningText: '',
       connectionStatus: 'disconnected',
       sessionId: null,
       addMessage: (message) =>
@@ -179,6 +186,12 @@ export const useVibeBookingStore = create<VibeBookingState>()(
       },
       setTyping: (v) => set({ isTyping: v }),
       setStreaming: (v) => set({ isStreaming: v }),
+      setToolStatus: (v) => set({ toolStatus: v }),
+      appendReasoning: (delta) =>
+        set((s) => {
+          s.reasoningText += delta
+        }),
+      clearReasoning: () => set({ reasoningText: '' }),
       setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
       setSessionId: (sessionId) => set({ sessionId }),
       clearMessages: () => set({ messages: [] }),

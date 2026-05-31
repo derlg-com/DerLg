@@ -14,8 +14,8 @@ MAX_TOOL_LOOPS = 5
 MAX_MESSAGES = 20
 MAX_TOKENS = 2048
 
-# Mutations whose user_id must come from the verified session, never the model.
-_USER_SCOPED_TOOLS = ("create_booking_hold", "send_sos_alert")
+# Mutations/reads whose user_id must come from the verified session, never the model.
+_USER_SCOPED_TOOLS = ("create_booking_hold", "send_sos_alert", "get_user_loyalty")
 
 # Matches raw tool-call JSON the model may leak as visible text instead of a
 # real tool call, e.g. {"name": "search_trips", "parameters": {...}}.
@@ -45,15 +45,63 @@ def _strip_none(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
-def _norm_trip(t: dict) -> dict:
+# Backend Prisma PaymentStatus → frontend Zod enum (PENDING|SUCCEEDED|FAILED|
+# CANCELLED). Unmapped/refund states collapse to the nearest allowed value so
+# the payment_status card validates instead of being silently dropped.
+_PAYMENT_STATUS_MAP = {
+    "pending": "PENDING",
+    "processing": "PENDING",
+    "succeeded": "SUCCEEDED",
+    "failed": "FAILED",
+    "refunded": "CANCELLED",
+    "partially_refunded": "CANCELLED",
+    "cancelled": "CANCELLED",
+    "canceled": "CANCELLED",
+}
+
+
+def _map_payment_status(status: object) -> str:
+    return _PAYMENT_STATUS_MAP.get(str(status or "").lower(), "PENDING")
+
+
+# Human-readable verb for each tool, used to narrate the AI's plan in the
+# "thinking" panel (the model emits no chain-of-thought on tool-use turns).
+_TOOL_INTENT = {
+    "search_trips": "Searching trips",
+    "search_hotels": "Searching hotels",
+    "search_guides": "Finding guides",
+    "search_transport": "Finding transport",
+    "check_availability": "Checking availability",
+    "create_booking_hold": "Holding the booking",
+    "check_payment_status": "Checking payment status",
+    "estimate_budget": "Estimating the budget",
+    "get_weather": "Checking the weather",
+    "get_emergency_contacts": "Finding emergency contacts",
+    "send_sos_alert": "Sending an SOS alert",
+    "generate_payment_qr": "Generating a payment QR",
+    "get_user_loyalty": "Checking loyalty points",
+}
+
+
+def _format_tool_intent(name: str, inp: dict) -> str:
+    """One readable line describing a tool call, e.g.
+    'Searching trips (destination: Siem Reap)'. Omits server-injected user_id."""
+    verb = _TOOL_INTENT.get(name, name.replace("_", " "))
+    params = ", ".join(f"{k}: {v}" for k, v in inp.items() if k != "user_id" and v not in (None, ""))
+    return f"{verb} ({params})" if params else verb
+
+
+def _norm_trip(t: dict, fallback_destination: str | None = None) -> dict:
     name = t.get("title") or t.get("name", "")
     province = t.get("province") or t.get("destination")
-    coords = lookup_coords(province, name, t.get("description"))
+    # Backend trip search returns no province/description, so also try the
+    # user's searched destination (e.g. "Siem Reap") so the map can render.
+    coords = lookup_coords(province, name, t.get("description"), fallback_destination)
     return _strip_none({
         "id": t.get("id", ""),
         "name": name,
         "description": t.get("description"),
-        "province": province,
+        "province": province or fallback_destination,
         "durationDays": t.get("duration_days") or t.get("durationDays", 0),
         "priceUsd": t.get("price_usd") or t.get("priceUsd") or t.get("base_price_usd", 0),
         "imageUrl": t.get("cover_image") or t.get("imageUrl"),
@@ -114,7 +162,9 @@ def _extract_booking_hold(tool_results: list[tuple[str, dict]]) -> dict | None:
     return None
 
 
-def _build_content_payload(tool_results: list[tuple[str, dict]]) -> dict | None:
+def _build_content_payload(
+    tool_results: list[tuple[str, dict]], search_destination: str | None = None
+) -> dict | None:
     """Map tool results to a typed ContentPayload for the frontend.
 
     Handles both array responses (backend returns list directly) and
@@ -130,7 +180,7 @@ def _build_content_payload(tool_results: list[tuple[str, dict]]) -> dict | None:
             continue
 
         if tool_name == "search_trips":
-            trips = [_norm_trip(t) for t in _as_list(raw)]
+            trips = [_norm_trip(t, search_destination) for t in _as_list(raw)]
             if not trips:
                 continue
             payload_type = "comparison" if len(trips) == 2 else "trip_cards"
@@ -205,7 +255,7 @@ def _build_content_payload(tool_results: list[tuple[str, dict]]) -> dict | None:
                     "data": {
                         "paymentIntentId": raw.get("payment_intent_id") or raw.get("paymentIntentId", ""),
                         "bookingId": raw.get("booking_id") or raw.get("bookingId", ""),
-                        "status": (raw.get("status") or "PENDING").upper(),
+                        "status": _map_payment_status(raw.get("status")),
                         "amountUsd": raw.get("amount_usd") or raw.get("amountUsd") or 0,
                         "method": raw.get("method"),
                     },
@@ -256,6 +306,7 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
     client = get_model_client(session)
     messages = session.messages[-MAX_MESSAGES:]
     all_tool_results: list[tuple[str, dict]] = []
+    search_destination: str | None = None
 
     for _ in range(MAX_TOOL_LOOPS):
         response = await client.create_message(
@@ -266,11 +317,17 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
             text = next((b.text for b in response.content if b.type == "text"), "")
             text = _sanitize_assistant_text(text)
             session.messages.append({"role": "assistant", "content": text})
-            return text, _build_content_payload(all_tool_results)
+            return text, _build_content_payload(all_tool_results, search_destination)
 
         tool_calls = [b for b in response.content if b.type == "tool_use"]
         if not tool_calls:
             break
+
+        # Capture the searched destination so trip cards can resolve map coords
+        # (the backend trip response carries no province/location).
+        for b in tool_calls:
+            if b.name == "search_trips" and b.input.get("destination"):
+                search_destination = b.input["destination"]
 
         # OpenAI-compatible format: assistant message with tool_calls array
         assistant_msg: dict = {"role": "assistant", "content": None, "tool_calls": []}
@@ -312,6 +369,7 @@ async def run_agent_streaming(
     client = get_model_client(session)
     messages = session.messages[-MAX_MESSAGES:]
     all_tool_results: list[tuple[str, dict]] = []
+    search_destination: str | None = None
 
     for _ in range(MAX_TOOL_LOOPS):
         streamed = False
@@ -323,6 +381,8 @@ async def run_agent_streaming(
                 async for chunk in client.stream_message(
                     system=system, messages=messages, tools=ALL_TOOLS, max_tokens=MAX_TOKENS,
                 ):
+                    if chunk.get("reasoning"):
+                        yield {"type": "agent_reasoning_chunk", "delta": chunk["reasoning"]}
                     if chunk.get("delta"):
                         accumulated_text += chunk["delta"]
                         streamed = True
@@ -348,12 +408,27 @@ async def run_agent_streaming(
             if not streamed and full_text:
                 yield {"type": "agent_stream_chunk", "delta": full_text}
             session.messages.append({"role": "assistant", "content": full_text})
-            yield {"type": "final", "text": full_text, "content_payload": _build_content_payload(all_tool_results), "requires_payment": _extract_booking_hold(all_tool_results)}
+            yield {"type": "final", "text": full_text, "content_payload": _build_content_payload(all_tool_results, search_destination), "requires_payment": _extract_booking_hold(all_tool_results)}
             return
 
         tool_calls = [b for b in response.content if b.type == "tool_use"]
         if not tool_calls:
             break
+
+        # Surface the AI's plan in the "thinking" panel: any narration text the
+        # model produced, plus a readable line per tool it's about to call. The
+        # model emits no native chain-of-thought on tool-use turns, so this is
+        # the real, honest decision process we can show.
+        narration = " ".join(b.text for b in response.content if b.type == "text" and b.text).strip()
+        if narration:
+            yield {"type": "agent_reasoning_chunk", "delta": narration + "\n"}
+        for b in tool_calls:
+            yield {"type": "agent_reasoning_chunk", "delta": "• " + _format_tool_intent(b.name, b.input) + "\n"}
+
+        # Capture the searched destination so trip cards can resolve map coords.
+        for b in tool_calls:
+            if b.name == "search_trips" and b.input.get("destination"):
+                search_destination = b.input["destination"]
 
         # Deferred-auth gate: a guest cannot create a booking hold. Emit
         # requires_login instead of calling the tool with an invalid user_id.
