@@ -1,14 +1,15 @@
-from datetime import datetime
-from pydantic import BaseModel, field_validator
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field, field_validator
 
 
 class ConversationState(BaseModel):
     session_id: str
     user_id: str = ""
+    is_authenticated: bool = False
     messages: list[dict] = []
     preferred_language: str = "EN"
-    last_active: datetime = datetime.utcnow()
-    created_at: datetime = datetime.utcnow()
+    last_active: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("preferred_language")
     @classmethod

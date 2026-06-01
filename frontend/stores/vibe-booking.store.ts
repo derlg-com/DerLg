@@ -90,15 +90,22 @@ interface VibeBookingState {
   messages: ChatMessage[]
   isTyping: boolean
   isStreaming: boolean
+  toolStatus: string | null
+  reasoningText: string
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error'
   sessionId: string | null
   addMessage: (message: ChatMessage) => void
   appendToStreamingMessage: (delta: string) => string
+  finalizeStreamingMessage: (text: string) => string
   setTyping: (v: boolean) => void
   setStreaming: (v: boolean) => void
+  setToolStatus: (v: string | null) => void
+  appendReasoning: (delta: string) => void
+  clearReasoning: () => void
   setConnectionStatus: (s: VibeBookingState['connectionStatus']) => void
   setSessionId: (id: string) => void
   clearMessages: () => void
+  removeMessage: (id: string) => void
 
   // Content
   contentItems: ContentItem[]
@@ -119,6 +126,10 @@ interface VibeBookingState {
   booking: BookingState
   setBooking: (booking: BookingState) => void
   clearBooking: () => void
+
+  // Auth (deferred guest login)
+  authModalOpen: boolean
+  setAuthModalOpen: (v: boolean) => void
 }
 
 export const useVibeBookingStore = create<VibeBookingState>()(
@@ -128,6 +139,8 @@ export const useVibeBookingStore = create<VibeBookingState>()(
       messages: [],
       isTyping: false,
       isStreaming: false,
+      toolStatus: null,
+      reasoningText: '',
       connectionStatus: 'disconnected',
       sessionId: null,
       addMessage: (message) =>
@@ -139,7 +152,7 @@ export const useVibeBookingStore = create<VibeBookingState>()(
         let resultId = ''
         set((s) => {
           const last = s.messages[s.messages.length - 1]
-          if (last && last.role === 'assistant' && last.type === 'text') {
+          if (last && last.role === 'assistant' && last.type === 'text' && last.content !== '') {
             last.content += delta
             resultId = last.id
           } else {
@@ -160,11 +173,32 @@ export const useVibeBookingStore = create<VibeBookingState>()(
         })
         return resultId
       },
+      finalizeStreamingMessage: (text) => {
+        let resultId = ''
+        set((s) => {
+          const last = s.messages[s.messages.length - 1]
+          if (last && last.role === 'assistant' && last.type === 'text') {
+            last.content = text
+            resultId = last.id
+          }
+        })
+        return resultId
+      },
       setTyping: (v) => set({ isTyping: v }),
       setStreaming: (v) => set({ isStreaming: v }),
+      setToolStatus: (v) => set({ toolStatus: v }),
+      appendReasoning: (delta) =>
+        set((s) => {
+          s.reasoningText += delta
+        }),
+      clearReasoning: () => set({ reasoningText: '' }),
       setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
       setSessionId: (sessionId) => set({ sessionId }),
       clearMessages: () => set({ messages: [] }),
+      removeMessage: (id: string) =>
+        set((s) => {
+          s.messages = s.messages.filter((m) => m.id !== id)
+        }),
 
       // Content
       contentItems: [],
@@ -202,6 +236,10 @@ export const useVibeBookingStore = create<VibeBookingState>()(
       booking: { status: 'idle' },
       setBooking: (booking) => set({ booking }),
       clearBooking: () => set({ booking: { status: 'idle' } }),
+
+      // Auth (deferred guest login)
+      authModalOpen: false,
+      setAuthModalOpen: (authModalOpen) => set({ authModalOpen }),
     })),
     {
       name: 'derlg:vibe-booking',

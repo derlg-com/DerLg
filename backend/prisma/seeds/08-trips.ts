@@ -421,6 +421,11 @@ const TRIPS: TripEntry[] = [
 export = async function seed(prisma: PrismaClient): Promise<void> {
   console.log('  • trips');
 
+  // Idempotent reseed: clear existing trips first. Translations and itinerary
+  // items cascade on Trip delete (onDelete: Cascade), so this removes all
+  // dependent rows and prevents duplicate trips on repeated seeding.
+  await prisma.trip.deleteMany({});
+
   for (const t of TRIPS) {
     const trip = await prisma.trip.create({
       data: {

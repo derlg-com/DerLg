@@ -1,0 +1,9 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - paragraph [ref=e6]: Trip details, maps, and booking options will appear here as you chat.
+    - dialog "DerLg AI Concierge chat panel" [ref=e7]:
+      - generic [ref=e8]
+      - generic [ref=e14]
+  - button "Open Next.js Dev Tools" [ref=e33] [cursor=pointer]:
+    - img [ref=e34]
+  - alert [ref=e39]

@@ -125,6 +125,7 @@ const ContentItemView = memo(function ContentItemView({ item, onAction, onDismis
 export default function ContentStage({ onAction }: Props) {
   const contentItems = useVibeBookingStore((s) => s.contentItems)
   const isStreaming = useVibeBookingStore((s) => s.isStreaming)
+  const toolStatus = useVibeBookingStore((s) => s.toolStatus)
   const removeContentItem = useVibeBookingStore((s) => s.removeContentItem)
   const t = useTranslations()
   const [showAll, setShowAll] = useState(false)
@@ -159,7 +160,7 @@ export default function ContentStage({ onAction }: Props) {
       {isStreaming && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse px-1">
           <span className="w-2 h-2 rounded-full bg-primary inline-block" />
-          {t('common.thinking')}
+          {toolStatus ? t(`tools.${toolStatus}`, undefined, 'tools.running') : t('common.thinking')}
         </div>
       )}
       {hiddenCount > 0 && (

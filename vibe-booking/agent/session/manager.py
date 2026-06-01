@@ -5,11 +5,14 @@ from utils.redis import get_redis
 from utils.logging import logger
 
 SESSION_TTL = 604800  # 7 days
+_PERSIST_CAP = 60  # cap stored turns; the model only ever sees the last ~20
 
 
 class SessionManager:
     async def save(self, session: ConversationState) -> None:
         session.last_active = datetime.now(timezone.utc)
+        if len(session.messages) > _PERSIST_CAP:
+            session.messages = session.messages[-_PERSIST_CAP:]
         r = get_redis()
         await r.setex(f"session:{session.session_id}", SESSION_TTL, session.to_json())
 

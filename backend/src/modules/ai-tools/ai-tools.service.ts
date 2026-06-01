@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { SingleResourceKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   SearchTripsDto,
@@ -21,11 +22,36 @@ export class AiToolsService {
   constructor(private prisma: PrismaService) {}
 
   async searchTrips(dto: SearchTripsDto) {
+    // Destination is matched against free text (title/subtitle/description) because
+    // Trip has no structured province column; reliable filtering needs a schema
+    // migration + reseed (searchHotels has the same limitation on `address`).
     const trips = await this.prisma.trip.findMany({
       where: {
         isPublished: true,
-        durationDays: dto.duration_days,
-        basePriceUsd: { lte: dto.budget_usd },
+        // Duration is a ±2-day tolerance window (not exact) so a 5-day trip
+        // still surfaces for a "3 day" request instead of returning empty.
+        ...(dto.duration_days
+          ? { durationDays: { gte: dto.duration_days - 2, lte: dto.duration_days + 2 } }
+          : {}),
+        ...(dto.budget_usd ? { basePriceUsd: { lte: dto.budget_usd } } : {}),
+        ...(dto.destination
+          ? {
+              translations: {
+                some: {
+                  OR: [
+                    { title: { contains: dto.destination, mode: 'insensitive' } },
+                    { subtitle: { contains: dto.destination, mode: 'insensitive' } },
+                    {
+                      description: {
+                        contains: dto.destination,
+                        mode: 'insensitive',
+                      },
+                    },
+                  ],
+                },
+              },
+            }
+          : {}),
       },
       include: { translations: { where: { language: 'en' } } },
       take: 10,
@@ -42,7 +68,22 @@ export class AiToolsService {
 
   async searchHotels(dto: SearchHotelsDto) {
     const hotels = await this.prisma.hotel.findMany({
-      where: { isPublished: true },
+      where: {
+        isPublished: true,
+        ...(dto.city
+          ? {
+              translations: {
+                some: { address: { contains: dto.city, mode: 'insensitive' } },
+              },
+            }
+          : {}),
+        rooms: {
+          some: {
+            isActive: true,
+            ...(dto.price_range ? { priceUsd: { lte: dto.price_range } } : {}),
+          },
+        },
+      },
       include: {
         translations: { where: { language: 'en' } },
         rooms: {
@@ -157,8 +198,9 @@ export class AiToolsService {
       const booked = await this.prisma.bookingItem.count({
         where: {
           vehicleId: dto.item_id,
-          date,
-          booking: { status: { in: ['reserved', 'confirmed'] } },
+          startDate: { lte: date },
+          endDate: { gte: date },
+          booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } },
         },
       });
       return {
@@ -192,98 +234,104 @@ export class AiToolsService {
   async createBookingHold(dto: CreateBookingHoldDto) {
     const expiresAt = new Date(Date.now() + HOLD_TTL_MIN * 60 * 1000);
     const reference = `DLG-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000 + 10000)}`;
-
-    let unitPrice = 0;
-    let bookingType:
-      | 'trip_package'
-      | 'hotel_room'
-      | 'tour_guide'
-      | 'transportation' = 'trip_package';
-
-    if (dto.item_type === 'trip') {
-      const trip = await this.prisma.trip.findUnique({
-        where: { id: dto.item_id },
-      });
-      if (!trip) throw new NotFoundException('Trip not found');
-      unitPrice = Number(trip.basePriceUsd);
-      bookingType = 'trip_package';
-    } else if (dto.item_type === 'hotel') {
-      const room = await this.prisma.hotelRoom.findUnique({
-        where: { id: dto.item_id },
-      });
-      if (!room) throw new NotFoundException('Hotel room not found');
-      unitPrice = Number(room.priceUsd);
-      bookingType = 'hotel_room';
-    } else if (dto.item_type === 'transport') {
-      const vehicle = await this.prisma.transportationVehicle.findUnique({
-        where: { id: dto.item_id },
-      });
-      if (!vehicle) throw new NotFoundException('Vehicle not found');
-      unitPrice = Number(vehicle.priceUsd);
-      bookingType = 'transportation';
-    } else {
-      const guide = await this.prisma.guide.findUnique({
-        where: { id: dto.item_id },
-      });
-      if (!guide) throw new NotFoundException('Guide not found');
-      unitPrice = Number(guide.pricePerDayUsd);
-      bookingType = 'tour_guide';
-    }
-
-    const subtotal = unitPrice * dto.people_count;
     const travelDate = new Date(dto.travel_date);
-    const singleResourceKind =
+    const singleResourceKind: SingleResourceKind =
       dto.item_type === 'trip'
         ? 'trip'
         : dto.item_type === 'hotel'
           ? 'hotel'
-          : 'guide';
+          : dto.item_type === 'transport'
+            ? 'transportation'
+            : 'guide';
 
-    const booking = await this.prisma.booking.create({
-      data: {
-        userId: dto.user_id,
-        reference,
-        method: 'single_resource',
-        singleResourceKind,
-        startDate: travelDate,
-        status: 'hold',
-        expiresAt,
-        subtotalUsd: subtotal,
-        totalUsd: subtotal,
-        passengerCount: dto.people_count,
-        items: {
-          create: {
-            bookingType,
-            ...(dto.item_type === 'trip' ? { tripId: dto.item_id } : {}),
-            ...(dto.item_type === 'hotel' ? { hotelRoomId: dto.item_id } : {}),
-            ...(dto.item_type === 'guide' ? { guideId: dto.item_id } : {}),
-            startDate: travelDate,
-            endDate: travelDate,
-            ...(dto.item_type === 'transport'
-              ? { vehicleId: dto.item_id }
-              : {}),
-            date: travelDate,
-            quantity: dto.people_count,
-            unitPriceUsd: unitPrice,
-            subtotalUsd: subtotal,
-            snapshot: {
-              source: 'ai-tools',
-              itemType: dto.item_type,
-              itemId: dto.item_id,
+    return this.prisma.$transaction(async (tx) => {
+      let unitPrice = 0;
+      let bookingType:
+        | 'trip_package'
+        | 'hotel_room'
+        | 'tour_guide'
+        | 'transportation' = 'trip_package';
+
+      if (dto.item_type === 'trip') {
+        const trip = await tx.trip.findUnique({ where: { id: dto.item_id } });
+        if (!trip) throw new NotFoundException('Trip not found');
+        // Atomic availability check
+        const booked = await tx.bookingItem.count({
+          where: { tripId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+        });
+        if (booked >= trip.maxCapacity) throw new Error('Trip is fully booked for this date');
+        unitPrice = Number(trip.basePriceUsd);
+        bookingType = 'trip_package';
+      } else if (dto.item_type === 'hotel') {
+        const room = await tx.hotelRoom.findUnique({ where: { id: dto.item_id } });
+        if (!room) throw new NotFoundException('Hotel room not found');
+        const booked = await tx.bookingItem.count({
+          where: { hotelRoomId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+        });
+        if (booked > 0) throw new Error('Hotel room is not available for this date');
+        unitPrice = Number(room.priceUsd);
+        bookingType = 'hotel_room';
+      } else if (dto.item_type === 'transport') {
+        const vehicle = await tx.transportationVehicle.findUnique({ where: { id: dto.item_id } });
+        if (!vehicle) throw new NotFoundException('Vehicle not found');
+        const booked = await tx.bookingItem.count({
+          where: { vehicleId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+        });
+        if (booked >= vehicle.capacity) throw new Error('Vehicle is fully booked for this date');
+        unitPrice = Number(vehicle.priceUsd);
+        bookingType = 'transportation';
+      } else {
+        const guide = await tx.guide.findUnique({ where: { id: dto.item_id } });
+        if (!guide) throw new NotFoundException('Guide not found');
+        const booked = await tx.bookingItem.count({
+          where: { guideId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+        });
+        if (booked > 0) throw new Error('Guide is not available for this date');
+        unitPrice = Number(guide.pricePerDayUsd);
+        bookingType = 'tour_guide';
+      }
+
+      const subtotal = unitPrice * dto.people_count;
+
+      const booking = await tx.booking.create({
+        data: {
+          userId: dto.user_id,
+          reference,
+          method: 'single_resource',
+          singleResourceKind,
+          startDate: travelDate,
+          status: 'hold',
+          expiresAt,
+          subtotalUsd: subtotal,
+          totalUsd: subtotal,
+          passengerCount: dto.people_count,
+          items: {
+            create: {
+              bookingType,
+              ...(dto.item_type === 'trip' ? { tripId: dto.item_id } : {}),
+              ...(dto.item_type === 'hotel' ? { hotelRoomId: dto.item_id } : {}),
+              ...(dto.item_type === 'guide' ? { guideId: dto.item_id } : {}),
+              ...(dto.item_type === 'transport' ? { vehicleId: dto.item_id } : {}),
+              startDate: travelDate,
+              endDate: travelDate,
+              snapshot: {},
+              quantity: dto.people_count,
+              unitPriceUsd: unitPrice,
+              subtotalUsd: subtotal,
             },
           },
         },
-      },
-    });
+      });
 
-    return {
-      booking_id: booking.id,
-      reference: booking.reference,
-      amount_usd: Number(booking.totalUsd),
-      expires_at: booking.expiresAt!.toISOString(),
-      hold_expires_at: booking.expiresAt!.toISOString(),
-      methods: ['stripe', 'bakong'],
-    };
+      return {
+        booking_id: booking.id,
+        reference: booking.reference,
+        amount_usd: Number(booking.totalUsd),
+        expires_at: booking.expiresAt!.toISOString(),
+        hold_expires_at: booking.expiresAt!.toISOString(),
+        methods: ['stripe', 'bakong'],
+      };
+    });
   }
 
   async generatePaymentQr(dto: GeneratePaymentQrDto) {

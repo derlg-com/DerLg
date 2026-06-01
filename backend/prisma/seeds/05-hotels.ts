@@ -109,6 +109,11 @@ const HOTELS: HotelEntry[] = [
 export = async function seed(prisma: PrismaClient): Promise<void> {
   console.log('  • hotels');
 
+  // Idempotent reseed: clear existing hotels first. Rooms and translations
+  // cascade on Hotel delete (onDelete: Cascade), preventing duplicate hotels
+  // on repeated seeding.
+  await prisma.hotel.deleteMany({});
+
   for (const h of HOTELS) {
     const hotel = await prisma.hotel.create({
       data: {

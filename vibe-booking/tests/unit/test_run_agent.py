@@ -73,41 +73,42 @@ async def test_run_agent_calls_tool_and_follows_up(session):
 
 
 @pytest.mark.asyncio
-async def test_run_agent_parses_suggestions(session):
-    """Suggestions block is extracted into content_payload."""
-    raw = 'Here is your trip.\n<suggestions>\n["What is the best time?", "Budget options?", "Family trips?"]\n</suggestions>'
-    fake_response = ModelResponse(
+async def test_run_agent_returns_trip_cards_payload_from_tool_results(session):
+    """When search_trips tool returns trips, content_payload is trip_cards."""
+    tool_response = ModelResponse(
+        stop_reason="tool_use",
+        content=[ContentBlock(type="tool_use", id="t1", name="search_trips", input={"query": "temples"})],
+    )
+    final_response = ModelResponse(
         stop_reason="end_turn",
-        content=[ContentBlock(type="text", text=raw)],
+        content=[ContentBlock(type="text", text="Here are some temple tours.")],
     )
     fake_client = MagicMock()
-    fake_client.create_message = AsyncMock(return_value=fake_response)
+    fake_client.create_message = AsyncMock(side_effect=[tool_response, final_response])
+    tool_result = {"success": True, "data": {"trips": [{"id": "t1", "name": "Angkor Wat Tour", "priceUsd": 89}]}}
 
-    with patch("agent.core.get_model_client", return_value=fake_client):
-        text, payload = await run_agent(session, "Plan my trip")
+    with patch("agent.core.get_model_client", return_value=fake_client), \
+         patch("agent.core._execute_tool", new=AsyncMock(return_value=tool_result)):
+        text, payload = await run_agent(session, "Find temple trips")
 
-    assert "<suggestions>" not in text
+    assert isinstance(text, str)
     assert payload is not None
-    assert len(payload["suggestions"]) == 3
+    assert payload["type"] == "trip_cards"
+    assert len(payload["data"]["trips"]) == 1
 
 
 @pytest.mark.asyncio
-async def test_run_agent_parses_chips(session):
-    """Chips block is extracted into content_payload alongside suggestions."""
-    raw = (
-        "Here are options.\n"
-        "<suggestions>\n[\"More options?\"]\n</suggestions>\n"
-        "<chips>\n[\"Budget\", \"Beach\", \"Family\"]\n</chips>"
-    )
+async def test_run_agent_returns_none_payload_when_no_tools_called(session):
+    """When no tools are called, content_payload is None."""
     fake_response = ModelResponse(
         stop_reason="end_turn",
-        content=[ContentBlock(type="text", text=raw)],
+        content=[ContentBlock(type="text", text="Hello! How can I help you plan your Cambodia trip?")],
     )
     fake_client = MagicMock()
     fake_client.create_message = AsyncMock(return_value=fake_response)
 
     with patch("agent.core.get_model_client", return_value=fake_client):
-        text, payload = await run_agent(session, "Show trips")
+        text, payload = await run_agent(session, "Hi")
 
-    assert "<chips>" not in text
-    assert payload["chips"] == ["Budget", "Beach", "Family"]
+    assert "Hello" in text
+    assert payload is None

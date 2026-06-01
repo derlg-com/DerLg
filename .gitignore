@@ -90,6 +90,9 @@ next-env.d.ts
 # Vercel
 .vercel
 
+# Stray runtime logs (e.g. uvicorn output redirected to a file)
+vibe-booking/*.log
+
 # Local scripts
 claudecode.ps1
 claudecode.sh

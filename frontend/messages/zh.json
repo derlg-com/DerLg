@@ -1,4 +1,20 @@
 {
+  "tools": {
+    "running": "处理中…",
+    "search_trips": "正在搜索行程…",
+    "search_hotels": "正在搜索酒店…",
+    "search_guides": "正在寻找向导…",
+    "search_transport": "正在查找交通…",
+    "check_availability": "正在检查可用性…",
+    "create_booking_hold": "正在锁定预订…",
+    "check_payment_status": "正在检查付款…",
+    "estimate_budget": "正在估算预算…",
+    "get_weather": "正在查询天气…",
+    "get_emergency_contacts": "正在查找紧急联系方式…",
+    "send_sos_alert": "正在发送求救警报…",
+    "generate_payment_qr": "正在生成付款二维码…",
+    "get_user_loyalty": "正在查询积分…"
+  },
   "common": {
     "send": "发送",
     "thinking": "思考中…",
@@ -14,7 +30,24 @@
     "loading": "加载中…",
     "error": "出错了",
     "tryAgain": "再试一次",
-    "reset": "重置"
+    "reset": "重置",
+    "thinkingProcess": "思考过程"
+  },
+  "auth": {
+    "title": "登录以完成预订",
+    "subtitle": "登录后您的对话将在此处继续。",
+    "email": "邮箱",
+    "password": "密码",
+    "login": "登录",
+    "register": "创建账户",
+    "needAccount": "还没有账户？注册",
+    "haveAccount": "已有账户？登录"
+  },
+  "share": {
+    "button": "分享对话",
+    "warning": "任何拥有此链接的人都可以继续您的对话并操作您的预订。请仅分享给您信任的人。是否继续？",
+    "copied": "分享链接已复制到剪贴板。",
+    "copyManual": "复制此链接以分享您的对话："
   },
   "chat": {
     "title": "DerLg AI 旅行顾问",
@@ -63,7 +96,11 @@
     "select": "选择"
   },
   "budget": {
-    "title": "预算估算"
+    "title": "预算估算",
+    "accommodation": "住宿",
+    "food_drink": "餐饮",
+    "local_transport": "本地交通",
+    "activities_tours": "活动与旅游"
   },
   "compare": {
     "title": "对比选项",

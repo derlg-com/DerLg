@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useVibeBookingStore } from '@/stores/vibe-booking.store'
 import { ContentPayloadSchema } from '@/schemas/vibe-booking'
+import { getStoredToken } from '@/lib/auth'
 import type { ContentItem, ContentAction, ContentMetadata } from '@/stores/vibe-booking.store'
 import type { WsOutbound } from '@/types/vibe-booking'
 
@@ -38,7 +39,18 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const heartbeatTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const outbox = useRef<WsOutbound[]>(loadQueue())
+  // Tracks the content item optimistically marked "streaming" by an action so
+  // it can be cleared on the real response (typing_end), not a fixed timer.
+  const pendingActionItem = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null)
   const store = useVibeBookingStore()
+
+  const clearPendingAction = useCallback(() => {
+    const pending = pendingActionItem.current
+    if (!pending) return
+    clearTimeout(pending.timer)
+    useVibeBookingStore.getState().updateContentItem(pending.id, { status: 'ready' })
+    pendingActionItem.current = null
+  }, [])
 
   const flushOutbox = useCallback(() => {
     if (ws.current?.readyState !== WebSocket.OPEN) return
@@ -61,6 +73,8 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
     [],
   )
 
+  const connectRef = useRef<(() => void) | null>(null)
+
   const connect = useCallback(() => {
     store.setConnectionStatus('connecting')
     const socket = new WebSocket(`${AI_WS_URL}/ws/chat`)
@@ -75,11 +89,12 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
           type: 'auth',
           user_id: userId,
           preferred_language: language,
+          ...(getStoredToken() ? { token: getStoredToken() } : {}),
           ...(store.sessionId ? { session_id: store.sessionId } : {}),
         }),
       )
       // Heartbeat
-      heartbeatTimer.current && clearInterval(heartbeatTimer.current)
+      if (heartbeatTimer.current) clearInterval(heartbeatTimer.current)
       heartbeatTimer.current = setInterval(() => {
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: 'ping' }))
@@ -100,17 +115,31 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
         case 'typing_start':
           store.setTyping(true)
           store.setStreaming(true)
+          store.clearReasoning()
           break
 
-        case 'typing_end':
+        case 'agent_reasoning_chunk': {
+          const delta = String(data.delta ?? '')
+          if (delta) store.appendReasoning(delta)
+          break
+        }
+
+        case 'typing_end': {
           store.setTyping(false)
           store.setStreaming(false)
+          store.setToolStatus(null)
+          // Clear any action-triggered optimistic "streaming" card now that the
+          // real response has arrived (replaces the fixed 8s timer — BUG-3).
+          clearPendingAction()
           break
+        }
 
         case 'conversation_started':
-        case 'conversation_resumed':
+        case 'conversation_resumed': {
+          const currentState = useVibeBookingStore.getState()
+          const isNew = !currentState.sessionId && currentState.messages.length === 0
           if (data.session_id) store.setSessionId(data.session_id)
-          if (data.text) {
+          if (data.text && isNew) {
             store.addMessage({
               id: uuid(),
               role: 'assistant',
@@ -120,6 +149,7 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
             })
           }
           break
+        }
 
         case 'agent_stream_chunk': {
           const delta = String(data.delta ?? '')
@@ -135,36 +165,84 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
             store.setSessionId(data.session_id)
           }
 
-          const msgId = uuid()
-          store.addMessage({
-            id: msgId,
-            role: 'assistant',
-            content: data.text ?? '',
-            type: 'text',
-            timestamp: new Date().toISOString(),
-          })
+          // If streaming produced a message, update it instead of adding a duplicate
+          const currentMessages = useVibeBookingStore.getState().messages
+          const lastMsg = currentMessages[currentMessages.length - 1]
+          let msgId: string
+          if (lastMsg && lastMsg.role === 'assistant' && lastMsg.type === 'text') {
+            // Reuse the streaming message ID and update its content
+            msgId = lastMsg.id
+            // Update the last message with the final text
+            const newText = data.text ?? ''
+            if (lastMsg.content !== newText) {
+              store.finalizeStreamingMessage(newText)
+            }
+          } else {
+            msgId = uuid()
+            store.addMessage({
+              id: msgId,
+              role: 'assistant',
+              content: data.text ?? '',
+              type: 'text',
+              timestamp: new Date().toISOString(),
+            })
+          }
 
           const raw = data.content_payload
           if (raw) {
             const parsed = ContentPayloadSchema.safeParse(raw)
             if (parsed.success) {
-              const item: ContentItem = {
-                id: uuid(),
-                type: parsed.data.type as ContentItem['type'],
-                data: (parsed.data as { data?: unknown }).data ?? parsed.data,
-                actions: (raw.actions as ContentAction[]) ?? [],
-                metadata: (raw.metadata as ContentMetadata) ?? {},
-                status: 'ready',
-                timestamp: new Date().toISOString(),
-                linkedMessageId: msgId,
+              const itemType = parsed.data.type as ContentItem['type']
+              // Deduplicate by type (one card per type). Reuse the existing
+              // item's id and update it IN PLACE so its React key stays stable
+              // and <Image> does not remount/refetch on every message (the
+              // "image requested many times" churn). Drop any extra duplicates.
+              const existingItems = useVibeBookingStore.getState().contentItems
+              const existingOfType = existingItems.filter((i) => i.type === itemType)
+              const data = (parsed.data as { data?: unknown }).data ?? parsed.data
+              const actions = (raw.actions as ContentAction[]) ?? []
+              const metadata = (raw.metadata as ContentMetadata) ?? {}
+
+              if (existingOfType.length > 0) {
+                const [keep, ...extras] = existingOfType
+                for (const dup of extras) store.removeContentItem(dup.id)
+                store.updateContentItem(keep.id, {
+                  data,
+                  actions,
+                  metadata,
+                  status: 'ready',
+                  linkedMessageId: msgId,
+                })
+              } else {
+                store.addContentItem({
+                  id: uuid(),
+                  type: itemType,
+                  data,
+                  actions,
+                  metadata,
+                  status: 'ready',
+                  timestamp: new Date().toISOString(),
+                  linkedMessageId: msgId,
+                })
               }
-              if (raw.metadata?.replace) {
-                const last = store.contentItems.at(-1)
-                if (last) store.removeContentItem(last.id)
-              }
-              store.addContentItem(item)
             }
           }
+          break
+        }
+
+        case 'requires_login': {
+          store.setTyping(false)
+          store.setStreaming(false)
+          if (data.text) {
+            store.addMessage({
+              id: uuid(),
+              role: 'assistant',
+              content: data.text,
+              type: 'text',
+              timestamp: new Date().toISOString(),
+            })
+          }
+          store.setAuthModalOpen(true)
           break
         }
 
@@ -229,7 +307,9 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
         }
 
         case 'agent_tool_status':
-          // Optional: surface tool execution status in UI later
+          // Surface the running tool name so the loading label can show
+          // "Searching hotels…" instead of a static "Thinking…".
+          store.setToolStatus(data.status === 'running' ? String(data.name ?? '') : null)
           break
 
         case 'error':
@@ -250,13 +330,16 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
       if (retries.current < MAX_RETRIES) {
         const delay = Math.min(1000 * 2 ** retries.current, 30000)
         retries.current++
-        retryTimer.current = setTimeout(connect, delay)
+        retryTimer.current = setTimeout(() => connectRef.current?.(), delay)
       }
     }
 
     socket.onerror = () => store.setConnectionStatus('error')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, language, flushOutbox])
+
+  // Keep ref in sync so onclose can call the latest connect without capturing it
+  useEffect(() => { connectRef.current = connect }, [connect])
 
   useEffect(() => {
     connect()
@@ -283,10 +366,17 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
 
   const sendAction = useCallback(
     (actionType: string, itemId?: string, payload?: Record<string, unknown>) => {
-      // Optimistic UI: mark the source item as streaming while AI processes
+      // Optimistic UI: mark the source item streaming while the AI processes,
+      // cleared on the real typing_end response (clearPendingAction). The timer
+      // is only a safety fallback if no response arrives.
       if (itemId) {
+        clearPendingAction()
         store.updateContentItem(itemId, { status: 'streaming' })
-        setTimeout(() => store.updateContentItem(itemId, { status: 'ready' }), 8000)
+        const timer = setTimeout(() => {
+          store.updateContentItem(itemId, { status: 'ready' })
+          pendingActionItem.current = null
+        }, 30000)
+        pendingActionItem.current = { id: itemId, timer }
       }
       if (actionType === 'payment_completed') {
         send({ type: 'payment_completed', ...payload } as unknown as WsOutbound)
@@ -294,8 +384,16 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
         send({ type: 'user_action', action_type: actionType, item_id: itemId, payload })
       }
     },
-    [send, store],
+    [send, store, clearPendingAction],
   )
 
-  return { sendMessage, sendAction }
+  // Reconnect on the same session_id after login so the auth message carries
+  // the freshly stored token and the agent re-binds the session to the user.
+  const reauth = useCallback(() => {
+    retries.current = 0
+    ws.current?.close()
+    connectRef.current?.()
+  }, [])
+
+  return { sendMessage, sendAction, reauth }
 }

@@ -1,6 +1,5 @@
 """
-12 tool schemas matching docs/modules API contracts.
-Endpoints called via BackendClient at /v1/{path}.
+Tool schemas aligned with backend DTOs in ai-tools.dto.ts.
 """
 
 ALL_TOOLS = [
@@ -8,16 +7,16 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "search_trips",
-            "description": "Search Cambodia trip packages by natural language query. Call after gathering user intent.",
+            "description": "Search Cambodia trip packages by destination. Call immediately; duration, people count, and budget are optional refinements — omit them if the user didn't specify.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "Natural language search intent"},
-                    "locale": {"type": "string", "enum": ["en", "zh", "km"]},
-                    "user_id": {"type": "string"},
-                    "max_results": {"type": "integer", "default": 3, "maximum": 5},
+                    "destination": {"type": "string", "description": "City or region, e.g. 'Siem Reap'"},
+                    "duration_days": {"type": "integer", "description": "Trip length in days"},
+                    "people_count": {"type": "integer", "description": "Number of travelers"},
+                    "budget_usd": {"type": "number", "description": "Max budget per person in USD"},
                 },
-                "required": ["query", "locale"],
+                "required": ["destination"],
             },
         },
     },
@@ -25,17 +24,16 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "search_hotels",
-            "description": "Search hotels by city, dates, and price range.",
+            "description": "Search hotels by city, with optional check-in/out dates and price range.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "city": {"type": "string"},
-                    "check_in": {"type": "string", "description": "YYYY-MM-DD"},
-                    "check_out": {"type": "string", "description": "YYYY-MM-DD"},
-                    "price_range": {"type": "string", "enum": ["budget", "mid", "luxury"]},
-                    "locale": {"type": "string", "enum": ["en", "zh", "km"]},
+                    "check_in": {"type": "string", "description": "YYYY-MM-DD (optional)"},
+                    "check_out": {"type": "string", "description": "YYYY-MM-DD (optional)"},
+                    "price_range": {"type": "number", "description": "Max price per night in USD"},
                 },
-                "required": ["city", "check_in", "check_out"],
+                "required": ["city"],
             },
         },
     },
@@ -43,15 +41,36 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "search_guides",
-            "description": "Find available tour guides by location, language, and date.",
+            "description": "Find available tour guides by location, spoken language, and date.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "location": {"type": "string"},
-                    "language": {"type": "string", "description": "Guide's spoken language"},
+                    "language": {"type": "string", "description": "Guide's spoken language, e.g. 'en', 'zh'"},
                     "date": {"type": "string", "description": "YYYY-MM-DD"},
                 },
-                "required": ["location", "date"],
+                "required": ["location", "language", "date"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_transport",
+            "description": "Search ground transport options between two locations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "from_location": {"type": "string"},
+                    "to_location": {"type": "string"},
+                    "departure_date": {"type": "string", "description": "YYYY-MM-DD"},
+                    "people_count": {"type": "integer"},
+                    "mode": {
+                        "type": "string",
+                        "enum": ["van", "bus", "tuk_tuk", "taxi", "shuttle", "minivan"],
+                    },
+                },
+                "required": ["from_location", "to_location", "departure_date"],
             },
         },
     },
@@ -59,11 +78,11 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "check_availability",
-            "description": "Check availability for a hotel room, transport vehicle, or guide on a specific date.",
+            "description": "Check availability for a trip, hotel, guide, or transport on a date.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "item_type": {"type": "string", "enum": ["HOTEL", "TRANSPORT", "GUIDE"]},
+                    "item_type": {"type": "string", "enum": ["trip", "hotel", "guide", "transport"]},
                     "item_id": {"type": "string"},
                     "date": {"type": "string", "description": "YYYY-MM-DD"},
                 },
@@ -75,27 +94,48 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "create_booking_hold",
-            "description": "Create a booking hold after explicit user confirmation. Items can be TRIP, HOTEL, TRANSPORT, or GUIDE.",
+            "description": "Create a 15-minute booking hold. Only call after explicit user confirmation. The user_id is supplied automatically by the server — do not include it.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "user_id": {"type": "string"},
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "item_type": {"type": "string", "enum": ["TRIP", "HOTEL", "TRANSPORT", "GUIDE"]},
-                                "item_id": {"type": "string"},
-                                "quantity": {"type": "integer"},
-                                "metadata": {"type": "object"},
-                            },
-                            "required": ["item_type", "item_id", "quantity"],
-                        },
-                    },
-                    "currency": {"type": "string", "default": "USD"},
+                    "item_type": {"type": "string", "enum": ["trip", "hotel", "guide", "transport"]},
+                    "item_id": {"type": "string"},
+                    "travel_date": {"type": "string", "description": "YYYY-MM-DD"},
+                    "people_count": {"type": "integer"},
                 },
-                "required": ["user_id", "items"],
+                "required": ["item_type", "item_id", "travel_date", "people_count"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_payment_status",
+            "description": "Check payment status for a booking.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "booking_id": {"type": "string"},
+                },
+                "required": ["booking_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "estimate_budget",
+            "description": "Estimate trip budget from a natural-language brief.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "e.g. '3 days Siem Reap mid-range for 2 people'"},
+                    "locale": {"type": "string", "enum": ["en", "zh", "km"]},
+                    "currency": {"type": "string", "default": "USD"},
+                    "duration_days": {"type": "integer"},
+                    "people_count": {"type": "integer"},
+                },
+                "required": ["query", "locale"],
             },
         },
     },
@@ -103,7 +143,7 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_weather",
-            "description": "Get weather forecast for a Cambodia location on a specific date.",
+            "description": "Get weather forecast for a Cambodia location on a date.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -118,11 +158,11 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_emergency_contacts",
-            "description": "Get emergency contacts (police, hospital, fire, tourist police) for a Cambodia province.",
+            "description": "Get emergency contacts for a Cambodia province.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "location": {"type": "string", "description": "Province or city name"},
+                    "location": {"type": "string"},
                 },
                 "required": ["location"],
             },
@@ -132,15 +172,29 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "send_sos_alert",
-            "description": "Send an SOS emergency alert for a user. Only call when user explicitly requests emergency help.",
+            "description": "Send SOS emergency alert. Only call when user explicitly requests emergency help. The user_id is supplied automatically by the server — do not include it.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "user_id": {"type": "string"},
-                    "location": {"type": "string", "description": "Current location description or coordinates"},
-                    "message": {"type": "string", "description": "Emergency description"},
+                    "location": {"type": "string"},
+                    "message": {"type": "string"},
                 },
-                "required": ["user_id", "location", "message"],
+                "required": ["location", "message"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_payment_qr",
+            "description": "Generate a Bakong/ABA QR code for payment after a booking hold is created.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "booking_id": {"type": "string"},
+                    "provider": {"type": "string", "enum": ["BAKONG", "ABA"]},
+                },
+                "required": ["booking_id", "provider"],
             },
         },
     },
@@ -148,73 +202,17 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_user_loyalty",
-            "description": "Get user's loyalty points balance and tier.",
+            "description": "Get the current user's loyalty points balance. The user_id is supplied automatically by the server — do not include it.",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "user_id": {"type": "string"},
-                },
-                "required": ["user_id"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "search_transport",
-            "description": "Search ground-transport options between two locations on a date. Returns vans, buses, taxis, tuk-tuks, shuttles.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "from_location": {"type": "string", "description": "Origin city or province"},
-                    "to_location": {"type": "string", "description": "Destination city or province"},
-                    "departure_date": {"type": "string", "description": "YYYY-MM-DD"},
-                    "people_count": {"type": "integer", "default": 1},
-                    "mode": {
-                        "type": "string",
-                        "enum": ["van", "bus", "tuk_tuk", "taxi", "shuttle", "minivan"],
-                        "description": "Optional preferred transport mode",
-                    },
-                },
-                "required": ["from_location", "to_location", "departure_date"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "check_payment_status",
-            "description": "Check the current payment status for a booking. Use this only when waiting for asynchronous QR payment confirmation.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "booking_id": {"type": "string", "description": "UUID of the booking to query"},
-                },
-                "required": ["booking_id"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "estimate_budget",
-            "description": "Estimate a trip budget breakdown (accommodation, food, transport, activities) from a natural-language brief.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "Budget brief, e.g. '3 days in Siem Reap mid-range for 2 people'"},
-                    "locale": {"type": "string", "enum": ["en", "zh", "km"]},
-                    "currency": {"type": "string", "default": "USD"},
-                    "duration_days": {"type": "integer"},
-                    "people_count": {"type": "integer"},
-                },
-                "required": ["query", "locale"],
+                "properties": {},
+                "required": [],
             },
         },
     },
 ]
 
-# Maps tool name → (HTTP method, backend path)
+# Maps tool name → (HTTP method, backend path) — must match ai-tools.controller.ts exactly
 TOOL_DISPATCH: dict[str, tuple[str, str]] = {
     "search_trips":           ("POST", "ai-tools/search/trips"),
     "search_hotels":          ("GET",  "ai-tools/hotels"),
@@ -227,5 +225,6 @@ TOOL_DISPATCH: dict[str, tuple[str, str]] = {
     "get_weather":            ("GET",  "ai-tools/weather"),
     "get_emergency_contacts": ("GET",  "ai-tools/emergency-contacts"),
     "send_sos_alert":         ("POST", "ai-tools/sos"),
+    "generate_payment_qr":    ("POST", "ai-tools/payments/qr"),
     "get_user_loyalty":       ("GET",  "ai-tools/loyalty"),
 }

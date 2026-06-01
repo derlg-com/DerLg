@@ -9,6 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ServiceKeyGuard } from '../../common/guards/service-key.guard';
+import { Public } from '../../common/decorators/public.decorator';
 import { AiToolsService } from './ai-tools.service';
 import {
   SearchTripsDto,
@@ -28,6 +29,7 @@ import {
   GetFestivalsDto,
 } from './ai-tools.dto';
 
+@Public()
 @UseGuards(ServiceKeyGuard)
 @Controller('ai-tools')
 export class AiToolsController {

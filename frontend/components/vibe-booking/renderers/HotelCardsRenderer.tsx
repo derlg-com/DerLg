@@ -1,10 +1,36 @@
 'use client'
 import Image from 'next/image'
+import { useState } from 'react'
 import type { ContentItem } from '@/stores/vibe-booking.store'
 import { useLanguageStore, useTranslations } from '@/lib/i18n'
 import { formatCurrency } from '@/lib/format'
 
 interface Props { item: ContentItem; onAction: (t: string, id?: string, p?: Record<string, unknown>) => void }
+
+function HotelImage({ src, alt }: { src: string; alt: string }) {
+  const [error, setError] = useState(false)
+  if (error) {
+    return (
+      <div className="w-full h-32 bg-muted flex items-center justify-center text-muted-foreground text-xs">
+        {alt}
+      </div>
+    )
+  }
+  return (
+    <div className="relative w-full h-32">
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        loading="lazy"
+        sizes="(min-width: 640px) 50vw, 100vw"
+        className="object-cover"
+        onError={() => setError(true)}
+      />
+    </div>
+  )
+}
+
 export default function HotelCardsRenderer({ item, onAction }: Props) {
   const locale = useLanguageStore((s) => s.locale)
   const t = useTranslations()
@@ -13,18 +39,7 @@ export default function HotelCardsRenderer({ item, onAction }: Props) {
     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
       {hotels.map((h) => (
         <div key={h.id} className="rounded-lg border overflow-hidden">
-          {h.imageUrl && (
-            <div className="relative w-full h-32">
-              <Image
-                src={h.imageUrl}
-                alt={h.name}
-                fill
-                loading="lazy"
-                sizes="(min-width: 640px) 50vw, 100vw"
-                className="object-cover"
-              />
-            </div>
-          )}
+          {h.imageUrl && <HotelImage src={h.imageUrl} alt={h.name} />}
           <div className="p-3 space-y-1">
             <p className="font-semibold text-sm">{h.name}</p>
             <p className="text-xs text-muted-foreground">{formatCurrency(h.priceUsd, locale)}/{t('hotel.perNight')}{h.rating ? ` · ⭐ ${h.rating}` : ''}</p>

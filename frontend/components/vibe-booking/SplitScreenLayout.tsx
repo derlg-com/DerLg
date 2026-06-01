@@ -6,8 +6,11 @@ import { useDraggableResizable, type ResizeEdge } from '@/hooks/useDraggableResi
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import ChatPanel from '@/components/vibe-booking/ChatPanel'
 import ContentStage from '@/components/vibe-booking/ContentStage'
+import LoginModal from '@/components/vibe-booking/LoginModal'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 import { useWebSocket } from '@/hooks/useWebSocket'
+import { buildShareLink } from '@/lib/share'
+import { useTranslations } from '@/lib/i18n'
 
 interface Props {
   userId: string
@@ -32,10 +35,44 @@ const RESIZE_EDGES: { edge: ResizeEdge; cursor: string; className: string }[] = 
 ]
 
 export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
-  const { sendMessage, sendAction } = useWebSocket(userId, language)
+  const { sendMessage, sendAction, reauth } = useWebSocket(userId, language)
   const { layout, panelRef, startDrag, startResize, resetLayout, toggleCollapsed, onKeyDown } =
     useDraggableResizable()
   const setLayout = useVibeBookingStore((s) => s.setLayout)
+  const clearMessages = useVibeBookingStore((s) => s.clearMessages)
+  const clearAllContent = useVibeBookingStore((s) => s.clearAllContent)
+  const clearBooking = useVibeBookingStore((s) => s.clearBooking)
+  const setSessionId = useVibeBookingStore((s) => s.setSessionId)
+  const sessionId = useVibeBookingStore((s) => s.sessionId)
+  const t = useTranslations()
+
+  const handleShare = async () => {
+    if (!sessionId) return
+    // Trust warning: a resumable link lets anyone continue this chat and drive
+    // the booking — require explicit confirmation before copying.
+    if (!window.confirm(t('share.warning'))) return
+    try {
+      await navigator.clipboard.writeText(buildShareLink(sessionId))
+      window.alert(t('share.copied'))
+    } catch {
+      window.prompt(t('share.copyManual'), buildShareLink(sessionId))
+    }
+  }
+
+  const handleReset = () => {
+    resetLayout()
+    clearMessages()
+    clearAllContent()
+    clearBooking()
+    setSessionId('')
+  }
+
+  // After a successful deferred login, reconnect on the same session (now with a
+  // token) and nudge the agent to resume the booking the guest was blocked on.
+  const handleAuthenticated = () => {
+    reauth()
+    setTimeout(() => sendMessage('I have logged in. Please continue with the booking.'), 600)
+  }
 
   // Initialize default Y/height once on mount
   const initRef = useRef(false)
@@ -55,6 +92,7 @@ export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
+      <LoginModal onAuthenticated={handleAuthenticated} />
       {/* Mobile: stacked single-pane */}
       <div className="md:hidden flex flex-col h-full">
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -96,7 +134,16 @@ export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
               <LanguageSwitcher />
               <button
                 type="button"
-                onClick={resetLayout}
+                onClick={handleShare}
+                disabled={!sessionId}
+                className="text-xs px-2 py-1 rounded hover:bg-muted text-muted-foreground disabled:opacity-40"
+                aria-label={t('share.button')}
+              >
+                {t('common.share')}
+              </button>
+              <button
+                type="button"
+                onClick={handleReset}
                 className="text-xs px-2 py-1 rounded hover:bg-muted text-muted-foreground"
                 aria-label="Reset panel layout"
               >
