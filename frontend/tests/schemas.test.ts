@@ -2,6 +2,28 @@ import { describe, it, expect } from 'vitest'
 import { ContentPayloadSchema } from '@/schemas/vibe-booking'
 
 describe('ContentPayloadSchema', () => {
+  it('parses a valid trip_detail payload', () => {
+    const result = ContentPayloadSchema.safeParse({
+      type: 'trip_detail',
+      data: {
+        id: 't1', name: 'Cambodia Highlights', priceUsd: 599, durationDays: 5,
+        description: 'temples', imageUrl: 'http://img/x.jpg', images: ['http://img/x.jpg'],
+        included: ['Guide'], excluded: ['Flights'],
+        itinerary: [{ day: 1, title: 'Arrive', description: 'pickup' }],
+        lat: 13.3671, lng: 103.8448,
+      },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('parses a valid hotel_detail payload (price 0 ok)', () => {
+    const result = ContentPayloadSchema.safeParse({
+      type: 'hotel_detail',
+      data: { id: 'h1', name: 'Riverside', priceUsd: 0, amenities: ['Pool'], lat: 13.36, lng: 103.85 },
+    })
+    expect(result.success).toBe(true)
+  })
+
   it('parses a valid trip_cards payload', () => {
     const result = ContentPayloadSchema.safeParse({
       type: 'trip_cards',

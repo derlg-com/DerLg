@@ -103,6 +103,28 @@ async function run() {
   } catch (e) { fail('Show on map', e.message.slice(0, 60)) }
   await page.waitForTimeout(GAP_MS)
 
+  // --- Details → interactive trip_detail panel (itinerary + image + Book Now) ---
+  try {
+    const prev = await bubbleCount(page)
+    await send(page, 'Show me trips to Siem Reap')
+    await waitForReply(page, prev + 1)
+    const detailsBtn = page.locator(':visible:text("Details")').first()
+    await detailsBtn.waitFor({ timeout: 50000 }).catch(() => {})
+    if (await detailsBtn.isVisible().catch(() => false)) {
+      await detailsBtn.click()
+      // detail panel renders the itinerary timeline ("Day 1:") + a Book Now button
+      await page.locator(':visible:text("Day 1")').first().waitFor({ timeout: 50000 }).catch(() => {})
+      const hasItinerary = await page.locator(':visible:text("Day 1")').count()
+      const hasBook = await page.locator(':visible:text("Book Now")').count()
+      const hasImg = await page.locator('div.rounded-2xl img, div.rounded-2xl [style*="background-image"]').count()
+      if (hasItinerary > 0 && hasBook > 0) pass('Details → trip_detail panel (itinerary + Book Now' + (hasImg > 0 ? ' + image' : '') + ')')
+      else fail('Details → trip_detail panel', `itinerary=${hasItinerary} book=${hasBook}`)
+    } else {
+      fail('Details button present', 'not visible (no trip card / rate-limited)')
+    }
+  } catch (e) { fail('Details → trip_detail panel', e.message.slice(0, 60)) }
+  await page.waitForTimeout(GAP_MS)
+
   // --- Strict-prompt: gibberish → clarification (no card) ---
   {
     const prev = await bubbleCount(page)
@@ -142,6 +164,24 @@ async function run() {
     const actions = await page.locator('button:has(span.sr-only:text("Copy")), button:has(span.sr-only:text("Retry"))').count()
     actions > 0 ? pass('per-message action buttons render') : fail('per-message action buttons render')
   }
+
+  // --- Book Now → interactive agent response (run last; booking gate is unit-tested) ---
+  try {
+    const prev = await bubbleCount(page)
+    await send(page, 'Show me trips to Siem Reap')
+    await waitForReply(page, prev + 1)
+    const bookBtn = page.locator(':visible:text("Book Now")').first()
+    await bookBtn.waitFor({ timeout: 50000 }).catch(() => {})
+    if (await bookBtn.isVisible().catch(() => false)) {
+      const b = await bubbleCount(page)
+      await bookBtn.click()
+      await waitForReply(page, b + 1)
+      const after = await bubbleCount(page)
+      after > b ? pass('Book Now → agent responds (interactive booking chain wired)') : fail('Book Now → agent responds', 'no response')
+    } else {
+      fail('Book Now button present', 'not visible')
+    }
+  } catch (e) { fail('Book Now → agent responds', e.message.slice(0, 60)) }
 
   console.log(`\n  console errors during run: ${consoleErrors.length}`)
   if (consoleErrors.length) console.log('   ' + consoleErrors.slice(0, 3).join('\n   '))

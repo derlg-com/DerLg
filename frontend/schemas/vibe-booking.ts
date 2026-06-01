@@ -196,6 +196,46 @@ export const StripeCardFormPayloadSchema = z.object({
   }),
 })
 
+export const TripDetailPayloadSchema = z.object({
+  type: z.literal('trip_detail'),
+  data: z.object({
+    id: z.string(),
+    name: z.string(),
+    priceUsd: z.number(),
+    durationDays: z.number().optional(),
+    description: z.string().optional(),
+    imageUrl: z.string().optional(),
+    images: z.array(z.string()).optional(),
+    included: z.array(z.string()).optional(),
+    excluded: z.array(z.string()).optional(),
+    itinerary: z.array(z.object({
+      day: z.number(),
+      title: z.string(),
+      description: z.string().optional(),
+    })).optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+    rating: z.number().optional(),
+  }),
+})
+
+export const HotelDetailPayloadSchema = z.object({
+  type: z.literal('hotel_detail'),
+  data: z.object({
+    id: z.string(),
+    name: z.string(),
+    priceUsd: z.number(),
+    address: z.string().optional(),
+    description: z.string().optional(),
+    imageUrl: z.string().optional(),
+    images: z.array(z.string()).optional(),
+    amenities: z.array(z.string()).optional(),
+    rating: z.number().optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+  }),
+})
+
 export const ContentPayloadSchema = z.discriminatedUnion('type', [
   TripCardsPayloadSchema,
   HotelCardsPayloadSchema,
@@ -212,6 +252,8 @@ export const ContentPayloadSchema = z.discriminatedUnion('type', [
   ComparisonPayloadSchema,
   ImageGalleryPayloadSchema,
   TextSummaryPayloadSchema,
+  TripDetailPayloadSchema,
+  HotelDetailPayloadSchema,
 ])
 
 export type ContentPayload = z.infer<typeof ContentPayloadSchema>
