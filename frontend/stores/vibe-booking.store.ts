@@ -243,11 +243,28 @@ export const useVibeBookingStore = create<VibeBookingState>()(
     })),
     {
       name: 'derlg:vibe-booking',
+      version: 1,
+      // Persist the conversation AND the rendered content cards so a refresh
+      // restores everything (and the cards stay browsable/clickable).
       partialize: (s) => ({
         messages: s.messages.slice(-50),
+        contentItems: s.contentItems.slice(-30),
+        activeContentId: s.activeContentId,
         sessionId: s.sessionId,
+        booking: s.booking,
         layout: s.layout,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        // A card persisted mid-stream must not stay stuck (pulsing/disabled) —
+        // restore it to a ready, interactive state after a refresh.
+        for (const item of state.contentItems) {
+          if (item.status === 'streaming') item.status = 'ready'
+        }
+        state.reasoningText = ''
+        state.isTyping = false
+        state.isStreaming = false
+      },
     }
   )
 )

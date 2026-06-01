@@ -6,7 +6,9 @@
 //  - Images skipped: array columns = [], required image strings = ''.
 //  - Self-generated UUIDs + createMany for speed.
 //
-// Run:  npx ts-node --transpile-only prisma/seeds/dummy-bulk.ts
+// Run (opt-in only — pollutes customer-facing search, load-testing use only):
+//   npx ts-node --transpile-only prisma/seeds/dummy-bulk.ts --with-dummy
+//   (or set ALLOW_DUMMY=1)
 // =============================================================================
 
 import { PrismaClient } from '@prisma/client';
@@ -74,6 +76,19 @@ const tx = (lang: string, en: string): string =>
   lang === 'zh' ? `${en}（中文）` : lang === 'km' ? `${en} (ខ្មែរ)` : en;
 
 async function main(): Promise<void> {
+  // Guard: this generator inserts 500 placeholder rows per table ("Hotel #N",
+  // "Cambodia Trip #N", "Place #N", etc.) with no images. Those surface in the
+  // customer-facing search tools (hotels/trips/places/guides/transport) and look
+  // like junk to visitors. It is for load/volume testing ONLY — require explicit
+  // opt-in so a normal reseed can never silently re-introduce the placeholders.
+  if (!process.argv.includes('--with-dummy') && process.env.ALLOW_DUMMY !== '1') {
+    console.error(
+      '⛔ dummy-bulk seed is gated (it pollutes customer-facing search with ~500 placeholder rows/table).\n' +
+      '   Re-run with `--with-dummy` or ALLOW_DUMMY=1 only if you explicitly want bulk load-test data.',
+    );
+    process.exit(1);
+  }
+
   console.log('🌱 DerLg — bulk dummy data (~500 rows/table)\n');
 
   // ---- 1. USERS (500 customers + 500 guide accounts) ------------------------
