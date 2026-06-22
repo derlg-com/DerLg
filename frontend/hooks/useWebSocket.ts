@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useVibeBookingStore } from '@/stores/vibe-booking.store'
 import { ContentPayloadSchema } from '@/schemas/vibe-booking'
+import { resolveContentPayloads, sanitizeSuggestions } from '@/lib/vibe-content'
 import { getStoredToken } from '@/lib/auth'
 import type { ContentItem, ContentAction, ContentMetadata } from '@/stores/vibe-booking.store'
 import type { WsOutbound } from '@/types/vibe-booking'
@@ -33,7 +34,7 @@ function saveQueue(queue: WsOutbound[]) {
   }
 }
 
-export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN') {
+export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KM' = 'EN') {
   const ws = useRef<WebSocket | null>(null)
   const retries = useRef(0)
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -116,6 +117,8 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
           store.setTyping(true)
           store.setStreaming(true)
           store.clearReasoning()
+          // New turn — clear last turn's follow-up chips until the answer lands.
+          store.setSuggestions([])
           break
 
         case 'agent_reasoning_chunk': {
@@ -139,6 +142,11 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
           const currentState = useVibeBookingStore.getState()
           const isNew = !currentState.sessionId && currentState.messages.length === 0
           if (data.session_id) store.setSessionId(data.session_id)
+          if (Array.isArray(data.suggested_prompts)) {
+            store.setWelcomePrompts(
+              data.suggested_prompts.filter((p: unknown): p is string => typeof p === 'string'),
+            )
+          }
           if (data.text && isNew) {
             store.addMessage({
               id: uuid(),
@@ -188,44 +196,49 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
             })
           }
 
-          const raw = data.content_payload
-          if (raw) {
-            const parsed = ContentPayloadSchema.safeParse(raw)
-            if (parsed.success) {
-              const itemType = parsed.data.type as ContentItem['type']
-              // Deduplicate by type (one card per type). Reuse the existing
-              // item's id and update it IN PLACE so its React key stays stable
-              // and <Image> does not remount/refetch on every message (the
-              // "image requested many times" churn). Drop any extra duplicates.
-              const existingItems = useVibeBookingStore.getState().contentItems
-              const existingOfType = existingItems.filter((i) => i.type === itemType)
-              const data = (parsed.data as { data?: unknown }).data ?? parsed.data
-              const actions = (raw.actions as ContentAction[]) ?? []
-              const metadata = (raw.metadata as ContentMetadata) ?? {}
+          // Follow-up suggestion chips for this answer.
+          if (data.suggestions !== undefined) {
+            store.setSuggestions(sanitizeSuggestions(data.suggestions))
+          }
 
-              if (existingOfType.length > 0) {
-                const [keep, ...extras] = existingOfType
-                for (const dup of extras) store.removeContentItem(dup.id)
-                store.updateContentItem(keep.id, {
-                  data,
-                  actions,
-                  metadata,
-                  status: 'ready',
-                  linkedMessageId: msgId,
-                })
-              } else {
-                store.addContentItem({
-                  id: uuid(),
-                  type: itemType,
-                  data,
-                  actions,
-                  metadata,
-                  status: 'ready',
-                  timestamp: new Date().toISOString(),
-                  linkedMessageId: msgId,
-                })
-              }
+          // Adds (or updates in place) a single content block, deduping by type
+          // so a card type's React key stays stable across re-renders.
+          const addPayloadItem = (raw: unknown) => {
+            if (!raw) return
+            const parsed = ContentPayloadSchema.safeParse(raw)
+            if (!parsed.success) return
+            const itemType = parsed.data.type as ContentItem['type']
+            const existingItems = useVibeBookingStore.getState().contentItems
+            const existingOfType = existingItems.filter((i) => i.type === itemType)
+            const itemData = (parsed.data as { data?: unknown }).data ?? parsed.data
+            const actions = ((raw as { actions?: ContentAction[] }).actions) ?? []
+            const metadata = ((raw as { metadata?: ContentMetadata }).metadata) ?? {}
+            if (existingOfType.length > 0) {
+              const [keep, ...extras] = existingOfType
+              for (const dup of extras) store.removeContentItem(dup.id)
+              store.updateContentItem(keep.id, {
+                data: itemData,
+                actions,
+                metadata,
+                status: 'ready',
+                linkedMessageId: msgId,
+              })
+            } else {
+              store.addContentItem({
+                id: uuid(),
+                type: itemType,
+                data: itemData,
+                actions,
+                metadata,
+                status: 'ready',
+                timestamp: new Date().toISOString(),
+                linkedMessageId: msgId,
+              })
             }
+          }
+
+          for (const raw of resolveContentPayloads(data)) {
+            addPayloadItem(raw)
           }
           break
         }
@@ -351,15 +364,25 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
   }, [connect])
 
   const sendMessage = useCallback(
-    (text: string) => {
+    (text: string, context?: string) => {
       store.addMessage({
         id: uuid(),
         role: 'user',
         content: text,
         type: 'text',
+        ...(context ? { context } : {}),
         timestamp: new Date().toISOString(),
       })
-      send({ type: 'user_message', content: text })
+      send({ type: 'user_message', content: text, ...(context ? { context } : {}) })
+    },
+    [store, send],
+  )
+
+  const sendFeedback = useCallback(
+    (messageId: string, helpful: boolean) => {
+      store.setMessageFeedback(messageId, helpful ? 'up' : 'down')
+      // Feedback is fire-and-forget; never queue it offline.
+      send({ type: 'feedback', message_id: messageId, helpful }, false)
     },
     [store, send],
   )
@@ -395,5 +418,5 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KH' = 'EN'
     connectRef.current?.()
   }, [])
 
-  return { sendMessage, sendAction, reauth }
+  return { sendMessage, sendAction, sendFeedback, reauth }
 }

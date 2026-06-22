@@ -51,6 +51,13 @@ export class BookGuideUseCase {
       await this.validateLinkedTrip(user, dto.linkedTripBookingId, dto);
     }
 
+    // Guide has no name column (and no Prisma relation to User); resolve the
+    // display name from the linked user for the booking snapshot.
+    const guideUser = await this.prisma.user.findUnique({
+      where: { id: guide.userId },
+      select: { fullName: true },
+    });
+
     const days = Math.max(
       1,
       Math.ceil((end.getTime() - start.getTime()) / 86_400_000),
@@ -73,6 +80,8 @@ export class BookGuideUseCase {
             subtotalUsd: subtotal,
             snapshot: {
               guideId: guide.id,
+              name: guideUser?.fullName ?? 'Tour Guide',
+              coverImageUrl: guide.avatarUrl ?? null,
               languages: guide.languages.map((l) => l.language),
               specialities: guide.specialities.map((s) => s.speciality),
               province: guide.province,
@@ -80,6 +89,7 @@ export class BookGuideUseCase {
               pricePerDayUsd: guide.pricePerDayUsd.toNumber(),
               days,
               linkedTripBookingId: dto.linkedTripBookingId ?? null,
+              specialRequests: dto.specialRequests ?? null,
             },
           },
         ],

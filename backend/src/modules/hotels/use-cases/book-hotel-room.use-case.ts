@@ -75,6 +75,8 @@ export class BookHotelRoomUseCase {
             snapshot: {
               hotelId: hotel.id,
               hotelName,
+              name: hotelName,
+              coverImageUrl: hotel.images?.[0] ?? null,
               roomId: room.id,
               roomType: room.roomType,
               maxOccupancy: room.maxOccupancy,
@@ -82,6 +84,7 @@ export class BookHotelRoomUseCase {
               guestsChildren: dto.guestsChildren ?? 0,
               nights,
               pricePerNightUsd: room.priceUsd.toNumber(),
+              specialRequests: dto.specialRequests ?? null,
             },
           },
         ],

@@ -1,4 +1,346 @@
 {
+  "profile": {
+    "noName": "旅行者",
+    "loyalty": "{points} 积分",
+    "student": "学生",
+    "logout": "退出登录",
+    "menu": { "edit": "编辑资料", "preferences": "偏好设置", "wishlist": "收藏夹" },
+    "edit": {
+      "title": "编辑资料",
+      "avatarUrl": "头像链接",
+      "email": "邮箱",
+      "name": "姓名",
+      "phone": "电话",
+      "save": "保存",
+      "cancel": "取消",
+      "saved": "资料已更新",
+      "error": "无法更新资料"
+    },
+    "preferences": {
+      "title": "偏好设置",
+      "language": "语言",
+      "currency": "货币",
+      "autoCurrency": "自动（按语言）",
+      "notifications": "通知",
+      "notif": {
+        "push": "推送通知",
+        "email": "邮件通知",
+        "reminders": "预订提醒"
+      }
+    },
+    "wishlist": {
+      "title": "收藏夹",
+      "empty": "您的收藏夹为空",
+      "emptyDesc": "点击任意行程、酒店或向导上的爱心即可收藏。"
+    }
+  },
+  "checkout": {
+    "hold": { "remaining": "保留：{time}", "expired": "保留已过期" },
+    "method": {
+      "title": "支付方式",
+      "card": "信用卡 / 借记卡",
+      "bakong_qr": "Bakong 二维码",
+      "aba_qr": "ABA 二维码"
+    },
+    "title": "结账",
+    "subtotal": "小计",
+    "total": "总计",
+    "mockNotice": "演示模式 — 支付为模拟，不会真实扣款。",
+    "card": { "number": "卡号", "expiry": "有效期", "cvc": "CVC", "pay": "立即支付" },
+    "qr": { "scan": "使用银行 App 扫码支付", "paid": "我已支付" },
+    "failed": "支付失败，请重试。",
+    "confirmation": {
+      "title": "预订已确认！",
+      "reference": "参考号",
+      "viewBooking": "查看预订",
+      "bookAnother": "再预订一个"
+    }
+  },
+  "bookings": {
+    "form": {
+      "title": "完成预订",
+      "perPerson": "/ 人",
+      "perNight": "/ 晚",
+      "perDay": "/ 天",
+      "startDate": "开始日期",
+      "endDate": "结束日期",
+      "checkIn": "入住",
+      "checkOut": "退房",
+      "adults": "成人",
+      "children": "儿童",
+      "pickup": "上车地点",
+      "dropoff": "下车地点",
+      "specialRequests": "特殊要求",
+      "specialRequestsPlaceholder": "饮食需求、无障碍、兴趣…",
+      "submit": "确认并继续",
+      "holdNotice": "完成付款前，我们将为您保留预订 15 分钟。",
+      "selectRoomTitle": "请选择房型",
+      "selectRoomDesc": "请在酒店页面选择房型以继续。",
+      "backToHotel": "返回酒店",
+      "errorUnavailable": "所选日期不可预订，请尝试其他日期。",
+      "errorInvalidDates": "请检查您的日期和信息。",
+      "errorGeneric": "无法创建预订，请重试。"
+    },
+    "list": {
+      "title": "我的行程",
+      "tabs": { "upcoming": "即将", "past": "已完成", "cancelled": "已取消" },
+      "empty": {
+        "upcoming": "暂无即将出行的预订。",
+        "past": "暂无历史行程。",
+        "cancelled": "暂无已取消的预订。"
+      },
+      "explore": "探索行程",
+      "errorTitle": "无法加载预订",
+      "errorDesc": "请重试。",
+      "retry": "重试"
+    },
+    "status": {
+      "CONFIRMED": "已确认",
+      "PENDING_PAYMENT": "待付款",
+      "HOLD": "保留中",
+      "COMPLETED": "已完成",
+      "CANCELLED": "已取消",
+      "EXPIRED": "已过期"
+    },
+    "detail": {
+      "notFound": "未找到预订",
+      "qrTitle": "入住二维码",
+      "items": "项目",
+      "total": "总计",
+      "specialRequests": "特殊要求",
+      "refunded": "已退款",
+      "addToCalendar": "加入日历",
+      "icalError": "无法下载日历文件",
+      "cancel": "取消预订"
+    },
+    "cancel": {
+      "title": "确认取消此预订？",
+      "policy": "退款：提前 ≥7 天 100%，1–7 天 50%，不足 24 小时 0%。",
+      "refundTier": "退款比例：{percent}%",
+      "refundAmount": "预计退款",
+      "reasonPlaceholder": "原因（可选）",
+      "keep": "保留预订",
+      "confirm": "取消预订",
+      "success": "预订已取消",
+      "error": "无法取消预订"
+    }
+  },
+  "guides": {
+    "card": { "verified": "已认证", "perDay": "/ 天" },
+    "sort": { "recommended": "推荐", "rating_desc": "评分最高", "price_asc": "价格：从低到高", "price_desc": "价格：从高到低" },
+    "filters": {
+      "language": "语言",
+      "anyLanguage": "任意语言",
+      "specialty": "专长",
+      "anySpecialty": "任意专长",
+      "location": "地点",
+      "anyLocation": "任意地点",
+      "gender": "性别",
+      "anyGender": "任意性别",
+      "verifiedOnly": "仅已认证",
+      "sort": "排序"
+    },
+    "empty": { "title": "未找到向导", "desc": "请尝试调整筛选条件。", "clear": "清除筛选" },
+    "error": { "title": "无法加载向导", "desc": "请重试。", "retry": "重试" },
+    "detail": {
+      "bio": "简介",
+      "languages": "语言",
+      "specialties": "专长",
+      "experienceYears": "{n} 年经验",
+      "certifications": "资质认证",
+      "availability": "查询可用性",
+      "currency": "显示货币",
+      "notFound": "未找到向导"
+    },
+    "availability": {
+      "start": "开始日期",
+      "end": "结束日期",
+      "check": "查询可用性",
+      "available": "可预订",
+      "unavailable": "这些日期不可预订",
+      "error": "无法查询可用性"
+    }
+  },
+  "transportation": {
+    "card": { "seats": "{n} 座", "perDay": "/ 天" },
+    "sort": { "price_asc": "价格：从低到高", "price_desc": "价格：从高到低", "rating_desc": "评分最高" },
+    "filters": {
+      "type": "类型",
+      "anyType": "任意类型",
+      "capacity": "载客量",
+      "anyCapacity": "任意载客量",
+      "seatsPlus": "{n}+ 座",
+      "maxPrice": "最高价格",
+      "anyPrice": "任意价格",
+      "under": "低于 ${n}",
+      "sort": "排序"
+    },
+    "empty": { "title": "未找到车辆", "desc": "请尝试调整筛选条件。", "clear": "清除筛选" },
+    "error": { "title": "无法加载车辆", "desc": "请重试。", "retry": "重试" },
+    "detail": {
+      "currency": "显示货币",
+      "amenities": "设施",
+      "pricing": "价格",
+      "perKm": "每公里",
+      "availability": "查询可用性",
+      "route": "路线",
+      "notFound": "未找到车辆"
+    },
+    "availability": {
+      "start": "开始日期",
+      "end": "结束日期",
+      "check": "查询可用性",
+      "available": "可预订",
+      "unavailable": "这些日期不可预订",
+      "error": "无法查询可用性"
+    }
+  },
+  "hotels": {
+    "card": { "from": "起价", "perNight": "/ 晚" },
+    "sort": {
+      "recommended": "推荐",
+      "price_asc": "价格：从低到高",
+      "price_desc": "价格：从高到低",
+      "rating_desc": "评分最高"
+    },
+    "filters": {
+      "title": "筛选",
+      "sort": "排序",
+      "location": "地点",
+      "anyLocation": "任意地点",
+      "price": "每晚价格",
+      "priceRanges": { "any": "任意价格", "lt100": "低于 $100", "r100_300": "$100 – $300", "gt300": "高于 $300" },
+      "star": "星级",
+      "anyStar": "任意星级",
+      "starPlus": "{n} 星及以上",
+      "amenities": "设施",
+      "done": "完成"
+    },
+    "empty": { "title": "未找到酒店", "desc": "请尝试调整筛选条件。", "clear": "清除筛选" },
+    "error": { "title": "无法加载酒店", "desc": "请重试。", "retry": "重试" },
+    "detail": {
+      "currency": "显示货币",
+      "amenities": "设施",
+      "policies": "政策",
+      "checkIn": "入住",
+      "checkOut": "退房",
+      "rooms": "房型",
+      "noRooms": "暂无可用房型。",
+      "location": "位置",
+      "notFound": "未找到酒店"
+    },
+    "room": { "maxGuests": "最多 {n} 位客人", "book": "预订" }
+  },
+  "search": {
+    "placeholder": "搜索行程、景点、酒店、向导",
+    "tabs": { "all": "全部", "trip": "行程", "place": "景点", "hotel": "酒店", "guide": "向导" },
+    "sections": { "trips": "行程", "places": "景点", "hotels": "酒店", "guides": "向导" },
+    "promptTitle": "搜索 DerLg",
+    "promptDesc": "查找柬埔寨的行程、景点、酒店和向导。",
+    "noResults": "未找到 '{query}' 的结果",
+    "noResultsDesc": "请尝试其他关键词。",
+    "errorTitle": "搜索失败",
+    "errorDesc": "请重试。"
+  },
+  "trips": {
+    "home": { "featured": "精选行程", "categories": "按分类浏览", "exploreAll": "查看全部" },
+    "categories": {
+      "all": "全部",
+      "Temples": "寺庙",
+      "Nature": "自然",
+      "Culture": "文化",
+      "Adventure": "探险",
+      "Food": "美食"
+    },
+    "card": { "days": "天", "perPerson": "/ 人" },
+    "list": {
+      "resultsCount": "{count} 个行程",
+      "sortLabel": "排序",
+      "sort": {
+        "featured": "精选",
+        "price_asc": "价格：从低到高",
+        "price_desc": "价格：从高到低",
+        "duration_asc": "时长：最短",
+        "rating_desc": "评分最高"
+      }
+    },
+    "empty": { "title": "未找到行程", "desc": "请尝试调整筛选条件。", "clear": "清除筛选" },
+    "error": { "title": "无法加载行程", "desc": "请检查网络连接后重试。", "retry": "重试" },
+    "detail": {
+      "itinerary": "行程安排",
+      "included": "包含项目",
+      "excluded": "不包含",
+      "cancellation": "取消政策",
+      "meetingPoint": "集合地点",
+      "related": "您可能也喜欢",
+      "bookNow": "立即预订",
+      "from": "起价",
+      "share": "分享",
+      "shareCopied": "链接已复制",
+      "day": "第 {n} 天",
+      "currency": "显示货币",
+      "notFound": "未找到行程"
+    }
+  },
+  "account": {
+    "fields": {
+      "email": "邮箱",
+      "password": "密码",
+      "name": "姓名（可选）",
+      "phone": "电话（可选）",
+      "confirmPassword": "确认密码"
+    },
+    "signIn": {
+      "title": "欢迎回来",
+      "submit": "登录",
+      "forgot": "忘记密码？",
+      "noAccount": "还没有账户？",
+      "cta": "注册"
+    },
+    "signUp": {
+      "title": "创建账户",
+      "submit": "创建账户",
+      "haveAccount": "已有账户？",
+      "cta": "登录"
+    },
+    "forgot": {
+      "title": "重置密码",
+      "desc": "输入您的邮箱，我们将发送重置链接。",
+      "submit": "发送重置链接",
+      "sent": "如果该邮箱存在，我们已发送重置说明，请查收。",
+      "back": "返回登录"
+    },
+    "reset": {
+      "title": "设置新密码",
+      "submit": "重置密码",
+      "success": "密码已更新，请登录。",
+      "invalidToken": "此重置链接无效或已过期。"
+    },
+    "errors": {
+      "invalidCredentials": "邮箱或密码错误。",
+      "emailExists": "该邮箱已被注册。",
+      "rateLimited": "尝试次数过多，请稍后再试。",
+      "generic": "出错了，请重试。"
+    },
+    "logout": "退出登录"
+  },
+  "shell": {
+    "nav": {
+      "home": "首页",
+      "explore": "探索",
+      "bookings": "预订",
+      "chat": "聊天",
+      "profile": "我的"
+    },
+    "brand": "DerLg",
+    "search": "搜索",
+    "back": "返回",
+    "offline": "您已离线，部分功能可能不可用。",
+    "comingSoon": "即将推出",
+    "comingSoonDesc": "此板块即将上线。",
+    "notFound": "未找到页面",
+    "goHome": "返回首页"
+  },
   "tools": {
     "running": "处理中…",
     "search_trips": "正在搜索行程…",
@@ -31,7 +373,8 @@
     "error": "出错了",
     "tryAgain": "再试一次",
     "reset": "重置",
-    "thinkingProcess": "思考过程"
+    "thinkingProcess": "思考过程",
+    "showOlder": "显示 {count} 个较早的项目"
   },
   "auth": {
     "title": "登录以完成预订",
@@ -53,7 +396,17 @@
     "title": "DerLg AI 旅行顾问",
     "placeholder": "告诉我您梦想中的旅行…",
     "welcome": "欢迎来到 DerLg！我是您的柬埔寨旅行顾问。告诉我您梦想中的旅行。",
-    "resume": "欢迎回来！我记得我们之前的对话。"
+    "resume": "欢迎回来！我记得我们之前的对话。",
+    "welcomeTitle": "试试问",
+    "suggestionsLabel": "推荐追问",
+    "feedbackPrompt": "这有帮助吗？",
+    "feedbackYes": "有帮助",
+    "feedbackNo": "没帮助",
+    "feedbackThanks": "感谢您的反馈！",
+    "askedWhileViewing": "在浏览{page}时询问",
+    "launcherOpen": "咨询 AI 旅行顾问",
+    "launcherClose": "关闭顾问",
+    "launcherTitle": "AI 顾问"
   },
   "content": {
     "trips": "行程",
@@ -66,6 +419,9 @@
     "gallery": "图库",
     "bookNow": "立即预订",
     "viewDetails": "查看详情",
+    "checkAvailability": "查看空房情况",
+    "findMoreLikeThis": "查找更多类似",
+    "perPerson": "/ 每人",
     "perNight": "每晚",
     "rating": "评分",
     "duration": "时长"

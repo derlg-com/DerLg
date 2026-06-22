@@ -30,7 +30,7 @@ export interface ContentItem {
 export interface WsAuthMessage {
   type: 'auth'
   user_id: string
-  preferred_language: 'EN' | 'ZH' | 'KH'
+  preferred_language: 'EN' | 'ZH' | 'KM'
   session_id?: string
   token?: string
 }
@@ -38,6 +38,8 @@ export interface WsAuthMessage {
 export interface WsUserMessage {
   type: 'user_message'
   content: string
+  /** Optional page context ("Asked while viewing X") when launched from an app page. */
+  context?: string
 }
 
 export interface WsUserAction {
@@ -56,9 +58,16 @@ export interface WsPaymentCompletedMessage {
   booking_id?: string
 }
 
+export interface WsFeedbackMessage {
+  type: 'feedback'
+  message_id: string
+  helpful: boolean
+}
+
 export type WsOutbound =
   | WsAuthMessage
   | WsUserMessage
   | WsUserAction
   | WsPingMessage
   | WsPaymentCompletedMessage
+  | WsFeedbackMessage

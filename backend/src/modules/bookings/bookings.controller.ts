@@ -20,12 +20,14 @@ import {
   GetBookingQrUseCase,
   GetBookingIcalUseCase,
   TemplateBookingUseCase,
+  ConfirmBookingUseCase,
 } from './use-cases';
 import {
   ListBookingsQueryDto,
   UpdateBookingDto,
   CancelBookingDto,
   CreateTemplateBookingDto,
+  ConfirmBookingDto,
 } from './dto';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 
@@ -39,6 +41,7 @@ export class BookingsController {
     private readonly getBookingQr: GetBookingQrUseCase,
     private readonly getBookingIcal: GetBookingIcalUseCase,
     private readonly templateBooking: TemplateBookingUseCase,
+    private readonly confirmBooking: ConfirmBookingUseCase,
   ) {}
 
   @Get()
@@ -79,6 +82,15 @@ export class BookingsController {
     @Body() dto: CancelBookingDto,
   ) {
     return this.cancelBooking.execute(user, id, dto);
+  }
+
+  @Post(':id/confirm')
+  confirm(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ConfirmBookingDto,
+  ) {
+    return this.confirmBooking.execute(user, id, dto);
   }
 
   @Get(':id/qr')

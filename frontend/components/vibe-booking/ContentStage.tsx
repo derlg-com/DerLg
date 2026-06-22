@@ -16,6 +16,7 @@ type RendererProps = {
 const RENDERERS: Record<string, React.LazyExoticComponent<React.ComponentType<RendererProps>>> = {
   trip_cards: lazy(() => import('./renderers/TripCardsRenderer')),
   hotel_cards: lazy(() => import('./renderers/HotelCardsRenderer')),
+  guide_cards: lazy(() => import('./renderers/GuideCardsRenderer')),
   trip_detail: lazy(() => import('./renderers/TripDetailRenderer')),
   hotel_detail: lazy(() => import('./renderers/HotelDetailRenderer')),
   transport_options: lazy(() => import('./renderers/TransportOptionsRenderer')),
@@ -171,7 +172,7 @@ export default function ContentStage({ onAction }: Props) {
           onClick={() => setShowAll(true)}
           className="w-full text-xs py-2 rounded-md border border-dashed border-border text-muted-foreground hover:bg-muted/40"
         >
-          {t('common.loading') /* fallback i18n key */} · Show {hiddenCount} older items
+          {t('common.showOlder', { count: hiddenCount })}
         </button>
       )}
       <AnimatePresence>

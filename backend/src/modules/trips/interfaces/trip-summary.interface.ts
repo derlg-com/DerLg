@@ -1,9 +1,13 @@
 export interface TripSummary {
   id: string;
-  title: string;
-  subtitle: string | null;
-  category: string;
+  name: string;
+  coverImageUrl: string | null;
   durationDays: number;
-  basePriceUsd: number;
-  coverImage: string | null;
+  priceUsd: number;
+  category: string;
+  /** Structured location not yet in schema — null for now. */
+  location: string | null;
+  /** Review aggregation pending — null/0 for now. */
+  ratingAverage: number | null;
+  ratingCount: number;
 }

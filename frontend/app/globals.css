@@ -11,10 +11,13 @@
  */
 :root {
   /* Brand */
-  --color-primary: 27 79 46;             /* #1b4f2e — Deep Green */
+  --color-primary: 29 122 69;            /* #1d7a45 — Forest Emerald (white ≈5.4:1 AA) */
   --color-primary-foreground: 255 255 255;
-  --color-secondary: 205 174 74;         /* #cdae4a — Vibrant Gold */
-  --color-secondary-foreground: 27 79 46;
+  --color-primary-hover: 24 100 58;      /* #18643a — ≈6.5:1 */
+  --color-primary-active: 20 84 47;      /* #14542f — ≈7.7:1 */
+  --color-secondary: 205 174 74;         /* #cdae4a — Vibrant Gold (fills/badges) */
+  --color-secondary-foreground: 19 37 26;/* #13251a — near-black green on gold ≈6.9:1 */
+  --color-rating: 154 125 36;            /* #9a7d24 — gold for star icons on light ≈4:1 */
 
   /* Surfaces */
   --color-background: 255 255 255;
@@ -33,7 +36,7 @@
   /* Lines & Inputs */
   --color-border: 226 232 240;           /* #e2e8f0 */
   --color-input: 226 232 240;
-  --color-ring: 27 79 46;
+  --color-ring: 29 122 69;
 
   /* Status */
   --color-destructive: 185 28 28;        /* #b91c1c — red-700, 7.4:1 on #fff (AA) */
@@ -41,17 +44,14 @@
   --color-success: 21 128 61;            /* #15803d — green-700, 5.8:1 on #fff */
   --color-warning: 161 98 7;             /* #a16207 — amber-700, 5.4:1 on #fff */
 
-  /* ui-context.md aliases */
+  /* ui-context.md aliases (brand reference only; status/text use --color-* tokens) */
   --bg-base: #ffffff;
   --bg-surface: #f8fafc;
   --text-primary: #1e293b;
-  --text-muted: #64748b;
-  --accent-primary: #1b4f2e;
-  --accent-hover: #144e2e;
+  --accent-primary: #1d7a45;
+  --accent-hover: #18643a;
   --accent-second: #cdae4a;
   --border-default: #e2e8f0;
-  --state-error: #ef4444;
-  --state-success: #309059;
 
   /* Logo palette extras */
   --logo-mid-green: #309059;
@@ -71,8 +71,11 @@
   :root {
     --color-primary: 88 178 121;          /* #58b279 — soft green for dark mode */
     --color-primary-foreground: 10 25 16;
+    --color-primary-hover: 110 192 140;   /* #6ec08c — lighter on hover (dark) */
+    --color-primary-active: 79 159 108;   /* #4f9f6c */
     --color-secondary: 205 174 74;        /* gold stays vibrant */
     --color-secondary-foreground: 10 25 16;
+    --color-rating: 205 174 74;           /* gold reads ≈7:1 on dark surfaces */
 
     --color-background: 10 25 16;          /* deep forest near-black */
     --color-foreground: 237 237 237;
@@ -93,9 +96,8 @@
     --bg-base: #0a1910;
     --bg-surface: #12261a;
     --text-primary: #ededed;
-    --text-muted: #a3a3a3;
     --accent-primary: #58b279;
-    --accent-hover: #309059;
+    --accent-hover: #6ec08c;
     --accent-second: #cdae4a;
     --border-default: #263a2e;
   }
@@ -106,8 +108,11 @@
   --color-foreground: rgb(var(--color-foreground));
   --color-primary: rgb(var(--color-primary));
   --color-primary-foreground: rgb(var(--color-primary-foreground));
+  --color-primary-hover: rgb(var(--color-primary-hover));
+  --color-primary-active: rgb(var(--color-primary-active));
   --color-secondary: rgb(var(--color-secondary));
   --color-secondary-foreground: rgb(var(--color-secondary-foreground));
+  --color-rating: rgb(var(--color-rating));
   --color-card: rgb(var(--color-card));
   --color-card-foreground: rgb(var(--color-card-foreground));
   --color-popover: rgb(var(--color-popover));

@@ -1,25 +1,25 @@
-export interface ItineraryItem {
-  id: string;
+import type { TripSummary } from './trip-summary.interface';
+
+export interface ItineraryDay {
   dayNumber: number;
-  sortOrder: number;
   title: string;
   description: string | null;
+  durationHours?: number;
 }
 
-export interface TripDetail {
-  id: string;
-  title: string;
-  subtitle: string | null;
+export interface MeetingPoint {
+  description: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface TripDetail extends TripSummary {
   description: string | null;
-  category: string;
-  durationDays: number;
-  basePriceUsd: number;
-  maxCapacity: number;
-  coverImage: string | null;
-  images: string[];
+  galleryImageUrls: string[];
+  itineraryDays: ItineraryDay[];
   includedItems: string[];
   excludedItems: string[];
+  meetingPoint: MeetingPoint | null;
   cancellationPolicy: string | null;
-  meetingPoint: string | null;
-  itinerary: ItineraryItem[];
+  maxGuests: number | null;
 }

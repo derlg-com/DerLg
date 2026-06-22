@@ -82,6 +82,8 @@ export class BookTransportationUseCase {
             snapshot: {
               vehicleId: vehicle.id,
               label: vehicle.name,
+              name: vehicle.name,
+              coverImageUrl: vehicle.images?.[0] ?? null,
               type: vehicle.vehicleType,
               capacity: vehicle.capacity,
               pricingModel: vehicle.pricingModel,
@@ -89,6 +91,7 @@ export class BookTransportationUseCase {
               dropoffLocation: dto.dropoffLocation,
               stops: dto.stops ?? [],
               estimatedDistanceKm: dto.estimatedDistanceKm ?? null,
+              specialRequests: dto.specialRequests ?? null,
             },
           },
         ],
