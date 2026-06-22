@@ -34,6 +34,13 @@ export class GetHotelDetailUseCase {
               description: true,
             } satisfies Prisma.HotelTranslationSelect,
           },
+          // Cheapest active room drives the "from $X/night" price on the detail.
+          rooms: {
+            where: { isActive: true },
+            select: { priceUsd: true },
+            orderBy: { priceUsd: Prisma.SortOrder.asc },
+            take: 1,
+          },
         },
       });
 

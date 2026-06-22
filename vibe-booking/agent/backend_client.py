@@ -7,6 +7,16 @@ _TIMEOUT = 15.0
 _MAX_FAILURES = 5
 _COOLDOWN = 60.0  # seconds before half-open
 
+# Backend translation locales are en|zh|km. The agent's internal Khmer code is
+# "KH"/"kh"; map it to the backend's "km" so localized endpoints (e.g. trip and
+# hotel detail) return Khmer instead of falling back to English. Anything
+# unrecognized falls back to "en".
+_BACKEND_LOCALES = {"en": "en", "zh": "zh", "km": "km", "kh": "km"}
+
+
+def _backend_locale(language: str | None) -> str:
+    return _BACKEND_LOCALES.get((language or "en").strip().lower(), "en")
+
 
 class BackendClient:
     """HTTP client for backend /v1/* endpoints with circuit breaker."""
@@ -29,7 +39,7 @@ class BackendClient:
     def _headers(self, language: str) -> dict:
         return {
             "X-Service-Key": settings.ai_service_key,
-            "Accept-Language": language,
+            "Accept-Language": _backend_locale(language),
             "Content-Type": "application/json",
         }
 

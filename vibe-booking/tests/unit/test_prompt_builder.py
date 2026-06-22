@@ -27,3 +27,29 @@ def test_prompt_language_instruction(lang, expected):
     session = ConversationState(session_id="x", preferred_language=lang)
     prompt = build_system_prompt(session)
     assert expected in prompt
+
+
+def test_prompt_is_info_first_concierge():
+    """The concierge must answer ANY Cambodia travel question info-first, not act
+    as a booking funnel that interrogates the user toward a sale."""
+    session = ConversationState(session_id="x")
+    prompt = build_system_prompt(session)
+    # Info-first identity
+    assert "concierge" in prompt.lower()
+    assert "NOT a booking funnel" in prompt
+    # Covers broad travel topics, not just bookings
+    for topic in ("Visa", "Weather", "Culture", "Food", "Safety", "Itinerar"):
+        assert topic in prompt, f"prompt should mention {topic}"
+    # Booking is de-emphasized — only on explicit confirmation
+    assert "explicit user confirmation" in prompt
+
+
+def test_welcome_prompts_present_per_language():
+    """Curated welcome-state chips must exist for every supported language."""
+    from agent.prompts.templates import WELCOME_PROMPTS
+
+    for lang in ("EN", "KH", "ZH"):
+        assert lang in WELCOME_PROMPTS
+        prompts = WELCOME_PROMPTS[lang]
+        assert 2 <= len(prompts) <= 8
+        assert all(isinstance(p, str) and p.strip() for p in prompts)

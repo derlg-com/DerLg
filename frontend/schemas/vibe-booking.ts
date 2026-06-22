@@ -9,6 +9,7 @@ export const TripSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
+  blurb: z.string().optional(),
   province: z.string().optional(),
   durationDays: z.number(),
   priceUsd: z.number(),
@@ -45,6 +46,13 @@ export const QRPaymentPayloadSchema = z.object({
     amount: MoneySchema,
     expiry: z.string(),
     paymentIntentId: z.string(),
+    // bookingId is required by the QR card's Cancel/Retry/Restart actions and by
+    // the agent's check_payment_status / payment_completed flows. Without it in
+    // the schema, Zod strips it and those actions fire with booking_id: undefined.
+    bookingId: z.string().optional(),
+    // Live countdown fields pushed via booking_hold_expiry updates.
+    remaining_seconds: z.number().optional(),
+    expired: z.boolean().optional(),
   }),
 })
 
@@ -117,11 +125,32 @@ export const HotelSchema = z.object({
   amenities: z.array(z.string()).optional(),
   distanceKm: z.number().optional(),
   address: z.string().optional(),
+  description: z.string().optional(),
+  blurb: z.string().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 })
 
 export const HotelCardsPayloadSchema = z.object({
   type: z.literal('hotel_cards'),
   data: z.object({ hotels: z.array(HotelSchema) }),
+})
+
+export const GuideSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  pricePerDayUsd: z.number(),
+  languages: z.array(z.string()).optional(),
+  specialities: z.array(z.string()).optional(),
+  province: z.string().optional(),
+  avatarUrl: z.string().optional(),
+  isVerified: z.boolean().optional(),
+  bio: z.string().optional(),
+})
+
+export const GuideCardsPayloadSchema = z.object({
+  type: z.literal('guide_cards'),
+  data: z.object({ guides: z.array(GuideSchema) }),
 })
 
 export const TransportOptionSchema = z.object({
@@ -239,6 +268,7 @@ export const HotelDetailPayloadSchema = z.object({
 export const ContentPayloadSchema = z.discriminatedUnion('type', [
   TripCardsPayloadSchema,
   HotelCardsPayloadSchema,
+  GuideCardsPayloadSchema,
   TransportOptionsPayloadSchema,
   MapViewPayloadSchema,
   QRPaymentPayloadSchema,
@@ -259,4 +289,5 @@ export const ContentPayloadSchema = z.discriminatedUnion('type', [
 export type ContentPayload = z.infer<typeof ContentPayloadSchema>
 export type Trip = z.infer<typeof TripSchema>
 export type Hotel = z.infer<typeof HotelSchema>
+export type Guide = z.infer<typeof GuideSchema>
 export type TransportOption = z.infer<typeof TransportOptionSchema>

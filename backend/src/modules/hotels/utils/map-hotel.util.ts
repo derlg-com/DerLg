@@ -22,6 +22,8 @@ export type HotelSummaryRow = {
 export type HotelDetailRow = HotelSummaryRow & {
   amenities: string[];
   translations: (HotelTranslationRow & { description: string | null })[];
+  // Cheapest active room(s) first; used to surface a "from $X/night" price.
+  rooms?: { priceUsd: Prisma.Decimal | number }[];
 };
 
 function pickTranslation<T extends { language: string }>(
@@ -56,6 +58,7 @@ export function mapHotelSummary(
 
 export function mapHotelDetail(row: HotelDetailRow, lang: Lang): HotelDetail {
   const t = pickTranslation(row.translations, lang);
+  const cheapest = row.rooms?.[0];
   return {
     id: row.id,
     name: t?.name ?? '',
@@ -66,5 +69,6 @@ export function mapHotelDetail(row: HotelDetailRow, lang: Lang): HotelDetail {
     amenities: row.amenities,
     latitude: toNum(row.latitude),
     longitude: toNum(row.longitude),
+    priceFromUsd: cheapest ? toNum(cheapest.priceUsd) : null,
   };
 }

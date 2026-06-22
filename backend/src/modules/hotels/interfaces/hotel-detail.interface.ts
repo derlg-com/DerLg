@@ -8,4 +8,6 @@ export interface HotelDetail {
   amenities: string[];
   latitude: number;
   longitude: number;
+  /** Cheapest active room price (per night, USD); null when no active rooms. */
+  priceFromUsd: number | null;
 }

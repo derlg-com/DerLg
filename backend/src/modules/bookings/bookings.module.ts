@@ -13,6 +13,7 @@ import {
   GetBookingIcalUseCase,
   ExpireHoldUseCase,
   TemplateBookingUseCase,
+  ConfirmBookingUseCase,
 } from './use-cases';
 import {
   SetHoldUtil,
@@ -34,6 +35,7 @@ import {
     GetBookingIcalUseCase,
     ExpireHoldUseCase,
     TemplateBookingUseCase,
+    ConfirmBookingUseCase,
     SetHoldUtil,
     ReleaseHoldUtil,
     IdempotencyUtil,

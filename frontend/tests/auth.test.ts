@@ -1,10 +1,20 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { authenticate, getStoredUserId, getStoredToken } from '@/lib/auth'
+import { getAccessToken, clearAccessToken } from '@/lib/api-client'
 import { useVibeBookingStore } from '@/stores/vibe-booking.store'
+
+function mockFetch(status: number, body: unknown) {
+  return vi.fn().mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    text: async () => JSON.stringify(body),
+  })
+}
 
 describe('lib/auth', () => {
   beforeEach(() => {
     window.localStorage.clear()
+    clearAccessToken()
   })
   afterEach(() => {
     vi.restoreAllMocks()
@@ -16,24 +26,22 @@ describe('lib/auth', () => {
     expect(getStoredUserId()).toBe(first)
   })
 
-  it('authenticate persists token + real user id on success', async () => {
+  it('authenticate persists token + user id and primes the api client (enveloped response)', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ accessToken: 'jwt-123', user: { id: 'real-uuid' } }),
-      }),
+      mockFetch(200, { success: true, data: { accessToken: 'jwt-123', user: { id: 'real-uuid' } } }),
     )
     const result = await authenticate('login', 'a@b.com', 'password123')
     expect(result.userId).toBe('real-uuid')
     expect(getStoredToken()).toBe('jwt-123')
     expect(getStoredUserId()).toBe('real-uuid')
+    expect(getAccessToken()).toBe('jwt-123')
   })
 
-  it('authenticate throws on failure', async () => {
+  it('authenticate throws a normalized error on failure', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({ ok: false, json: async () => ({ message: 'bad creds' }) }),
+      mockFetch(401, { success: false, error: { code: 'AUTH_INVALID_CREDENTIALS', message: 'bad creds' } }),
     )
     await expect(authenticate('login', 'a@b.com', 'x')).rejects.toThrow('bad creds')
   })

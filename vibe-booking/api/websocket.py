@@ -8,6 +8,7 @@ from starlette.websockets import WebSocketState
 from agent.session.state import ConversationState
 from agent.session.manager import SessionManager
 from agent.core import run_agent_streaming
+from agent.prompts.templates import WELCOME_PROMPTS
 from agent.backend_client import get_backend_client
 from utils.logging import logger
 from utils.redis import check_rate_limit
@@ -58,6 +59,7 @@ _INBOUND_REQUIRED: dict[str, str | None] = {
     "user_message": "content",
     "user_action": "action_type",
     "payment_completed": "booking_id",
+    "feedback": "message_id",
 }
 
 
@@ -110,6 +112,44 @@ def _origin_allowed(origin: str | None) -> bool:
     from config.settings import settings
     allowed = {o.strip() for o in settings.allowed_ws_origins.split(",") if o.strip()}
     return origin in allowed
+
+
+async def _stream_agent_response(
+    websocket: WebSocket, session: ConversationState, agent_input: str
+) -> None:
+    """Run the agent for `agent_input` and forward all stream events to the
+    client: live chunks/reasoning/tool-status, then typing_end + (optional)
+    requires_payment + the final agent_message. The agent_message carries text,
+    content_payload (singular, back-compat), content_payloads (the full list of
+    blocks), and suggestions (follow-up chips). Shared by the user_message,
+    user_action, and payment_completed handlers."""
+    await websocket.send_json({"type": "typing_start"})
+    try:
+        async for event in run_agent_streaming(session, agent_input):
+            etype = event["type"]
+            if etype in ("agent_stream_chunk", "agent_reasoning_chunk", "agent_tool_status"):
+                await websocket.send_json(event)
+            elif etype == "requires_login":
+                await session_manager.save(session)
+                await websocket.send_json({"type": "typing_end"})
+                await websocket.send_json(event)
+            elif etype == "final":
+                await session_manager.save(session)
+                await websocket.send_json({"type": "typing_end"})
+                if event.get("requires_payment"):
+                    await websocket.send_json({"type": "requires_payment", **event["requires_payment"]})
+                agent_msg: dict = {"type": "agent_message", "text": event["text"]}
+                if event.get("content_payload"):
+                    agent_msg["content_payload"] = event["content_payload"]
+                if event.get("content_payloads"):
+                    agent_msg["content_payloads"] = event["content_payloads"]
+                if event.get("suggestions"):
+                    agent_msg["suggestions"] = event["suggestions"]
+                await websocket.send_json(agent_msg)
+    except Exception as exc:
+        logger.error("agent_error", session_id=session.session_id, error=str(exc))
+        await websocket.send_json({"type": "typing_end"})
+        await websocket.send_json({"type": "error", "message": "Something went wrong. Please try again."})
 
 
 async def websocket_endpoint(websocket: WebSocket) -> None:
@@ -184,6 +224,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         "type": "conversation_started" if is_new else "conversation_resumed",
         "text": welcome_text,
         "session_id": session_id,
+        "suggested_prompts": WELCOME_PROMPTS.get(session.preferred_language, WELCOME_PROMPTS["EN"]),
     })
 
     try:
@@ -214,28 +255,23 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     await websocket.send_json({"type": "error", "message": "Too many messages. Please wait."})
                     continue
 
-                await websocket.send_json({"type": "typing_start"})
-                try:
-                    async for event in run_agent_streaming(session, content):
-                        if event["type"] in ("agent_stream_chunk", "agent_reasoning_chunk", "agent_tool_status"):
-                            await websocket.send_json(event)
-                        elif event["type"] == "requires_login":
-                            await session_manager.save(session)
-                            await websocket.send_json({"type": "typing_end"})
-                            await websocket.send_json(event)
-                        elif event["type"] == "final":
-                            await session_manager.save(session)
-                            await websocket.send_json({"type": "typing_end"})
-                            if event.get("requires_payment"):
-                                await websocket.send_json({"type": "requires_payment", **event["requires_payment"]})
-                            agent_msg: dict = {"type": "agent_message", "text": event["text"]}
-                            if event.get("content_payload"):
-                                agent_msg["content_payload"] = event["content_payload"]
-                            await websocket.send_json(agent_msg)
-                except Exception as exc:
-                    logger.error("agent_error", session_id=session_id, error=str(exc))
-                    await websocket.send_json({"type": "typing_end"})
-                    await websocket.send_json({"type": "error", "message": "Something went wrong. Please try again."})
+                # Optional page context ("Asked while viewing X") lets the
+                # concierge tailor its answer to the page the user launched from.
+                page_context = _sanitize_input(str(msg.get("context", "")))[:80].strip()
+                agent_input = f"[Context: viewing {page_context}] {content}" if page_context else content
+                await _stream_agent_response(websocket, session, agent_input)
+
+            elif msg.get("type") == "feedback":
+                # "Was this helpful?" — log the thumbs up/down for the message.
+                helpful = msg.get("helpful")
+                if not isinstance(helpful, bool):
+                    continue
+                logger.info(
+                    "chat_feedback",
+                    session_id=session_id,
+                    message_id=str(msg.get("message_id", "")),
+                    helpful=helpful,
+                )
 
             elif msg.get("type") == "user_action":
                 action_type = str(msg.get("action_type", ""))
@@ -245,28 +281,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 content = _sanitize_input(action_text)
                 if not content:
                     continue
-                await websocket.send_json({"type": "typing_start"})
-                try:
-                    async for event in run_agent_streaming(session, content):
-                        if event["type"] in ("agent_stream_chunk", "agent_reasoning_chunk", "agent_tool_status"):
-                            await websocket.send_json(event)
-                        elif event["type"] == "requires_login":
-                            await session_manager.save(session)
-                            await websocket.send_json({"type": "typing_end"})
-                            await websocket.send_json(event)
-                        elif event["type"] == "final":
-                            await session_manager.save(session)
-                            await websocket.send_json({"type": "typing_end"})
-                            if event.get("requires_payment"):
-                                await websocket.send_json({"type": "requires_payment", **event["requires_payment"]})
-                            agent_msg = {"type": "agent_message", "text": event["text"]}
-                            if event.get("content_payload"):
-                                agent_msg["content_payload"] = event["content_payload"]
-                            await websocket.send_json(agent_msg)
-                except Exception as exc:
-                    logger.error("user_action_error", session_id=session_id, error=str(exc))
-                    await websocket.send_json({"type": "typing_end"})
-                    await websocket.send_json({"type": "error", "message": "Something went wrong. Please try again."})
+                await _stream_agent_response(websocket, session, content)
 
             elif msg.get("type") == "payment_completed":
                 booking_id = str(msg.get("booking_id", ""))
@@ -289,28 +304,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                     })
                     continue
                 confirm_text = f"Payment confirmed for booking {booking_id}. Please confirm the booking and provide next steps."
-                await websocket.send_json({"type": "typing_start"})
-                try:
-                    async for event in run_agent_streaming(session, confirm_text):
-                        if event["type"] in ("agent_stream_chunk", "agent_reasoning_chunk", "agent_tool_status"):
-                            await websocket.send_json(event)
-                        elif event["type"] == "requires_login":
-                            await session_manager.save(session)
-                            await websocket.send_json({"type": "typing_end"})
-                            await websocket.send_json(event)
-                        elif event["type"] == "final":
-                            await session_manager.save(session)
-                            await websocket.send_json({"type": "typing_end"})
-                            if event.get("requires_payment"):
-                                await websocket.send_json({"type": "requires_payment", **event["requires_payment"]})
-                            agent_msg = {"type": "agent_message", "text": event["text"]}
-                            if event.get("content_payload"):
-                                agent_msg["content_payload"] = event["content_payload"]
-                            await websocket.send_json(agent_msg)
-                except Exception as exc:
-                    logger.error("payment_completed_error", session_id=session_id, error=str(exc))
-                    await websocket.send_json({"type": "typing_end"})
-                    await websocket.send_json({"type": "error", "message": "Something went wrong. Please try again."})
+                await _stream_agent_response(websocket, session, confirm_text)
 
     except WebSocketDisconnect:
         pass

@@ -115,14 +115,41 @@ export class AiToolsService {
         province: { contains: dto.location, mode: 'insensitive' },
         languages: { some: { language: dto.language as 'en' | 'zh' | 'km' } },
       },
+      select: {
+        id: true,
+        userId: true,
+        bio: true,
+        avatarUrl: true,
+        pricePerDayUsd: true,
+        province: true,
+        isVerified: true,
+        languages: { select: { language: true } },
+        specialities: { select: { speciality: true } },
+      },
       take: 10,
     });
+
+    // Guide has no name column and no Prisma relation to User; resolve display
+    // names from the linked users in a single keyed query (avoids N+1).
+    const userIds = guides.map((g) => g.userId);
+    const users = userIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, fullName: true },
+        })
+      : [];
+    const nameByUserId = new Map(users.map((u) => [u.id, u.fullName]));
+
     return guides.map((g) => ({
       id: g.id,
+      name: nameByUserId.get(g.userId) || 'Local Guide',
       bio: g.bio,
+      languages: g.languages.map((l) => l.language),
+      specialities: g.specialities.map((s) => s.speciality),
       price_per_day_usd: Number(g.pricePerDayUsd),
       province: g.province,
       avatar_url: g.avatarUrl,
+      is_verified: g.isVerified,
     }));
   }
 

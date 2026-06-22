@@ -1,8 +1,8 @@
 'use client'
 
 import { v4 as uuid } from 'uuid'
+import { api, setAccessToken } from './api-client'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3003'
 const USER_ID_KEY = 'derlg:user_id'
 const TOKEN_KEY = 'derlg:access_token'
 
@@ -38,18 +38,13 @@ export async function authenticate(
   email: string,
   password: string,
 ): Promise<AuthResult> {
-  const res = await fetch(`${API_URL}/v1/auth/${mode}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ email, password }),
-  })
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { message?: string }
-    throw new Error(body.message ?? 'Authentication failed')
-  }
-  const body = (await res.json()) as { accessToken: string; user: { id: string } }
-  const result = { accessToken: body.accessToken, userId: body.user.id }
+  const data = await api.post<{ accessToken: string; user: { id: string } }>(
+    `/v1/auth/${mode}`,
+    { email, password },
+    { auth: false },
+  )
+  const result = { accessToken: data.accessToken, userId: data.user.id }
+  setAccessToken(result.accessToken)
   persist(result)
   return result
 }

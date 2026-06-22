@@ -3,7 +3,7 @@ import type { Lang } from '../../../common/i18n';
 import type { TripSummary } from '../interfaces/trip-summary.interface';
 import type {
   TripDetail,
-  ItineraryItem,
+  ItineraryDay,
 } from '../interfaces/trip-detail.interface';
 
 // Minimal translation shape shared between summary and detail queries
@@ -68,42 +68,40 @@ export function mapTripSummary(row: TripSummaryRow, lang: Lang): TripSummary {
   const t = pickTranslation(row.translations, lang);
   return {
     id: row.id,
-    title: t?.title ?? '',
-    subtitle: t?.subtitle ?? null,
-    category: row.category,
+    name: t?.title ?? '',
+    coverImageUrl: row.coverImage,
     durationDays: row.durationDays,
-    basePriceUsd: toPrice(row.basePriceUsd),
-    coverImage: row.coverImage,
+    priceUsd: toPrice(row.basePriceUsd),
+    category: row.category,
+    // Structured location + review aggregation are not modeled yet; the
+    // frontend guards these (null/0) — tracked as a follow-up.
+    location: null,
+    ratingAverage: null,
+    ratingCount: 0,
   };
 }
 
 export function mapTripDetail(row: TripDetailRow, lang: Lang): TripDetail {
   const t = pickTranslation(row.translations, lang);
-  const itinerary: ItineraryItem[] = row.itineraryItems.map((item) => {
+  const itineraryDays: ItineraryDay[] = row.itineraryItems.map((item) => {
     const it = pickTranslation(item.translations, lang);
     return {
-      id: item.id,
       dayNumber: item.dayNumber,
-      sortOrder: item.sortOrder,
       title: it?.title ?? '',
       description: it?.description ?? null,
     };
   });
   return {
-    id: row.id,
-    title: t?.title ?? '',
-    subtitle: t?.subtitle ?? null,
+    ...mapTripSummary(row, lang),
     description: t?.description ?? null,
-    category: row.category,
-    durationDays: row.durationDays,
-    basePriceUsd: toPrice(row.basePriceUsd),
-    maxCapacity: row.maxCapacity,
-    coverImage: row.coverImage,
-    images: row.images,
+    galleryImageUrls: row.images,
+    itineraryDays,
     includedItems: t?.includedItems ?? [],
     excludedItems: t?.excludedItems ?? [],
+    // Meeting-point coordinates are not modeled yet (translation stores only a
+    // text description); null until a schema field lands — tracked as follow-up.
+    meetingPoint: null,
     cancellationPolicy: t?.cancellationPolicy ?? null,
-    meetingPoint: t?.meetingPoint ?? null,
-    itinerary,
+    maxGuests: row.maxCapacity,
   };
 }

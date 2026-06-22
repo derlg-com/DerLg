@@ -18,6 +18,7 @@ describe('BookGuideUseCase', () => {
   let prisma: {
     guide: { findFirst: jest.Mock };
     booking: { findFirst: jest.Mock };
+    user: { findUnique: jest.Mock };
   };
   let commitBooking: { execute: jest.Mock };
 
@@ -27,9 +28,11 @@ describe('BookGuideUseCase', () => {
     over: Partial<{ isActive: boolean; pricePerDayUsd: Prisma.Decimal }> = {},
   ) => ({
     id: 'guide-1',
+    userId: 'guide-user-1',
     isActive: over.isActive ?? true,
     isVerified: true,
     province: 'Siem Reap',
+    avatarUrl: null,
     pricePerDayUsd: over.pricePerDayUsd ?? D('80'),
     languages: [{ language: 'en' }, { language: 'zh' }],
     specialities: [{ speciality: 'Angkor Wat historian' }],
@@ -44,6 +47,7 @@ describe('BookGuideUseCase', () => {
     prisma = {
       guide: { findFirst: jest.fn() },
       booking: { findFirst: jest.fn() },
+      user: { findUnique: jest.fn().mockResolvedValue({ fullName: 'Sok Dara' }) },
     };
     commitBooking = {
       execute: jest

@@ -7,6 +7,8 @@ from agent.models.factory import get_model_client
 from agent.tools import ALL_TOOLS, TOOL_DISPATCH
 from agent.tools.geo import lookup_coords
 from agent.prompts.builder import build_system_prompt
+from agent.suggestions import generate_suggestions
+from agent.blurbs import attach_card_blurbs
 from agent.backend_client import get_backend_client
 from utils.logging import logger
 
@@ -114,13 +116,21 @@ def _norm_trip(t: dict, fallback_destination: str | None = None) -> dict:
 
 def _norm_hotel(h: dict) -> dict:
     images = h.get("images") or []
+    name = h.get("name", "")
+    address = h.get("address")
+    # Backend hotel search returns no coordinates; derive an approximate pin from
+    # the address/name so hotel cards can render a synced map like trips do.
+    coords = lookup_coords(address, name)
     return _strip_none({
         "id": h.get("id", ""),
-        "name": h.get("name", ""),
-        "address": h.get("address"),
+        "name": name,
+        "address": address,
+        "description": h.get("description"),
         "priceUsd": h.get("price_from_usd") or h.get("priceUsd") or 0,
         "rating": h.get("star_rating") or h.get("rating"),
         "imageUrl": images[0] if images else h.get("imageUrl"),
+        "lat": coords[0] if coords else None,
+        "lng": coords[1] if coords else None,
     })
 
 
@@ -135,23 +145,50 @@ def _norm_transport(v: dict) -> dict:
     })
 
 
+def _norm_guide(g: dict) -> dict:
+    """Backend ai-tools guide → frontend guide_cards item (camelCase)."""
+    is_verified = g.get("is_verified")
+    if is_verified is None:
+        is_verified = g.get("isVerified")
+    return _strip_none({
+        "id": g.get("id", ""),
+        "name": g.get("name") or "Local Guide",
+        "pricePerDayUsd": g.get("price_per_day_usd") or g.get("pricePerDayUsd") or 0,
+        "languages": g.get("languages") or None,
+        "specialities": g.get("specialities") or None,
+        "province": g.get("province"),
+        "avatarUrl": g.get("avatar_url") or g.get("avatarUrl"),
+        "isVerified": is_verified,
+        "bio": g.get("bio"),
+    })
+
+
 def _norm_trip_detail(t: dict) -> dict:
-    """Backend TripDetail (camelCase already) → frontend trip_detail payload.
-    Coords come from a geo lookup over meeting point / name / description."""
-    name = t.get("title") or t.get("name", "")
-    coords = lookup_coords(t.get("meetingPoint"), name, t.get("description"))
+    """Backend TripDetail (camelCase) → frontend trip_detail payload.
+    Coords come from a geo lookup over name / description (meeting-point
+    coordinates are not modeled backend-side yet). Reads the documented keys
+    (name/priceUsd/coverImageUrl/galleryImageUrls/itineraryDays) and falls back
+    to the legacy keys for safety."""
+    name = t.get("name") or t.get("title", "")
+    # meetingPoint may be a legacy string, a {description,...} object (new
+    # shape), or null; use its text (if any) plus name/description for coords.
+    mp = t.get("meetingPoint")
+    mp_text = (
+        mp.get("description") if isinstance(mp, dict) else mp if isinstance(mp, str) else None
+    )
+    coords = lookup_coords(mp_text, name, t.get("description"))
     itinerary = [
         {"day": it.get("dayNumber", 0), "title": it.get("title", ""), "description": it.get("description")}
-        for it in (t.get("itinerary") or [])
+        for it in (t.get("itineraryDays") or t.get("itinerary") or [])
     ]
     return _strip_none({
         "id": t.get("id", ""),
         "name": name,
         "description": t.get("description"),
-        "priceUsd": t.get("basePriceUsd") or t.get("priceUsd") or 0,
+        "priceUsd": t.get("priceUsd") or t.get("basePriceUsd") or 0,
         "durationDays": t.get("durationDays", 0),
-        "imageUrl": t.get("coverImage"),
-        "images": t.get("images") or None,
+        "imageUrl": t.get("coverImageUrl") or t.get("coverImage"),
+        "images": t.get("galleryImageUrls") or t.get("images") or None,
         "included": t.get("includedItems") or None,
         "excluded": t.get("excludedItems") or None,
         "itinerary": itinerary or None,
@@ -167,7 +204,7 @@ def _norm_hotel_detail(h: dict) -> dict:
         "name": h.get("name", ""),
         "address": h.get("address"),
         "description": h.get("description"),
-        "priceUsd": h.get("priceUsd") or 0,
+        "priceUsd": h.get("priceFromUsd") or h.get("priceUsd") or 0,
         "rating": h.get("starRating") or h.get("rating"),
         "imageUrl": (h.get("images") or [None])[0],
         "images": h.get("images") or None,
@@ -204,16 +241,81 @@ def _extract_booking_hold(tool_results: list[tuple[str, dict]]) -> dict | None:
     return None
 
 
-def _build_content_payload(
-    tool_results: list[tuple[str, dict]], search_destination: str | None = None
-) -> dict | None:
-    """Map tool results to a typed ContentPayload for the frontend.
+def _collect_map_markers(payloads: list[dict]) -> list[dict]:
+    """Pull mappable points (lat/lng) out of already-built card/detail payloads
+    so a map_view can be derived to sit alongside the cards (TripAdvisor-style)."""
+    markers: list[dict] = []
+    for p in payloads:
+        ptype = p.get("type")
+        data = p.get("data") or {}
+        if ptype == "trip_cards":
+            items, mtype = data.get("trips", []), "trip"
+        elif ptype == "comparison":
+            items, mtype = data.get("items", []), "trip"
+        elif ptype == "hotel_cards":
+            items, mtype = data.get("hotels", []), "hotel"
+        elif ptype == "trip_detail":
+            items, mtype = [data], "trip"
+        elif ptype == "hotel_detail":
+            items, mtype = [data], "hotel"
+        else:
+            continue
+        for it in items:
+            lat, lng = it.get("lat"), it.get("lng")
+            if isinstance(lat, (int, float)) and isinstance(lng, (int, float)):
+                markers.append(_strip_none({
+                    "id": str(it.get("id") or it.get("name") or ""),
+                    "lat": float(lat),
+                    "lng": float(lng),
+                    "label": it.get("name"),
+                    "type": mtype,
+                }))
+    return markers
 
-    Handles both array responses (backend returns list directly) and
-    object responses (backend returns dict with nested data).
-    Maps snake_case backend fields to camelCase frontend fields.
-    Returns the first meaningful payload, or None.
+
+def _derive_map_view(payloads: list[dict]) -> dict | None:
+    """Build a map_view payload centered on the mappable items in `payloads`.
+    Returns None when nothing has coordinates. De-dups markers by id."""
+    markers = _collect_map_markers(payloads)
+    if not markers:
+        return None
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for m in markers:
+        mid = str(m.get("id", ""))
+        if mid in seen:
+            continue
+        seen.add(mid)
+        unique.append(m)
+    avg_lat = sum(m["lat"] for m in unique) / len(unique)
+    avg_lng = sum(m["lng"] for m in unique) / len(unique)
+    return {
+        "type": "map_view",
+        "data": {
+            "center": {"lat": avg_lat, "lng": avg_lng},
+            "markers": unique,
+            "zoom": 12 if len(unique) == 1 else 9,
+        },
+        "actions": [],
+        "metadata": {},
+    }
+
+
+def build_content_payloads(
+    tool_results: list[tuple[str, dict]],
+    search_destination: str | None = None,
+    query: str | None = None,
+) -> list[dict]:
+    """Map ALL tool results to a list of typed ContentPayloads for the frontend.
+
+    Unlike the legacy single-payload builder, this returns EVERY meaningful
+    block produced this turn (e.g. trip_cards + weather + budget_estimate) plus
+    an auto-derived map_view when any card/detail carries coordinates — so the
+    UI can auto-render a rich, multi-section result like TripAdvisor's
+    "Plan with AI". Handles both array responses (backend returns list directly)
+    and object responses, mapping snake_case backend fields to camelCase.
     """
+    payloads: list[dict] = []
     for tool_name, result in tool_results:
         if not result.get("success"):
             continue
@@ -227,21 +329,27 @@ def _build_content_payload(
                 continue
             payload_type = "comparison" if len(trips) == 2 else "trip_cards"
             key = "items" if payload_type == "comparison" else "trips"
-            return {"type": payload_type, "data": {key: trips}, "actions": [], "metadata": {}}
+            payloads.append({"type": payload_type, "data": {key: trips}, "actions": [], "metadata": {}})
 
-        if tool_name == "search_hotels":
+        elif tool_name == "search_hotels":
             hotels = [_norm_hotel(h) for h in _as_list(raw)]
             if not hotels:
                 continue
-            return {"type": "hotel_cards", "data": {"hotels": hotels}, "actions": [], "metadata": {}}
+            payloads.append({"type": "hotel_cards", "data": {"hotels": hotels}, "actions": [], "metadata": {}})
 
-        if tool_name == "search_transport":
+        elif tool_name == "search_transport":
             options = [_norm_transport(v) for v in _as_list(raw)]
             if not options:
                 continue
-            return {"type": "transport_options", "data": {"options": options}, "actions": [], "metadata": {}}
+            payloads.append({"type": "transport_options", "data": {"options": options}, "actions": [], "metadata": {}})
 
-        if tool_name == "get_weather":
+        elif tool_name == "search_guides":
+            guides = [_norm_guide(g) for g in _as_list(raw)]
+            if not guides:
+                continue
+            payloads.append({"type": "guide_cards", "data": {"guides": guides}, "actions": [], "metadata": {}})
+
+        elif tool_name == "get_weather":
             # Backend returns a single weather object, not an array
             if isinstance(raw, dict):
                 forecast = [{
@@ -251,9 +359,9 @@ def _build_content_payload(
                     "condition": raw.get("condition", ""),
                     "icon": raw.get("icon"),
                 }]
-                return {"type": "weather", "data": {"forecast": forecast}, "actions": [], "metadata": {}}
+                payloads.append({"type": "weather", "data": {"forecast": forecast}, "actions": [], "metadata": {}})
 
-        if tool_name == "estimate_budget":
+        elif tool_name == "estimate_budget":
             if isinstance(raw, dict):
                 # Backend returns total_usd (midpoint), breakdown is a list of objects
                 total = raw.get("total_usd") or raw.get("total_estimate_usd") or raw.get("totalUsd", 0)
@@ -268,16 +376,16 @@ def _build_content_payload(
                 elif isinstance(breakdown_list, dict):
                     breakdown_dict = breakdown_list
                 if total:
-                    return {
+                    payloads.append({
                         "type": "budget_estimate",
                         "data": {"totalUsd": total, "breakdown": breakdown_dict},
                         "actions": [],
                         "metadata": {},
-                    }
+                    })
 
-        if tool_name == "generate_payment_qr":
+        elif tool_name == "generate_payment_qr":
             if isinstance(raw, dict) and (raw.get("qr_image_url") or raw.get("qr_url")):
-                return {
+                payloads.append({
                     "type": "qr_payment",
                     "data": {
                         "qrUrl": raw.get("qr_image_url") or raw.get("qr_url", ""),
@@ -288,11 +396,11 @@ def _build_content_payload(
                     },
                     "actions": [],
                     "metadata": {},
-                }
+                })
 
-        if tool_name == "check_payment_status":
+        elif tool_name == "check_payment_status":
             if isinstance(raw, dict) and raw.get("status"):
-                return {
+                payloads.append({
                     "type": "payment_status",
                     "data": {
                         "paymentIntentId": raw.get("payment_intent_id") or raw.get("paymentIntentId", ""),
@@ -303,11 +411,11 @@ def _build_content_payload(
                     },
                     "actions": [],
                     "metadata": {},
-                }
+                })
 
-        if tool_name == "create_booking_hold":
+        elif tool_name == "create_booking_hold":
             if isinstance(raw, dict) and raw.get("booking_id"):
-                return {
+                payloads.append({
                     "type": "booking_summary",
                     "data": {
                         "bookingId": raw["booking_id"],
@@ -321,17 +429,40 @@ def _build_content_payload(
                     },
                     "actions": [],
                     "metadata": {},
-                }
+                })
 
-        if tool_name == "get_trip_detail":
+        elif tool_name == "get_trip_detail":
             if isinstance(raw, dict) and raw.get("id"):
-                return {"type": "trip_detail", "data": _norm_trip_detail(raw), "actions": [], "metadata": {}}
+                payloads.append({"type": "trip_detail", "data": _norm_trip_detail(raw), "actions": [], "metadata": {}})
 
-        if tool_name == "get_hotel_detail":
+        elif tool_name == "get_hotel_detail":
             if isinstance(raw, dict) and raw.get("id"):
-                return {"type": "hotel_detail", "data": _norm_hotel_detail(raw), "actions": [], "metadata": {}}
+                payloads.append({"type": "hotel_detail", "data": _norm_hotel_detail(raw), "actions": [], "metadata": {}})
 
-    return None
+    # Results header ("Results for '<query>'") on the card-list blocks.
+    if query:
+        title = f'Results for "{query}"'
+        for p in payloads:
+            if p.get("type") in ("trip_cards", "hotel_cards", "comparison"):
+                p["metadata"] = {**(p.get("metadata") or {}), "title": title}
+
+    # Auto-derive an overview map from any card/detail coords so the UI can show
+    # cards + a synced map together. The frontend drops a redundant standalone
+    # map_view when a card-list block is present (the cards own their inline map).
+    map_view = _derive_map_view(payloads)
+    if map_view is not None:
+        payloads.append(map_view)
+
+    return payloads
+
+
+def _build_content_payload(
+    tool_results: list[tuple[str, dict]], search_destination: str | None = None
+) -> dict | None:
+    """Back-compat: the FIRST meaningful payload (legacy single-payload field).
+    New code should use build_content_payloads(...) for the full list."""
+    payloads = build_content_payloads(tool_results, search_destination)
+    return payloads[0] if payloads else None
 
 
 async def _execute_tool(name: str, inp: dict, session: ConversationState) -> dict:
@@ -426,6 +557,7 @@ async def run_agent_streaming(
     messages = session.messages[-MAX_MESSAGES:]
     all_tool_results: list[tuple[str, dict]] = []
     search_destination: str | None = None
+    search_label: str | None = None
 
     for _ in range(MAX_TOOL_LOOPS):
         streamed = False
@@ -464,7 +596,21 @@ async def run_agent_streaming(
             if not streamed and full_text:
                 yield {"type": "agent_stream_chunk", "delta": full_text}
             session.messages.append({"role": "assistant", "content": full_text})
-            yield {"type": "final", "text": full_text, "content_payload": _build_content_payload(all_tool_results, search_destination), "requires_payment": _extract_booking_hold(all_tool_results)}
+            payloads = build_content_payloads(all_tool_results, search_destination, query=search_label)
+            # Follow-up chips + per-card blurbs run concurrently (same client) so
+            # the post-answer enrichment adds ~one round-trip, not two.
+            suggestions, payloads = await asyncio.gather(
+                generate_suggestions(session, full_text, client=client, payloads=payloads),
+                attach_card_blurbs(session, payloads, client=client),
+            )
+            yield {
+                "type": "final",
+                "text": full_text,
+                "content_payload": payloads[0] if payloads else None,
+                "content_payloads": payloads,
+                "suggestions": suggestions,
+                "requires_payment": _extract_booking_hold(all_tool_results),
+            }
             return
 
         tool_calls = [b for b in response.content if b.type == "tool_use"]
@@ -485,6 +631,18 @@ async def run_agent_streaming(
         for b in tool_calls:
             if b.name == "search_trips" and b.input.get("destination"):
                 search_destination = b.input["destination"]
+            if search_label is None and b.name in (
+                "search_trips", "search_hotels", "search_guides", "search_transport"
+            ):
+                label = (
+                    b.input.get("destination")
+                    or b.input.get("location")
+                    or b.input.get("query")
+                    or b.input.get("keyword")
+                    or b.input.get("city")
+                )
+                if label:
+                    search_label = str(label)
 
         # Deferred-auth gate: a guest cannot create a booking hold. Emit
         # requires_login instead of calling the tool with an invalid user_id.
@@ -529,4 +687,4 @@ async def run_agent_streaming(
             })
         messages = session.messages[-MAX_MESSAGES:]
 
-    yield {"type": "final", "text": "I'm having trouble processing your request. Please try again.", "content_payload": None, "requires_payment": None}
+    yield {"type": "final", "text": "I'm having trouble processing your request. Please try again.", "content_payload": None, "content_payloads": [], "suggestions": [], "requires_payment": None}

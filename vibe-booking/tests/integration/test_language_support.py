@@ -52,15 +52,20 @@ async def test_khmer_always_uses_nvidia_client(session_kh):
 
 @pytest.mark.asyncio
 async def test_accept_language_header_passed_to_backend():
-    """R10.3 — Accept-Language header sent with locale."""
+    """R10.3 — Accept-Language header sent with a backend-valid locale.
+
+    The agent's internal Khmer code is KH/kh, but the backend's translation
+    locale is `km`; the client must normalize so Khmer users get Khmer content.
+    """
     from agent.backend_client import BackendClient
 
     client = BackendClient()
-    headers = client._headers("zh")
-    assert headers["Accept-Language"] == "zh"
-
-    headers_kh = client._headers("kh")
-    assert headers_kh["Accept-Language"] == "kh"
+    assert client._headers("zh")["Accept-Language"] == "zh"
+    assert client._headers("en")["Accept-Language"] == "en"
+    # Khmer in any casing/alias normalizes to the backend's "km".
+    assert client._headers("kh")["Accept-Language"] == "km"
+    assert client._headers("KH")["Accept-Language"] == "km"
+    assert client._headers("km")["Accept-Language"] == "km"
 
 
 @pytest.mark.asyncio

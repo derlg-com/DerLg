@@ -10,6 +10,8 @@ export interface ChatMessage {
   content: string
   type: 'text' | 'error'
   linkedContentId?: string
+  /** Page context ("Asked while viewing X") when sent from a launcher on an app page. */
+  context?: string
   timestamp: string
 }
 
@@ -18,6 +20,7 @@ export type ContentType =
   | 'trip_detail'
   | 'hotel_cards'
   | 'hotel_detail'
+  | 'guide_cards'
   | 'transport_options'
   | 'map_view'
   | 'itinerary'
@@ -94,6 +97,10 @@ interface VibeBookingState {
   reasoningText: string
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error'
   sessionId: string | null
+  // TripAdvisor-style concierge extras
+  suggestions: string[]
+  welcomePrompts: string[]
+  messageFeedback: Record<string, 'up' | 'down'>
   addMessage: (message: ChatMessage) => void
   appendToStreamingMessage: (delta: string) => string
   finalizeStreamingMessage: (text: string) => string
@@ -104,6 +111,9 @@ interface VibeBookingState {
   clearReasoning: () => void
   setConnectionStatus: (s: VibeBookingState['connectionStatus']) => void
   setSessionId: (id: string) => void
+  setSuggestions: (suggestions: string[]) => void
+  setWelcomePrompts: (prompts: string[]) => void
+  setMessageFeedback: (messageId: string, value: 'up' | 'down') => void
   clearMessages: () => void
   removeMessage: (id: string) => void
 
@@ -143,6 +153,9 @@ export const useVibeBookingStore = create<VibeBookingState>()(
       reasoningText: '',
       connectionStatus: 'disconnected',
       sessionId: null,
+      suggestions: [],
+      welcomePrompts: [],
+      messageFeedback: {},
       addMessage: (message) =>
         set((s) => {
           if (s.messages.length >= 50) s.messages.shift()
@@ -194,6 +207,12 @@ export const useVibeBookingStore = create<VibeBookingState>()(
       clearReasoning: () => set({ reasoningText: '' }),
       setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
       setSessionId: (sessionId) => set({ sessionId }),
+      setSuggestions: (suggestions) => set({ suggestions }),
+      setWelcomePrompts: (welcomePrompts) => set({ welcomePrompts }),
+      setMessageFeedback: (messageId, value) =>
+        set((s) => {
+          s.messageFeedback[messageId] = value
+        }),
       clearMessages: () => set({ messages: [] }),
       removeMessage: (id: string) =>
         set((s) => {
@@ -243,11 +262,29 @@ export const useVibeBookingStore = create<VibeBookingState>()(
     })),
     {
       name: 'derlg:vibe-booking',
+      version: 1,
+      // Persist the conversation AND the rendered content cards so a refresh
+      // restores everything (and the cards stay browsable/clickable).
       partialize: (s) => ({
         messages: s.messages.slice(-50),
+        contentItems: s.contentItems.slice(-30),
+        activeContentId: s.activeContentId,
         sessionId: s.sessionId,
+        booking: s.booking,
         layout: s.layout,
+        messageFeedback: s.messageFeedback,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        // A card persisted mid-stream must not stay stuck (pulsing/disabled) —
+        // restore it to a ready, interactive state after a refresh.
+        for (const item of state.contentItems) {
+          if (item.status === 'streaming') item.status = 'ready'
+        }
+        state.reasoningText = ''
+        state.isTyping = false
+        state.isStreaming = false
+      },
     }
   )
 )

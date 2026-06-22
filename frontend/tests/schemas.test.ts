@@ -46,6 +46,30 @@ describe('ContentPayloadSchema', () => {
     expect(result.success).toBe(false)
   })
 
+  it('parses a valid guide_cards payload', () => {
+    const result = ContentPayloadSchema.safeParse({
+      type: 'guide_cards',
+      data: {
+        guides: [
+          {
+            id: 'g1',
+            name: 'Sok Dara',
+            pricePerDayUsd: 50,
+            languages: ['en', 'zh'],
+            specialities: ['Angkor Wat'],
+            province: 'Siem Reap',
+            avatarUrl: 'http://img/a.jpg',
+            isVerified: true,
+          },
+        ],
+      },
+    })
+    expect(result.success).toBe(true)
+    if (result.success && result.data.type === 'guide_cards') {
+      expect(result.data.data.guides[0].name).toBe('Sok Dara')
+    }
+  })
+
   it('parses qr_payment with required fields', () => {
     const result = ContentPayloadSchema.safeParse({
       type: 'qr_payment',
@@ -57,6 +81,27 @@ describe('ContentPayloadSchema', () => {
       },
     })
     expect(result.success).toBe(true)
+  })
+
+  it('retains bookingId and countdown fields on qr_payment', () => {
+    const result = ContentPayloadSchema.safeParse({
+      type: 'qr_payment',
+      data: {
+        qrUrl: 'https://qr.example.com/x',
+        amount: { usd: 99 },
+        expiry: '2026-01-01T00:00:00Z',
+        paymentIntentId: 'pi_123',
+        bookingId: 'bk_42',
+        remaining_seconds: 600,
+        expired: false,
+      },
+    })
+    expect(result.success).toBe(true)
+    if (result.success && result.data.type === 'qr_payment') {
+      expect(result.data.data.bookingId).toBe('bk_42')
+      expect(result.data.data.remaining_seconds).toBe(600)
+      expect(result.data.data.expired).toBe(false)
+    }
   })
 
   it('parses stripe_card_form payload', () => {
