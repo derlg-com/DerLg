@@ -1,20 +1,19 @@
 @import "tailwindcss";
 
 /* DerLg Design Theme — Cambodia travel palette
- * Source of truth: frontend/context/ui-context.md
- * Primary: Deep Green (#1b4f2e) — nature, premium service, trust
+ * Primary: Forest Emerald (#1d7a45) — nature, premium service, trust
  * Secondary: Vibrant Gold (#cdae4a) — temple gold, call-to-actions
- * Both legacy token names (--color-primary etc. used by Tailwind v4 utility
- * classes like bg-primary) and ui-context aliases (--accent-primary, etc.)
- * are exposed so existing components and future components can both consume
- * the canonical palette.
+ * Tokens use space-separated RGB triplets consumed via rgb(var(--color-x)).
  */
 :root {
   /* Brand */
-  --color-primary: 27 79 46;             /* #1b4f2e — Deep Green */
+  --color-primary: 29 122 69;            /* #1d7a45 — Forest Emerald (white ≈5.4:1 AA) */
   --color-primary-foreground: 255 255 255;
-  --color-secondary: 205 174 74;         /* #cdae4a — Vibrant Gold */
-  --color-secondary-foreground: 27 79 46;
+  --color-primary-hover: 24 100 58;      /* #18643a — ≈6.5:1 */
+  --color-primary-active: 20 84 47;      /* #14542f — ≈7.7:1 */
+  --color-secondary: 205 174 74;         /* #cdae4a — Vibrant Gold (fills/badges) */
+  --color-secondary-foreground: 19 37 26;/* #13251a — near-black green on gold ≈6.9:1 */
+  --color-rating: 154 125 36;            /* #9a7d24 — gold for star icons on light ≈4:1 */
 
   /* Surfaces */
   --color-background: 255 255 255;
@@ -33,7 +32,7 @@
   /* Lines & Inputs */
   --color-border: 226 232 240;           /* #e2e8f0 */
   --color-input: 226 232 240;
-  --color-ring: 27 79 46;
+  --color-ring: 29 122 69;
 
   /* Status */
   --color-destructive: 185 28 28;        /* #b91c1c — red-700, 7.4:1 on #fff (AA) */
@@ -41,17 +40,14 @@
   --color-success: 21 128 61;            /* #15803d — green-700, 5.8:1 on #fff */
   --color-warning: 161 98 7;             /* #a16207 — amber-700, 5.4:1 on #fff */
 
-  /* ui-context.md aliases */
+  /* ui-context.md aliases (brand reference only) */
   --bg-base: #ffffff;
   --bg-surface: #f8fafc;
   --text-primary: #1e293b;
-  --text-muted: #64748b;
-  --accent-primary: #1b4f2e;
-  --accent-hover: #144e2e;
+  --accent-primary: #1d7a45;
+  --accent-hover: #18643a;
   --accent-second: #cdae4a;
   --border-default: #e2e8f0;
-  --state-error: #ef4444;
-  --state-success: #309059;
 
   /* Logo palette extras */
   --logo-mid-green: #309059;
@@ -65,14 +61,43 @@
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+
+  /* Gradients (premium green/gold) */
+  --gradient-brand: linear-gradient(135deg, #1b4f2e 0%, #309059 100%);
+  --gradient-emerald-gold: linear-gradient(120deg, #1d7a45 0%, #309059 52%, #cdae4a 130%);
+  --gradient-gold: linear-gradient(135deg, #cdae4a 0%, #e6c86a 100%);
+  --gradient-hero:
+    radial-gradient(1100px 560px at 72% -12%, rgba(48, 144, 89, 0.20), transparent 60%),
+    radial-gradient(800px 420px at 0% 0%, rgba(205, 174, 74, 0.14), transparent 55%),
+    linear-gradient(180deg, #ffffff 0%, #f3f8f4 100%);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.55);
+
+  /* Elevation */
+  --shadow-soft: 0 1px 2px rgba(16, 40, 28, 0.06);
+  --shadow-md: 0 6px 20px -6px rgba(16, 40, 28, 0.18);
+  --shadow-lg: 0 18px 48px -16px rgba(16, 40, 28, 0.30);
+  --shadow-glow: 0 14px 40px -10px rgba(29, 122, 69, 0.45);
+
+  /* Motion */
+  --motion-fast: 150ms;
+  --motion-base: 250ms;
+  --motion-slow: 400ms;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --color-primary: 88 178 121;          /* #58b279 — soft green for dark mode */
     --color-primary-foreground: 10 25 16;
-    --color-secondary: 205 174 74;        /* gold stays vibrant */
+    --color-primary-hover: 110 192 140;   /* #6ec08c */
+    --color-primary-active: 79 159 108;   /* #4f9f6c */
+    --color-secondary: 205 174 74;
     --color-secondary-foreground: 10 25 16;
+    --color-rating: 205 174 74;
 
     --color-background: 10 25 16;          /* deep forest near-black */
     --color-foreground: 237 237 237;
@@ -93,11 +118,23 @@
     --bg-base: #0a1910;
     --bg-surface: #12261a;
     --text-primary: #ededed;
-    --text-muted: #a3a3a3;
     --accent-primary: #58b279;
-    --accent-hover: #309059;
+    --accent-hover: #6ec08c;
     --accent-second: #cdae4a;
     --border-default: #263a2e;
+
+    --gradient-hero:
+      radial-gradient(1100px 560px at 72% -12%, rgba(88, 178, 121, 0.20), transparent 60%),
+      radial-gradient(800px 420px at 0% 0%, rgba(205, 174, 74, 0.10), transparent 55%),
+      linear-gradient(180deg, #0a1910 0%, #0c2014 100%);
+
+    --glass-bg: rgba(18, 38, 26, 0.55);
+    --glass-border: rgba(120, 160, 135, 0.18);
+
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 24px -6px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 18px 50px -16px rgba(0, 0, 0, 0.62);
+    --shadow-glow: 0 14px 40px -10px rgba(88, 178, 121, 0.35);
   }
 }
 
@@ -106,8 +143,11 @@
   --color-foreground: rgb(var(--color-foreground));
   --color-primary: rgb(var(--color-primary));
   --color-primary-foreground: rgb(var(--color-primary-foreground));
+  --color-primary-hover: rgb(var(--color-primary-hover));
+  --color-primary-active: rgb(var(--color-primary-active));
   --color-secondary: rgb(var(--color-secondary));
   --color-secondary-foreground: rgb(var(--color-secondary-foreground));
+  --color-rating: rgb(var(--color-rating));
   --color-card: rgb(var(--color-card));
   --color-card-foreground: rgb(var(--color-card-foreground));
   --color-popover: rgb(var(--color-popover));
@@ -123,18 +163,57 @@
   --color-destructive-foreground: rgb(var(--color-destructive-foreground));
   --color-success: rgb(var(--color-success));
   --color-warning: rgb(var(--color-warning));
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, "Noto Sans Khmer", "Noto Sans SC", sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, "Noto Sans Khmer", "Noto Sans SC", sans-serif;
+  --font-display: var(--font-sora), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --radius: 0.75rem;
 }
 
-/* Khmer script — proper line height + font fallback (R10.9) */
+/* Khmer script — proper line height + font fallback */
 :lang(km) {
   font-family: "Noto Sans Khmer", var(--font-sans);
   line-height: 1.7;
 }
 
-/* Reduced-motion accessibility (R21.5) */
+/* ── Premium utility classes ───────────────────────────────────────────── */
+.glass {
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--glass-border);
+}
+.bg-gradient-brand {
+  background-image: var(--gradient-brand);
+}
+.bg-gradient-hero {
+  background-image: var(--gradient-hero);
+}
+.bg-gradient-gold {
+  background-image: var(--gradient-gold);
+}
+.text-gradient-brand {
+  background-image: var(--gradient-emerald-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.text-gradient-gold {
+  background-image: var(--gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.shadow-elevated {
+  box-shadow: var(--shadow-lg);
+}
+.shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Reduced-motion accessibility */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

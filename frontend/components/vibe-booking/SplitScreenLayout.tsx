@@ -14,7 +14,9 @@ import { useTranslations } from '@/lib/i18n'
 
 interface Props {
   userId: string
-  language?: 'EN' | 'ZH' | 'KH'
+  language?: 'EN' | 'ZH' | 'KM'
+  /** Page label for "Asked while viewing X" when launched from an app page. */
+  pageContext?: string
 }
 
 const RESIZE_EDGES: { edge: ResizeEdge; cursor: string; className: string }[] = [
@@ -34,8 +36,8 @@ const RESIZE_EDGES: { edge: ResizeEdge; cursor: string; className: string }[] = 
   },
 ]
 
-export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
-  const { sendMessage, sendAction, reauth } = useWebSocket(userId, language)
+export default function SplitScreenLayout({ userId, language = 'EN', pageContext }: Props) {
+  const { sendMessage, sendAction, sendFeedback, reauth } = useWebSocket(userId, language)
   const { layout, panelRef, startDrag, startResize, resetLayout, toggleCollapsed, onKeyDown } =
     useDraggableResizable()
   const setLayout = useVibeBookingStore((s) => s.setLayout)
@@ -45,6 +47,10 @@ export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
   const setSessionId = useVibeBookingStore((s) => s.setSessionId)
   const sessionId = useVibeBookingStore((s) => s.sessionId)
   const t = useTranslations()
+
+  // Attach page context ("Asked while viewing X") to every message sent from
+  // this surface (set by the launcher; undefined on the full-screen page).
+  const handleSend = (text: string) => sendMessage(text, pageContext)
 
   const handleShare = async () => {
     if (!sessionId) return
@@ -99,7 +105,7 @@ export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
           <ContentStage onAction={sendAction} />
         </div>
         <div className="h-1/2 border-t border-border">
-          <ChatPanel onSend={sendMessage} onAction={sendAction} />
+          <ChatPanel onSend={handleSend} onFeedback={sendFeedback} />
         </div>
       </div>
 
@@ -130,7 +136,7 @@ export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
               onPointerDown={startDrag}
               className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30 cursor-grab active:cursor-grabbing select-none"
             >
-              <span className="font-semibold text-sm flex-1">DerLg AI Concierge</span>
+              <span className="font-display font-semibold text-sm flex-1">DerLg AI Concierge</span>
               <LanguageSwitcher />
               <button
                 type="button"
@@ -160,7 +166,7 @@ export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
             </div>
 
             <div className="flex-1 min-h-0">
-              <ChatPanel onSend={sendMessage} onAction={sendAction} />
+              <ChatPanel onSend={handleSend} onFeedback={sendFeedback} />
             </div>
 
             {/* Resize handles (skip when docked left/right to avoid awkward edges) */}
@@ -177,7 +183,7 @@ export default function SplitScreenLayout({ userId, language = 'EN' }: Props) {
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="absolute bottom-6 right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
+            className="absolute bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-brand text-white shadow-glow flex items-center justify-center hover:scale-105 transition-transform"
             aria-label="Open AI concierge chat"
           >
             <span className="text-2xl">💬</span>

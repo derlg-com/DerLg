@@ -5,6 +5,7 @@ import PaymentStatusRenderer from '@/components/vibe-booking/renderers/PaymentSt
 import WeatherRenderer from '@/components/vibe-booking/renderers/WeatherRenderer';
 import TransportOptionsRenderer from '@/components/vibe-booking/renderers/TransportOptionsRenderer';
 import ComparisonRenderer from '@/components/vibe-booking/renderers/ComparisonRenderer';
+import GuideCardsRenderer from '@/components/vibe-booking/renderers/GuideCardsRenderer';
 import { useLanguageStore } from '@/lib/i18n';
 import type { ContentItem } from '@/stores/vibe-booking.store';
 
@@ -107,5 +108,38 @@ describe('ComparisonRenderer', () => {
     expect(screen.getByText('Trip A')).toBeInTheDocument();
     expect(screen.getByText('Trip B')).toBeInTheDocument();
     expect(screen.getByText(/\$100\.00/)).toBeInTheDocument();
+  });
+});
+
+describe('GuideCardsRenderer', () => {
+  it('renders guide name, languages, and price', () => {
+    useLanguageStore.setState({ locale: 'en' });
+    const item = mkItem('guide_cards', {
+      guides: [
+        {
+          id: 'g1',
+          name: 'Sok Dara',
+          pricePerDayUsd: 50,
+          languages: ['en', 'zh'],
+          province: 'Siem Reap',
+          isVerified: true,
+        },
+      ],
+    });
+    render(<GuideCardsRenderer item={item} onAction={() => {}} />);
+    expect(screen.getByText('Sok Dara')).toBeInTheDocument();
+    expect(screen.getByText('EN · ZH')).toBeInTheDocument();
+    expect(screen.getByText(/\$50\.00/)).toBeInTheDocument();
+  });
+
+  it('emits book_guide with guideId on click', () => {
+    useLanguageStore.setState({ locale: 'en' });
+    const onAction = vi.fn();
+    const item = mkItem('guide_cards', {
+      guides: [{ id: 'g1', name: 'Sok Dara', pricePerDayUsd: 50 }],
+    });
+    render(<GuideCardsRenderer item={item} onAction={onAction} />);
+    fireEvent.click(screen.getByText('Book Now'));
+    expect(onAction).toHaveBeenCalledWith('book_guide', 'g1', { guideId: 'g1' });
   });
 });

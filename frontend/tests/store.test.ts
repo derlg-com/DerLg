@@ -68,4 +68,21 @@ describe('vibe-booking.store', () => {
     expect(layout.x).toBe(0)
     expect(layout.width).toBe(420)
   })
+
+  it('setSuggestions and setWelcomePrompts update state', () => {
+    const { setSuggestions, setWelcomePrompts } = useVibeBookingStore.getState()
+    setSuggestions(['Find hotels', 'Best time?'])
+    setWelcomePrompts(['Plan a 3-day trip', 'Visa info'])
+    expect(useVibeBookingStore.getState().suggestions).toEqual(['Find hotels', 'Best time?'])
+    expect(useVibeBookingStore.getState().welcomePrompts).toEqual(['Plan a 3-day trip', 'Visa info'])
+  })
+
+  it('setMessageFeedback records a thumb per message', () => {
+    const { setMessageFeedback } = useVibeBookingStore.getState()
+    setMessageFeedback('m1', 'up')
+    setMessageFeedback('m2', 'down')
+    setMessageFeedback('m1', 'down') // can change
+    const fb = useVibeBookingStore.getState().messageFeedback
+    expect(fb).toEqual({ m1: 'down', m2: 'down' })
+  })
 })

@@ -27,6 +27,6 @@ describe('lib/i18n', () => {
   it('maps locale → WS language code', () => {
     expect(languageStoreToWsLang('en')).toBe('EN')
     expect(languageStoreToWsLang('zh')).toBe('ZH')
-    expect(languageStoreToWsLang('km')).toBe('KH')
+    expect(languageStoreToWsLang('km')).toBe('KM')
   })
 })

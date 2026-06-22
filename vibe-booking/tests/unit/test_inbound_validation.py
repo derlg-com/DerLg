@@ -17,3 +17,10 @@ def test_invalid_frames_rejected():
     assert not _valid_inbound({"type": "user_action"})           # missing action_type
     assert not _valid_inbound({"type": "payment_completed"})     # missing booking_id
     assert not _valid_inbound({})                                # no type
+
+
+def test_feedback_frame_validation():
+    assert _valid_inbound({"type": "feedback", "message_id": "m1"})
+    assert _valid_inbound({"type": "feedback", "message_id": "m1", "helpful": True})
+    assert not _valid_inbound({"type": "feedback"})              # missing message_id
+    assert not _valid_inbound({"type": "feedback", "message_id": ""})  # blank

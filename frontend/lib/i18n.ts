@@ -78,6 +78,6 @@ export function getLanguageHtmlAttr(locale: Locale): string {
   return locale === 'zh' ? 'zh-CN' : locale === 'km' ? 'km-KH' : 'en-US'
 }
 
-export function languageStoreToWsLang(locale: Locale): 'EN' | 'ZH' | 'KH' {
-  return locale === 'zh' ? 'ZH' : locale === 'km' ? 'KH' : 'EN'
+export function languageStoreToWsLang(locale: Locale): 'EN' | 'ZH' | 'KM' {
+  return locale === 'zh' ? 'ZH' : locale === 'km' ? 'KM' : 'EN'
 }

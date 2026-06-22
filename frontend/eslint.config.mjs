@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright E2E specs use their own runtime/conventions, not the app lint rules.
+    "tests/e2e/**",
   ]),
 ]);
 

@@ -87,6 +87,7 @@ export class BookSingleTripUseCase {
               includedItems: translation?.includedItems ?? [],
               excludedItems: translation?.excludedItems ?? [],
               coverImageUrl: trip.coverImage ?? null,
+              specialRequests: dto.specialRequests ?? null,
             },
           },
         ],

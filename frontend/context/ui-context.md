@@ -33,10 +33,14 @@ All components must use these tokens — no hardcoded hex values.
 
 ## Typography
 
-| Role      | Font              | Variable      |
-| --------- | ----------------- | ------------- |
-| UI text   | Geist Sans        | `--font-sans` |
-| Code/mono | Geist Mono        | `--font-mono` |
+| Role           | Font              | Variable / class      |
+| -------------- | ----------------- | --------------------- |
+| Headings/display | Sora            | `--font-display` / `font-display` |
+| Body / UI      | Plus Jakarta Sans | `--font-sans`         |
+| Code/mono      | Geist Mono        | `--font-mono`         |
+
+Khmer (`Noto Sans Khmer`) and Simplified Chinese (`Noto Sans SC`) are chained as fallbacks.
+Use the `font-display` class on page titles, section headings, and card titles.
 
 ## Border Radius
 
@@ -59,3 +63,24 @@ shadcn/ui on top of Tailwind v4. Components live in `components/ui/`. Use the CL
 
 Lucide React. Stroke-based icons only. Sizes:
 `h-4 w-4` for inline, `h-5 w-5` for buttons.
+
+## Gradients, glass & elevation utilities
+
+Defined in `app/globals.css` (light + dark):
+`.bg-gradient-brand` · `.bg-gradient-hero` · `.bg-gradient-gold` · `.text-gradient-brand` ·
+`.text-gradient-gold` · `.glass` · `.shadow-elevated` · `.shadow-glow`.
+Premium CTAs use `<Button variant="gradient">`; gold accents use `variant="gold"`.
+
+## Shared shells (compose, don't reinvent)
+
+`components/shared/`: `EntityCard` (the one premium result card), `CatalogShell`
+(filters + grid + pagination + states), `DetailShell` (hero + sections + sticky CTA),
+`FormShell` (booking forms), plus `SectionHeading`, `GradientText`, `Reveal`, `Logo`.
+
+## Layout / IA
+
+`/` is the **live app** (Explore browse home) inside the app shell (TopBar + BottomNav +
+floating concierge bubble) — there is no marketing splash. Auth uses a branded split layout;
+the concierge has a dedicated full-screen route at `/vibe-booking`.
+
+> Full structure, conventions, and "how to add a vertical" live in `frontend/ARCHITECTURE.md`.

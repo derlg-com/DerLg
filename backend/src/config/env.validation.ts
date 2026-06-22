@@ -28,6 +28,12 @@ export const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
+  // When 'true', enables the sandbox booking-confirm endpoint that marks a
+  // booking paid WITHOUT a real charge. Must never be 'true' in production.
+  DEMO_PAYMENTS: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 export type Env = z.infer<typeof envSchema>;
