@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { Card } from '@/components/ui/card'
 
 export interface AuthCardProps {
   title: string
@@ -10,13 +10,12 @@ export function AuthCard({ title, subtitle, children }: AuthCardProps) {
   return (
     <div className="w-full max-w-sm space-y-6">
       <div className="space-y-1 text-center">
-        <Link href="/" className="inline-block text-2xl font-bold text-primary">
-          DerLg
-        </Link>
-        <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{title}</h1>
         {subtitle ? <p className="text-sm text-muted-foreground">{subtitle}</p> : null}
       </div>
-      {children}
+      <Card variant="elevated" className="p-6">
+        {children}
+      </Card>
     </div>
   )
 }

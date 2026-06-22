@@ -84,7 +84,7 @@ export default function ResultCard({
       </div>
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-sm font-semibold leading-snug text-foreground">{name}</h3>
+          <h3 className="font-display text-sm font-semibold leading-snug text-foreground">{name}</h3>
           <FavoriteButton type={favType} id={id} className="h-8 w-8 shrink-0" />
         </div>
         {rating != null && (

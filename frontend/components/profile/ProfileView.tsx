@@ -32,7 +32,7 @@ function Inner() {
         <div className="flex items-center gap-4">
           <Avatar src={user?.avatarUrl} name={user?.name} size="lg" />
           <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold text-foreground">{user?.name ?? t('noName')}</h1>
+            <h1 className="truncate font-display text-2xl font-bold tracking-tight text-foreground">{user?.name ?? t('noName')}</h1>
             <p className="truncate text-sm text-muted-foreground">{user?.email}</p>
             <div className="mt-1 flex flex-wrap gap-2">
               <Badge variant="muted">{t('loyalty', { points: user?.loyaltyPoints ?? 0 })}</Badge>
@@ -49,7 +49,7 @@ function Inner() {
       <div className="space-y-2">
         {MENU.map(({ href, key, icon: Icon }) => (
           <Link key={href} href={href} className="block focus-visible:outline-none">
-            <Card className="flex items-center gap-3 p-4 transition-shadow hover:shadow-md">
+            <Card variant="interactive" className="flex items-center gap-3 p-4">
               <Icon className="h-5 w-5 text-primary" aria-hidden />
               <span className="flex-1 font-medium text-foreground">{t(key)}</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />

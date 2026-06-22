@@ -22,7 +22,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-40 glass border-t border-border/60"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Primary"
     >
@@ -36,11 +36,20 @@ export function BottomNav() {
                 href={tab.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-2 text-xs font-medium transition-colors',
+                  'relative flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-2 text-xs font-medium transition-colors',
                   isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
-                <Icon className="h-5 w-5" aria-hidden />
+                {isActive ? (
+                  <span
+                    className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-gradient-brand"
+                    aria-hidden
+                  />
+                ) : null}
+                <Icon
+                  className={cn('h-5 w-5 transition-transform', isActive && 'scale-110')}
+                  aria-hidden
+                />
                 <span className="truncate">{t(tab.labelKey)}</span>
               </Link>
             </li>

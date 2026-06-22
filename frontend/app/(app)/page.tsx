@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
-import { HomeFeed } from '@/components/trips/HomeFeed'
+import { ExploreLanding } from '@/components/explore/explore-landing'
 
 export const metadata: Metadata = {
   title: 'DerLg — Discover Cambodia trips',
-  description: 'Browse curated Cambodia trip packages — temples, nature, culture, adventure, and food.',
+  description:
+    'Plan, book, and explore Cambodia — curated trips, hotels, transport, and guides, with an AI concierge.',
 }
 
 export default function HomePage() {
-  return <HomeFeed />
+  return <ExploreLanding />
 }

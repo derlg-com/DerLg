@@ -22,8 +22,8 @@ export function BookingCard({ booking }: { booking: UnifiedBooking }) {
 
   return (
     <Link href={`/bookings/${booking.id}`} className="block focus-visible:outline-none">
-      <Card className="flex items-center gap-3 p-3 transition-shadow hover:shadow-md">
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+      <Card variant="interactive" className="flex items-center gap-3 p-3">
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
           {booking.coverImageUrl ? (
             <Image src={booking.coverImageUrl} alt={booking.name} fill sizes="64px" className="object-cover" />
           ) : (
@@ -34,7 +34,7 @@ export function BookingCard({ booking }: { booking: UnifiedBooking }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <p className="line-clamp-1 font-medium text-foreground">{booking.name}</p>
+            <p className="line-clamp-1 font-display font-semibold text-foreground">{booking.name}</p>
             <Badge variant={statusVariant(booking.status)}>{t(`status.${booking.status}`)}</Badge>
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{dateRange}</p>

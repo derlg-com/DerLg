@@ -136,7 +136,7 @@ export default function SplitScreenLayout({ userId, language = 'EN', pageContext
               onPointerDown={startDrag}
               className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30 cursor-grab active:cursor-grabbing select-none"
             >
-              <span className="font-semibold text-sm flex-1">DerLg AI Concierge</span>
+              <span className="font-display font-semibold text-sm flex-1">DerLg AI Concierge</span>
               <LanguageSwitcher />
               <button
                 type="button"
@@ -183,7 +183,7 @@ export default function SplitScreenLayout({ userId, language = 'EN', pageContext
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="absolute bottom-6 right-6 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
+            className="absolute bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-brand text-white shadow-glow flex items-center justify-center hover:scale-105 transition-transform"
             aria-label="Open AI concierge chat"
           >
             <span className="text-2xl">💬</span>

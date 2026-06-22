@@ -32,8 +32,8 @@ export function BookingSummary({
   priceLabel?: string
 }) {
   return (
-    <Card className="flex items-center gap-3 p-3">
-      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+    <Card variant="elevated" className="flex items-center gap-3 p-3">
+      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
         {imageUrl ? (
           <Image src={imageUrl} alt={name} fill sizes="64px" className="object-cover" />
         ) : (
@@ -43,7 +43,7 @@ export function BookingSummary({
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-1 font-medium text-foreground">{name}</p>
+        <p className="line-clamp-1 font-display font-semibold text-foreground">{name}</p>
         {subtitle ? <p className="line-clamp-1 text-sm text-muted-foreground">{subtitle}</p> : null}
         {priceLabel ? <p className="text-sm font-semibold text-foreground">{priceLabel}</p> : null}
       </div>

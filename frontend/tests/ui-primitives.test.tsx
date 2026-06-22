@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -9,6 +11,10 @@ import { Switch } from '@/components/ui/switch'
 import { Pagination, pageWindow } from '@/components/ui/pagination'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { toast, Toaster, useToastStore } from '@/components/ui/toast'
+import { Logo } from '@/components/shared/Logo'
+import { SectionHeading } from '@/components/shared/SectionHeading'
+import { GradientText } from '@/components/shared/GradientText'
+import { RatingBubbles } from '@/components/ui/rating-bubbles'
 
 describe('ui primitives', () => {
   beforeEach(() => {
@@ -98,5 +104,56 @@ describe('ui primitives', () => {
     expect(screen.getByText('Saved')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Dismiss'))
     expect(screen.queryByText('Saved')).not.toBeInTheDocument()
+  })
+
+  it('Button supports gradient + gold variants and xl size', () => {
+    const { rerender } = render(<Button variant="gradient">Go</Button>)
+    expect(screen.getByRole('button', { name: 'Go' })).toHaveClass('bg-gradient-brand')
+    rerender(<Button variant="gold" size="xl">Notify</Button>)
+    expect(screen.getByRole('button', { name: 'Notify' })).toHaveClass('bg-gradient-gold')
+  })
+
+  it('Card renders variants', () => {
+    const { container, rerender } = render(<Card variant="glass">x</Card>)
+    expect(container.firstChild).toHaveClass('glass')
+    rerender(<Card variant="interactive">x</Card>)
+    expect(container.firstChild).toHaveClass('rounded-2xl')
+  })
+
+  it('Logo renders the wordmark and links home', () => {
+    render(<Logo />)
+    const link = screen.getByRole('link', { name: 'DerLg home' })
+    expect(link).toHaveAttribute('href', '/')
+    expect(screen.getByText('DerLg')).toBeInTheDocument()
+  })
+
+  it('SectionHeading + GradientText render', () => {
+    render(
+      <SectionHeading
+        eyebrow="Signature"
+        title={<>Vibe <GradientText>Booking</GradientText></>}
+        subtitle="Chat to book."
+      />,
+    )
+    expect(screen.getByRole('heading', { name: /Vibe Booking/ })).toBeInTheDocument()
+    expect(screen.getByText('Chat to book.')).toBeInTheDocument()
+  })
+
+  it('Badge supports the live variant', () => {
+    render(<Badge variant="live">Live</Badge>)
+    expect(screen.getByText('Live')).toBeInTheDocument()
+  })
+
+  it('RatingBubbles renders value, count, and an accessible label', () => {
+    render(<RatingBubbles rating={4.8} count={245} />)
+    expect(screen.getByText('4.8')).toBeInTheDocument()
+    expect(screen.getByText('(245)')).toBeInTheDocument()
+    expect(screen.getByLabelText('4.8 of 5 bubbles, 245 reviews')).toBeInTheDocument()
+  })
+
+  it('RatingBubbles clamps out-of-range scores and omits count when absent', () => {
+    render(<RatingBubbles rating={9} />)
+    expect(screen.getByText('5.0')).toBeInTheDocument()
+    expect(screen.getByLabelText('5.0 of 5 bubbles')).toBeInTheDocument()
   })
 })

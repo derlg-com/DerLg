@@ -4,7 +4,11 @@
     "loyalty": "{points} 积分",
     "student": "学生",
     "logout": "退出登录",
-    "menu": { "edit": "编辑资料", "preferences": "偏好设置", "wishlist": "收藏夹" },
+    "menu": {
+      "edit": "编辑资料",
+      "preferences": "偏好设置",
+      "wishlist": "收藏夹"
+    },
     "edit": {
       "title": "编辑资料",
       "avatarUrl": "头像链接",
@@ -35,7 +39,10 @@
     }
   },
   "checkout": {
-    "hold": { "remaining": "保留：{time}", "expired": "保留已过期" },
+    "hold": {
+      "remaining": "保留：{time}",
+      "expired": "保留已过期"
+    },
     "method": {
       "title": "支付方式",
       "card": "信用卡 / 借记卡",
@@ -46,8 +53,16 @@
     "subtotal": "小计",
     "total": "总计",
     "mockNotice": "演示模式 — 支付为模拟，不会真实扣款。",
-    "card": { "number": "卡号", "expiry": "有效期", "cvc": "CVC", "pay": "立即支付" },
-    "qr": { "scan": "使用银行 App 扫码支付", "paid": "我已支付" },
+    "card": {
+      "number": "卡号",
+      "expiry": "有效期",
+      "cvc": "CVC",
+      "pay": "立即支付"
+    },
+    "qr": {
+      "scan": "使用银行 App 扫码支付",
+      "paid": "我已支付"
+    },
     "failed": "支付失败，请重试。",
     "confirmation": {
       "title": "预订已确认！",
@@ -83,7 +98,11 @@
     },
     "list": {
       "title": "我的行程",
-      "tabs": { "upcoming": "即将", "past": "已完成", "cancelled": "已取消" },
+      "tabs": {
+        "upcoming": "即将",
+        "past": "已完成",
+        "cancelled": "已取消"
+      },
       "empty": {
         "upcoming": "暂无即将出行的预订。",
         "past": "暂无历史行程。",
@@ -126,8 +145,16 @@
     }
   },
   "guides": {
-    "card": { "verified": "已认证", "perDay": "/ 天" },
-    "sort": { "recommended": "推荐", "rating_desc": "评分最高", "price_asc": "价格：从低到高", "price_desc": "价格：从高到低" },
+    "card": {
+      "verified": "已认证",
+      "perDay": "/ 天"
+    },
+    "sort": {
+      "recommended": "推荐",
+      "rating_desc": "评分最高",
+      "price_asc": "价格：从低到高",
+      "price_desc": "价格：从高到低"
+    },
     "filters": {
       "language": "语言",
       "anyLanguage": "任意语言",
@@ -140,8 +167,16 @@
       "verifiedOnly": "仅已认证",
       "sort": "排序"
     },
-    "empty": { "title": "未找到向导", "desc": "请尝试调整筛选条件。", "clear": "清除筛选" },
-    "error": { "title": "无法加载向导", "desc": "请重试。", "retry": "重试" },
+    "empty": {
+      "title": "未找到向导",
+      "desc": "请尝试调整筛选条件。",
+      "clear": "清除筛选"
+    },
+    "error": {
+      "title": "无法加载向导",
+      "desc": "请重试。",
+      "retry": "重试"
+    },
     "detail": {
       "bio": "简介",
       "languages": "语言",
@@ -162,8 +197,15 @@
     }
   },
   "transportation": {
-    "card": { "seats": "{n} 座", "perDay": "/ 天" },
-    "sort": { "price_asc": "价格：从低到高", "price_desc": "价格：从高到低", "rating_desc": "评分最高" },
+    "card": {
+      "seats": "{n} 座",
+      "perDay": "/ 天"
+    },
+    "sort": {
+      "price_asc": "价格：从低到高",
+      "price_desc": "价格：从高到低",
+      "rating_desc": "评分最高"
+    },
     "filters": {
       "type": "类型",
       "anyType": "任意类型",
@@ -175,8 +217,16 @@
       "under": "低于 ${n}",
       "sort": "排序"
     },
-    "empty": { "title": "未找到车辆", "desc": "请尝试调整筛选条件。", "clear": "清除筛选" },
-    "error": { "title": "无法加载车辆", "desc": "请重试。", "retry": "重试" },
+    "empty": {
+      "title": "未找到车辆",
+      "desc": "请尝试调整筛选条件。",
+      "clear": "清除筛选"
+    },
+    "error": {
+      "title": "无法加载车辆",
+      "desc": "请重试。",
+      "retry": "重试"
+    },
     "detail": {
       "currency": "显示货币",
       "amenities": "设施",
@@ -196,7 +246,10 @@
     }
   },
   "hotels": {
-    "card": { "from": "起价", "perNight": "/ 晚" },
+    "card": {
+      "from": "起价",
+      "perNight": "/ 晚"
+    },
     "sort": {
       "recommended": "推荐",
       "price_asc": "价格：从低到高",
@@ -209,15 +262,28 @@
       "location": "地点",
       "anyLocation": "任意地点",
       "price": "每晚价格",
-      "priceRanges": { "any": "任意价格", "lt100": "低于 $100", "r100_300": "$100 – $300", "gt300": "高于 $300" },
+      "priceRanges": {
+        "any": "任意价格",
+        "lt100": "低于 $100",
+        "r100_300": "$100 – $300",
+        "gt300": "高于 $300"
+      },
       "star": "星级",
       "anyStar": "任意星级",
       "starPlus": "{n} 星及以上",
       "amenities": "设施",
       "done": "完成"
     },
-    "empty": { "title": "未找到酒店", "desc": "请尝试调整筛选条件。", "clear": "清除筛选" },
-    "error": { "title": "无法加载酒店", "desc": "请重试。", "retry": "重试" },
+    "empty": {
+      "title": "未找到酒店",
+      "desc": "请尝试调整筛选条件。",
+      "clear": "清除筛选"
+    },
+    "error": {
+      "title": "无法加载酒店",
+      "desc": "请重试。",
+      "retry": "重试"
+    },
     "detail": {
       "currency": "显示货币",
       "amenities": "设施",
@@ -229,12 +295,26 @@
       "location": "位置",
       "notFound": "未找到酒店"
     },
-    "room": { "maxGuests": "最多 {n} 位客人", "book": "预订" }
+    "room": {
+      "maxGuests": "最多 {n} 位客人",
+      "book": "预订"
+    }
   },
   "search": {
     "placeholder": "搜索行程、景点、酒店、向导",
-    "tabs": { "all": "全部", "trip": "行程", "place": "景点", "hotel": "酒店", "guide": "向导" },
-    "sections": { "trips": "行程", "places": "景点", "hotels": "酒店", "guides": "向导" },
+    "tabs": {
+      "all": "全部",
+      "trip": "行程",
+      "place": "景点",
+      "hotel": "酒店",
+      "guide": "向导"
+    },
+    "sections": {
+      "trips": "行程",
+      "places": "景点",
+      "hotels": "酒店",
+      "guides": "向导"
+    },
     "promptTitle": "搜索 DerLg",
     "promptDesc": "查找柬埔寨的行程、景点、酒店和向导。",
     "noResults": "未找到 '{query}' 的结果",
@@ -243,7 +323,11 @@
     "errorDesc": "请重试。"
   },
   "trips": {
-    "home": { "featured": "精选行程", "categories": "按分类浏览", "exploreAll": "查看全部" },
+    "home": {
+      "featured": "精选行程",
+      "categories": "按分类浏览",
+      "exploreAll": "查看全部"
+    },
     "categories": {
       "all": "全部",
       "Temples": "寺庙",
@@ -252,7 +336,10 @@
       "Adventure": "探险",
       "Food": "美食"
     },
-    "card": { "days": "天", "perPerson": "/ 人" },
+    "card": {
+      "days": "天",
+      "perPerson": "/ 人"
+    },
     "list": {
       "resultsCount": "{count} 个行程",
       "sortLabel": "排序",
@@ -264,8 +351,16 @@
         "rating_desc": "评分最高"
       }
     },
-    "empty": { "title": "未找到行程", "desc": "请尝试调整筛选条件。", "clear": "清除筛选" },
-    "error": { "title": "无法加载行程", "desc": "请检查网络连接后重试。", "retry": "重试" },
+    "empty": {
+      "title": "未找到行程",
+      "desc": "请尝试调整筛选条件。",
+      "clear": "清除筛选"
+    },
+    "error": {
+      "title": "无法加载行程",
+      "desc": "请检查网络连接后重试。",
+      "retry": "重试"
+    },
     "detail": {
       "itinerary": "行程安排",
       "included": "包含项目",
@@ -357,6 +452,26 @@
     "generate_payment_qr": "正在生成付款二维码…",
     "get_user_loyalty": "正在查询积分…"
   },
+  "explore": {
+    "hero": {
+      "title": "去哪儿？",
+      "placeholder": "目的地、玩乐项目、酒店…",
+      "askAi": "问 AI",
+      "search": "搜索"
+    },
+    "categories": {
+      "title": "按兴趣发现玩乐"
+    },
+    "shelves": {
+      "tripsTitle": "热门行程",
+      "tripsSubtitle": "旅行者喜爱的柬埔寨精选体验",
+      "hotelsTitle": "高分住宿",
+      "hotelsSubtitle": "精选酒店与度假村",
+      "guidesTitle": "认证当地向导",
+      "guidesSubtitle": "预订熟悉柬埔寨的可信向导"
+    },
+    "seeAll": "查看全部"
+  },
   "common": {
     "send": "发送",
     "thinking": "思考中…",
@@ -374,7 +489,9 @@
     "tryAgain": "再试一次",
     "reset": "重置",
     "thinkingProcess": "思考过程",
-    "showOlder": "显示 {count} 个较早的项目"
+    "showOlder": "显示 {count} 个较早的项目",
+    "from": "低至",
+    "topRated": "高分好评"
   },
   "auth": {
     "title": "登录以完成预订",
@@ -470,5 +587,10 @@
     "succeeded": "已成功",
     "failed": "失败",
     "retry": "重试支付"
+  },
+  "brand": {
+    "headline": "重新想象柬埔寨旅行",
+    "subline": "DerLg 是柬埔寨 AI 驱动的旅行平台。告别无尽的标签页与选择疲劳——只需告诉 AI 管家你想要的氛围，其余交给我们。",
+    "tagline": "为旅行者打造。为柬埔寨打造。🇰🇭"
   }
 }

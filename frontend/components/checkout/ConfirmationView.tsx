@@ -14,8 +14,10 @@ function Inner({ bookingId }: { bookingId: string }) {
 
   return (
     <div className="mx-auto max-w-md space-y-5 px-4 py-12 text-center">
-      <CheckCircle2 className="mx-auto h-16 w-16 text-success" aria-hidden />
-      <h1 className="text-2xl font-bold text-foreground">{t('confirmation.title')}</h1>
+      <span className="mx-auto inline-flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-white shadow-glow">
+        <CheckCircle2 className="h-10 w-10" aria-hidden />
+      </span>
+      <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">{t('confirmation.title')}</h1>
       {booking?.reference ? (
         <p className="text-muted-foreground">
           {t('confirmation.reference')}:{' '}
@@ -23,7 +25,7 @@ function Inner({ bookingId }: { bookingId: string }) {
         </p>
       ) : null}
       <div className="flex flex-col gap-2">
-        <Button asChild>
+        <Button asChild variant="gradient">
           <Link href={`/bookings/${bookingId}`}>{t('confirmation.viewBooking')}</Link>
         </Button>
         <Button asChild variant="outline">

@@ -54,7 +54,7 @@ export function GuideDetailView({ id }: { id: string }) {
         <Avatar src={g.profilePicture} name={g.name} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-foreground">{g.name}</h1>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">{g.name}</h1>
             {g.isVerified ? <BadgeCheck className="h-5 w-5 text-success" aria-hidden /> : null}
           </div>
           {g.location ? (
@@ -128,13 +128,13 @@ export function GuideDetailView({ id }: { id: string }) {
         </section>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
         <p className="text-sm text-muted-foreground">{t('detail.currency')}</p>
         <CurrencySelector className="w-28" />
       </div>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold text-foreground">{t('detail.availability')}</h2>
+        <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.availability')}</h2>
         <GuideAvailabilityChecker guideId={g.id} />
       </section>
 

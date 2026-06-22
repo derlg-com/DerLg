@@ -28,7 +28,7 @@ function Inner({ bookingId }: { bookingId: string }) {
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 py-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-foreground">{t('method.title')}</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{t('method.title')}</h1>
         <HoldTimer holdExpiresAt={booking?.holdExpiresAt} />
       </div>
       {isLoading ? (
@@ -45,7 +45,7 @@ function Inner({ bookingId }: { bookingId: string }) {
           const Icon = METHOD_ICON[m]
           return (
             <Link key={m} href={`/checkout/${bookingId}?method=${m}`} className="block focus-visible:outline-none">
-              <Card className="flex items-center gap-3 p-4 transition-shadow hover:shadow-md">
+              <Card variant="interactive" className="flex items-center gap-3 p-4">
                 <Icon className="h-5 w-5 text-primary" aria-hidden />
                 <span className="font-medium text-foreground">{t(`method.${m}`)}</span>
               </Card>

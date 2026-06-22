@@ -7,6 +7,7 @@ import { ArrowLeft, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/lib/i18n'
 import { getActiveTab, shouldShowBack } from '@/lib/nav'
+import { Logo } from '@/components/shared/Logo'
 
 const TITLE_KEYS: Record<string, string> = {
   '/search': 'nav.explore',
@@ -53,7 +54,7 @@ export function TopBar() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur transition-transform duration-200',
+        'sticky top-0 z-40 glass border-b border-border/60 transition-transform duration-200',
         hidden && '-translate-y-full',
       )}
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
@@ -65,7 +66,7 @@ export function TopBar() {
               type="button"
               onClick={() => router.back()}
               aria-label={t('back')}
-              className="-ml-2 rounded-md p-2 text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="-ml-2 rounded-lg p-2 text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
@@ -73,11 +74,9 @@ export function TopBar() {
         </div>
 
         {isHome ? (
-          <Link href="/" className="text-lg font-bold text-primary">
-            {t('brand')}
-          </Link>
+          <Logo href="/" size="sm" />
         ) : (
-          <h1 className="flex-1 truncate text-center text-base font-semibold text-foreground">
+          <h1 className="flex-1 truncate text-center font-display text-base font-semibold text-foreground">
             {title}
           </h1>
         )}
@@ -87,7 +86,7 @@ export function TopBar() {
             <Link
               href="/search"
               aria-label={t('search')}
-              className="rounded-md p-2 text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-lg p-2 text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Search className="h-5 w-5" />
             </Link>

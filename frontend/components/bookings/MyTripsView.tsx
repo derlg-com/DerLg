@@ -28,7 +28,7 @@ function MyTripsInner() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 px-4 py-4">
-      <h1 className="text-xl font-bold text-foreground">{t('list.title')}</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{t('list.title')}</h1>
       <Tabs value={tab} onValueChange={(v) => setTab(v as BookingGroup)}>
         <TabsList className="w-full">
           {GROUPS.map((g) => (

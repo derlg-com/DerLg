@@ -105,7 +105,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         />
         {errors.phone ? <p className="text-sm text-destructive">{errors.phone}</p> : null}
       </div>
-      <Button type="submit" className="w-full" disabled={submitting}>
+      <Button type="submit" variant="gradient" className="w-full" disabled={submitting}>
         {submitting ? <Spinner size="sm" className="text-primary-foreground" /> : t('signUp.submit')}
       </Button>
       <p className="text-center text-sm text-muted-foreground">

@@ -60,24 +60,44 @@ import { ConfigService } from '@nestjs/config';
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        pinoHttp: {
-          level:
-            configService.get('NODE_ENV') === 'production' ? 'info' : 'debug',
-          redact: {
-            paths: [
-              'req.headers.authorization',
-              'req.body.password',
-              'req.body.token',
-              'req.body.card',
-              'req.body.cvv',
-            ],
-            remove: true,
+      useFactory: (configService: ConfigService) => {
+        const isProd = configService.get('NODE_ENV') === 'production';
+        return {
+          pinoHttp: {
+            level: isProd ? 'info' : 'debug',
+            // Dev: human-readable, color-coded output (errors red, warns yellow,
+            // info green) so problems are easy to spot. Prod: structured JSON
+            // for log aggregators.
+            transport: isProd
+              ? undefined
+              : {
+                  target: 'pino-pretty',
+                  options: {
+                    colorize: true,
+                    translateTime: 'SYS:HH:MM:ss.l',
+                    ignore: 'pid,hostname',
+                    singleLine: true,
+                    errorLikeObjectKeys: ['err', 'error'],
+                  },
+                },
+            // The LoggingInterceptor emits one clean, status-leveled request
+            // line; disable pino-http's duplicate auto request/response logging.
+            autoLogging: false,
+            redact: {
+              paths: [
+                'req.headers.authorization',
+                'req.body.password',
+                'req.body.token',
+                'req.body.card',
+                'req.body.cvv',
+              ],
+              remove: true,
+            },
+            genReqId: (req) =>
+              (req.headers['x-request-id'] as string) || crypto.randomUUID(),
           },
-          genReqId: (req) =>
-            (req.headers['x-request-id'] as string) || crypto.randomUUID(),
-        },
-      }),
+        };
+      },
     }),
   ],
   controllers: [AppController],

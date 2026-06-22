@@ -79,7 +79,7 @@ export function ResetPasswordForm({ token, onSuccess }: { token: string; onSucce
           <p className="text-sm text-destructive">{errors.confirmPassword}</p>
         ) : null}
       </div>
-      <Button type="submit" className="w-full" disabled={submitting}>
+      <Button type="submit" variant="gradient" className="w-full" disabled={submitting}>
         {submitting ? <Spinner size="sm" className="text-primary-foreground" /> : t('reset.submit')}
       </Button>
     </form>

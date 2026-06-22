@@ -58,7 +58,7 @@ export function TransportBookingForm({ vehicleId }: { vehicleId: string }) {
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 px-4 py-4" noValidate>
-      <h1 className="text-xl font-bold text-foreground">{t('form.title')}</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{t('form.title')}</h1>
       {vehicle ? (
         <BookingSummary
           name={vehicle.name}
@@ -129,7 +129,7 @@ export function TransportBookingForm({ vehicleId }: { vehicleId: string }) {
         />
       </div>
       <p className="text-xs text-muted-foreground">{t('form.holdNotice')}</p>
-      <Button type="submit" className="w-full" disabled={submitting}>
+      <Button type="submit" variant="gradient" className="w-full" disabled={submitting}>
         {submitting ? <Spinner size="sm" className="text-primary-foreground" /> : t('form.submit')}
       </Button>
     </form>

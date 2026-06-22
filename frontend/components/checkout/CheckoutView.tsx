@@ -36,7 +36,7 @@ function CardForm({ onPay, processing, t }: { onPay: () => void; processing: boo
           <Input id="cardCvc" inputMode="numeric" placeholder="123" autoComplete="cc-csc" />
         </div>
       </div>
-      <Button onClick={onPay} disabled={processing} className="w-full">
+      <Button onClick={onPay} disabled={processing} variant="gradient" className="w-full">
         {processing ? <Spinner size="sm" className="text-primary-foreground" /> : t('card.pay')}
       </Button>
     </div>
@@ -69,7 +69,7 @@ function QrView({
       ) : (
         <Skeleton className="h-60 w-60 rounded-lg" />
       )}
-      <Button onClick={onPaid} disabled={processing} className="w-full">
+      <Button onClick={onPaid} disabled={processing} variant="gradient" className="w-full">
         {processing ? <Spinner size="sm" className="text-primary-foreground" /> : t('qr.paid')}
       </Button>
     </div>
@@ -117,7 +117,7 @@ function Inner({ bookingId, method }: { bookingId: string; method: PaymentMethod
   return (
     <div className="mx-auto max-w-lg space-y-4 px-4 py-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-foreground">{t('title')}</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{t('title')}</h1>
         <HoldTimer holdExpiresAt={booking?.holdExpiresAt} />
       </div>
 
@@ -131,7 +131,7 @@ function Inner({ bookingId, method }: { bookingId: string; method: PaymentMethod
       {isLoading ? (
         <Skeleton className="h-24 w-full rounded-lg" />
       ) : (
-        <Card>
+        <Card variant="elevated">
           <CardContent className="space-y-2 p-4 text-sm">
             <div className="flex justify-between text-muted-foreground">
               <span>{t('subtotal')}</span>

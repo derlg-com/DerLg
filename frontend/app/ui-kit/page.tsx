@@ -19,6 +19,12 @@ import { Pagination } from '@/components/ui/pagination'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { toast, Toaster } from '@/components/ui/toast'
+import { Logo } from '@/components/shared/Logo'
+import { SectionHeading } from '@/components/shared/SectionHeading'
+import { GradientText } from '@/components/shared/GradientText'
+import { Reveal } from '@/components/shared/Reveal'
+import { EntityCard } from '@/components/shared/EntityCard'
+import { CatalogShell } from '@/components/shared/CatalogShell'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -42,7 +48,26 @@ export default function UiKitPage() {
         <p className="text-sm text-muted-foreground">Shared primitives on the Cambodia travel palette.</p>
       </header>
 
+      <Section title="Brand">
+        <Logo size="lg" href={null} />
+        <Logo size="md" href={null} withWordmark={false} />
+      </Section>
+
+      <div className="space-y-4">
+        <SectionHeading
+          eyebrow="Design system"
+          title={<>Premium <GradientText>green &amp; gold</GradientText></>}
+          subtitle="Sora display headings, Plus Jakarta Sans body, gradients, and glassmorphism."
+          align="left"
+        />
+        <Reveal>
+          <p className="text-sm text-muted-foreground">This paragraph fades in on scroll (reduced-motion safe).</p>
+        </Reveal>
+      </div>
+
       <Section title="Buttons">
+        <Button variant="gradient">Try Vibe Booking</Button>
+        <Button variant="gold">Notify Me</Button>
         <Button>Primary</Button>
         <Button variant="secondary">Secondary</Button>
         <Button variant="outline">Outline</Button>
@@ -50,11 +75,14 @@ export default function UiKitPage() {
         <Button variant="destructive">Destructive</Button>
         <Button size="sm">Small</Button>
         <Button size="lg">Large</Button>
+        <Button size="xl" variant="gradient">Extra large</Button>
       </Section>
 
       <Section title="Badges">
+        <Badge variant="live">● Live</Badge>
         <Badge>Default</Badge>
         <Badge variant="secondary">Gold</Badge>
+        <Badge variant="muted">v1.1</Badge>
         <Badge variant="outline">Outline</Badge>
         <Badge variant="success">Verified</Badge>
         <Badge variant="warning">Pending</Badge>
@@ -95,6 +123,11 @@ export default function UiKitPage() {
             </Button>
           </CardFooter>
         </Card>
+        <Card variant="elevated" className="w-full max-w-xs p-5 text-sm text-muted-foreground">Elevated card</Card>
+        <Card variant="interactive" className="w-full max-w-xs p-5 text-sm text-muted-foreground">Interactive (hover lift)</Card>
+        <div className="rounded-2xl bg-gradient-brand p-4">
+          <Card variant="glass" className="w-full max-w-xs p-5 text-sm">Glass card on gradient</Card>
+        </div>
       </Section>
 
       <Section title="Feedback">
@@ -115,6 +148,40 @@ export default function UiKitPage() {
           action={<Button size="sm" variant="outline">Clear filters</Button>}
         />
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Shared shells</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <EntityCard
+            href="#"
+            title="Angkor Sunrise Tour"
+            subtitle="Siem Reap"
+            priceLabel="$120"
+            priceSuffix="/ person"
+            badge={{ label: 'Temples' }}
+            rating={{ average: 4.8, count: 410 }}
+            favorite={{ type: 'trip', id: 'demo-1' }}
+            meta="1 day"
+          />
+          <EntityCard
+            href="#"
+            title="Riverside Boutique Hotel"
+            subtitle="Phnom Penh"
+            priceLabel="$65"
+            priceSuffix="/ night"
+            rating={{ average: 4.6, count: 128 }}
+            favorite={{ type: 'hotel', id: 'demo-2' }}
+          />
+        </div>
+        <CatalogShell
+          state="ready"
+          toolbar={<p className="text-sm text-muted-foreground">2 results</p>}
+          className="px-0 py-0"
+        >
+          <div className="rounded-2xl border border-border p-4 text-sm text-muted-foreground">Card A</div>
+          <div className="rounded-2xl border border-border p-4 text-sm text-muted-foreground">Card B</div>
+        </CatalogShell>
+      </section>
 
       <Section title="Tabs">
         <Tabs defaultValue="trips" className="w-full">

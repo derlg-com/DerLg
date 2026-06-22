@@ -64,7 +64,7 @@ export function VehicleDetailView({ id }: { id: string }) {
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-foreground">{v.name}</h1>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">{v.name}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
               {v.type ? <Badge variant="secondary">{v.type}</Badge> : null}
               <span className="inline-flex items-center gap-1 text-muted-foreground">
@@ -90,14 +90,14 @@ export function VehicleDetailView({ id }: { id: string }) {
         <p className="text-sm leading-relaxed text-muted-foreground">{v.description}</p>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
         <p className="text-sm text-muted-foreground">{t('detail.currency')}</p>
         <CurrencySelector className="w-28" />
       </div>
 
       {v.amenities && v.amenities.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">{t('detail.amenities')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.amenities')}</h2>
           <div className="flex flex-wrap gap-2">
             {v.amenities.map((a) => (
               <Badge key={a} variant="muted">
@@ -109,7 +109,7 @@ export function VehicleDetailView({ id }: { id: string }) {
       ) : null}
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold text-foreground">{t('detail.pricing')}</h2>
+        <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.pricing')}</h2>
         <p className="text-sm text-muted-foreground">
           {t('card.perDay')}: {formatCurrency(v.pricePerDayUsd, locale, currency)}
           {v.pricePerKmUsd != null
@@ -119,13 +119,13 @@ export function VehicleDetailView({ id }: { id: string }) {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold text-foreground">{t('detail.availability')}</h2>
+        <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.availability')}</h2>
         <AvailabilityChecker vehicleId={v.id} />
       </section>
 
       {v.latitude != null && v.longitude != null ? (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">{t('detail.route')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.route')}</h2>
           <GoogleMapView lat={v.latitude} lng={v.longitude} label={v.name} />
         </section>
       ) : null}

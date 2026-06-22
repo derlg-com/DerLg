@@ -71,7 +71,7 @@ export function TripDetailView({ id }: { id: string }) {
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-foreground">{trip.name}</h1>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">{trip.name}</h1>
             {trip.location ? (
               <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" aria-hidden />
@@ -104,14 +104,14 @@ export function TripDetailView({ id }: { id: string }) {
         <p className="text-sm leading-relaxed text-muted-foreground">{trip.description}</p>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
         <p className="text-sm text-muted-foreground">{t('detail.currency')}</p>
         <CurrencySelector className="w-28" />
       </div>
 
       {trip.itineraryDays && trip.itineraryDays.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-foreground">{t('detail.itinerary')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.itinerary')}</h2>
           <TripItinerary days={trip.itineraryDays} />
         </section>
       ) : null}
@@ -120,14 +120,14 @@ export function TripDetailView({ id }: { id: string }) {
 
       {trip.cancellationPolicy ? (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">{t('detail.cancellation')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.cancellation')}</h2>
           <p className="text-sm text-muted-foreground">{trip.cancellationPolicy}</p>
         </section>
       ) : null}
 
       {trip.meetingPoint ? (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">{t('detail.meetingPoint')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.meetingPoint')}</h2>
           <p className="text-sm text-muted-foreground">{trip.meetingPoint.description}</p>
           <GoogleMapView
             lat={trip.meetingPoint.latitude}

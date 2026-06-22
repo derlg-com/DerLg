@@ -72,7 +72,7 @@ export function HotelDetailView({ id }: { id: string }) {
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-foreground">{hotel.name}</h1>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">{hotel.name}</h1>
             <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" aria-hidden />
               {hotel.address ?? hotel.location}
@@ -102,14 +102,14 @@ export function HotelDetailView({ id }: { id: string }) {
         <p className="text-sm leading-relaxed text-muted-foreground">{hotel.description}</p>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
         <p className="text-sm text-muted-foreground">{t('detail.currency')}</p>
         <CurrencySelector className="w-28" />
       </div>
 
       {hotel.amenities && hotel.amenities.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">{t('detail.amenities')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.amenities')}</h2>
           <div className="flex flex-wrap gap-2">
             {hotel.amenities.map((a) => (
               <Badge key={a} variant="muted">
@@ -122,7 +122,7 @@ export function HotelDetailView({ id }: { id: string }) {
 
       {hotel.checkInTime || hotel.checkOutTime || hotel.cancellationPolicy ? (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">{t('detail.policies')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.policies')}</h2>
           <div className="space-y-1 text-sm text-muted-foreground">
             {hotel.checkInTime ? (
               <p className="inline-flex items-center gap-1">
@@ -140,7 +140,7 @@ export function HotelDetailView({ id }: { id: string }) {
       ) : null}
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-foreground">{t('detail.rooms')}</h2>
+        <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.rooms')}</h2>
         {rooms.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('detail.noRooms')}</p>
         ) : (
@@ -154,7 +154,7 @@ export function HotelDetailView({ id }: { id: string }) {
 
       {hotel.latitude != null && hotel.longitude != null ? (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-foreground">{t('detail.location')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.location')}</h2>
           <GoogleMapView lat={hotel.latitude} lng={hotel.longitude} label={hotel.name} />
         </section>
       ) : null}

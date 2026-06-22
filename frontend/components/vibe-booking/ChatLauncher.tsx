@@ -46,7 +46,7 @@ function ChatDockBody({ pageContext, onClose }: { pageContext: string; onClose: 
     >
       <LoginModal onAuthenticated={handleAuthenticated} />
       <header className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <span className="flex-1 text-sm font-semibold">{t('chat.launcherTitle')}</span>
+        <span className="flex-1 font-display text-sm font-semibold">{t('chat.launcherTitle')}</span>
         <span className="hidden text-xs text-muted-foreground sm:inline">
           {t('chat.askedWhileViewing', { page: pageContext })}
         </span>
@@ -87,7 +87,7 @@ export default function ChatLauncher() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label={t('chat.launcherOpen')}
-          className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition-transform hover:scale-105 md:bottom-6"
+          className="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-brand text-white shadow-glow transition-transform hover:scale-105 md:bottom-6"
         >
           <MessageCircle size={24} aria-hidden />
         </button>
