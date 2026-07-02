@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiToolsService } from './ai-tools.service';
@@ -108,5 +109,59 @@ describe('AiToolsService.searchGuides (card-ready shape)', () => {
       date: '2026-07-01',
     });
     expect(result[0].name).toBe('Local Guide');
+  });
+});
+
+
+describe('AiToolsService.sendSosAlert (user existence gate)', () => {
+  let service: AiToolsService;
+  let prisma: {
+    user: { findUnique: jest.Mock };
+    emergencyAlert: { create: jest.Mock };
+  };
+
+  beforeEach(async () => {
+    prisma = {
+      user: { findUnique: jest.fn() },
+      emergencyAlert: { create: jest.fn() },
+    };
+    const mod = await Test.createTestingModule({
+      providers: [AiToolsService, { provide: PrismaService, useValue: prisma }],
+    }).compile();
+    service = mod.get(AiToolsService);
+  });
+
+  it('throws BadRequestException (400) for a non-existent user and does not write an alert', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.sendSosAlert({
+        user_id: 'guest-not-a-real-row',
+        location: '11.5564,104.9282',
+        message: 'I had an accident',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    // The FK-violating write must never be attempted for a missing user.
+    expect(prisma.emergencyAlert.create).not.toHaveBeenCalled();
+  });
+
+  it('writes the emergency alert for a valid user and reports sent', async () => {
+    prisma.user.findUnique.mockResolvedValue({ id: 'real-user-uuid' });
+    prisma.emergencyAlert.create.mockResolvedValue({ id: 'alert-1' });
+
+    const result = await service.sendSosAlert({
+      user_id: 'real-user-uuid',
+      location: '11.5564,104.9282',
+      message: 'Emergency near the river',
+    });
+
+    expect(result.sent).toBe(true);
+    expect(prisma.emergencyAlert.create).toHaveBeenCalledTimes(1);
+    const createArg = prisma.emergencyAlert.create.mock.calls[0][0];
+    expect(createArg.data.userId).toBe('real-user-uuid');
+    expect(createArg.data.alertType).toBe('sos');
+    expect(createArg.data.latitude).toBeCloseTo(11.5564);
+    expect(createArg.data.longitude).toBeCloseTo(104.9282);
   });
 });

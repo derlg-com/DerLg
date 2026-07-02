@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { SingleResourceKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -568,6 +568,17 @@ export class AiToolsService {
     const parts = dto.location.split(',');
     const lat = parseFloat(parts[0]) || 11.5564;
     const lng = parseFloat(parts[1]) || 104.9282;
+
+    // Verify the user exists before the write so a non-existent user_id (e.g. a
+    // guest session) yields a clean 400 instead of surfacing the
+    // emergencyAlert.userId foreign-key violation as an opaque HTTP 500.
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.user_id },
+      select: { id: true },
+    });
+    if (!user) {
+      throw new BadRequestException(`User ${dto.user_id} not found`);
+    }
 
     await this.prisma.emergencyAlert.create({
       data: {

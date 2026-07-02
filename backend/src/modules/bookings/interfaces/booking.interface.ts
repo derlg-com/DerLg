@@ -15,6 +15,8 @@ export interface Booking {
   type: string;
   name: string;
   coverImageUrl: string | null;
+  /** Human-readable location label derived from the primary item snapshot, or null. */
+  location: string | null;
   startDate: string;
   endDate: string | null;
   /** UPPERCASE booking status (HOLD | PENDING_PAYMENT | CONFIRMED | …). */

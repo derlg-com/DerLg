@@ -181,7 +181,13 @@ def test_every_tool_dispatches_to_its_backend_route():
     kwarg (json for POST, params for GET), and injects user_id where required."""
     from agent.core import _execute_tool
 
-    session = ConversationState(session_id="s1", user_id="real-uuid", preferred_language="EN")
+    # Authenticated session: user-scoped POST tools (incl. the now safety-special-
+    # cased send_sos_alert, which only performs its best-effort backend write when
+    # authenticated — guests are served locally; see test_sos_safety.py) dispatch
+    # and inject user_id. Other tools don't branch on auth in _execute_tool.
+    session = ConversationState(
+        session_id="s1", user_id="real-uuid", preferred_language="EN", is_authenticated=True
+    )
     mock_backend = AsyncMock()
     mock_backend.request = AsyncMock(return_value={"success": True, "data": {}})
 

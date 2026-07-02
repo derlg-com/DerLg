@@ -19,6 +19,17 @@ MAX_TOKENS = 2048
 # Mutations/reads whose user_id must come from the verified session, never the model.
 _USER_SCOPED_TOOLS = ("create_booking_hold", "send_sos_alert", "get_user_loyalty")
 
+# SAFETY NET — Cambodia national emergency numbers. A user reporting an emergency
+# must ALWAYS receive these actionable numbers, even if the backend is
+# unreachable (circuit open, timeout, 500). Mirrors the values backend
+# `getEmergencyContacts` returns so the experience is identical online/offline.
+CAMBODIA_EMERGENCY_CONTACTS: list[dict] = [
+    {"name": "Police", "number": "117"},
+    {"name": "Ambulance", "number": "119"},
+    {"name": "Fire", "number": "118"},
+    {"name": "Tourist Police", "number": "012 942 484"},
+]
+
 # Matches raw tool-call JSON the model may leak as visible text instead of a
 # real tool call, e.g. {"name": "search_trips", "parameters": {...}}.
 _TOOL_CALL_JSON = re.compile(
@@ -465,7 +476,102 @@ def _build_content_payload(
     return payloads[0] if payloads else None
 
 
+async def _resolve_emergency_contacts(
+    location: str, session: ConversationState
+) -> tuple[list[dict], bool]:
+    """Best-effort emergency-contacts resolution with a guaranteed fallback.
+
+    Tries a live `get_emergency_contacts` lookup for the given location, but ANY
+    failure (circuit open, timeout, empty result, unexpected error) falls back to
+    the hardcoded ``CAMBODIA_EMERGENCY_CONTACTS`` so a user in distress always
+    receives actionable numbers. Returns ``(contacts, is_live)``.
+    """
+    if location:
+        try:
+            backend = get_backend_client()
+            result = await backend.request(
+                "GET",
+                "ai-tools/emergency-contacts",
+                language=session.preferred_language.lower(),
+                params={"location": location},
+            )
+            if result.get("success"):
+                data = result.get("data") or {}
+                contacts = data.get("contacts")
+                if isinstance(contacts, list) and contacts:
+                    return contacts, True
+        except Exception as exc:  # defensive: never let a lookup error hide numbers
+            logger.warning("emergency_contacts_lookup_failed", error=str(exc))
+    return list(CAMBODIA_EMERGENCY_CONTACTS), False
+
+
+async def _handle_sos_alert(inp: dict, session: ConversationState) -> dict:
+    """Resilient SOS handler enforcing the safety invariant: a user reporting an
+    emergency ALWAYS receives actionable Cambodia emergency numbers and never a
+    hard failure — regardless of auth status OR backend availability.
+
+    - Guests are NEVER POSTed to ``ai-tools/sos``: ``session.user_id`` is not a
+      real ``users`` row, so the write would FK-fail (HTTP 500) and yield nothing.
+    - Authenticated users get a best-effort backend write (notifies the support
+      team). Whether it succeeds or fails, the emergency numbers are still
+      returned; ``alert_logged`` reports whether the write actually landed.
+    """
+    location = inp.get("location") or ""
+    user_message = inp.get("message") or ""
+    contacts, _is_live = await _resolve_emergency_contacts(location, session)
+    alert_logged = False
+
+    if session.is_authenticated:
+        try:
+            backend = get_backend_client()
+            # Server-side inject the verified session user id; never trust a
+            # model-supplied user_id for this mutation (Issue 10).
+            payload = {
+                "user_id": session.user_id,
+                "location": location,
+                "message": user_message,
+            }
+            result = await backend.request(
+                "POST",
+                "ai-tools/sos",
+                language=session.preferred_language.lower(),
+                json=payload,
+            )
+            alert_logged = bool(result.get("success"))
+        except Exception as exc:  # best-effort: a failed write must NOT hide numbers
+            logger.warning("sos_alert_write_failed", error=str(exc))
+            alert_logged = False
+
+    if alert_logged:
+        message = (
+            "Emergency support has been alerted. If you are in danger, call these "
+            "Cambodia emergency numbers right now."
+        )
+    else:
+        message = (
+            "If you are in danger, call these Cambodia emergency numbers right now. "
+            "(We couldn't auto-notify our support team, but these numbers are live "
+            "and reachable immediately.)"
+        )
+
+    return {
+        "success": True,
+        "data": {
+            "contacts": contacts,
+            "message": message,
+            "alert_logged": alert_logged,
+            "location": location,
+        },
+    }
+
+
 async def _execute_tool(name: str, inp: dict, session: ConversationState) -> dict:
+    # SOS is safety-critical: it must ALWAYS return actionable emergency numbers
+    # and NEVER a hard failure, regardless of auth status or backend availability.
+    # The backend SOS write (notifying support) is a best-effort enhancement only.
+    if name == "send_sos_alert":
+        return await _handle_sos_alert(inp, session)
+
     dispatch = TOOL_DISPATCH.get(name)
     if not dispatch:
         return {"success": False, "error": f"Unknown tool: {name}"}
