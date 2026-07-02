@@ -6,17 +6,35 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import { Progress } from '@/components/ui/progress'
 import { Avatar } from '@/components/ui/avatar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Select } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Radio, RadioGroup } from '@/components/ui/radio'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Pagination } from '@/components/ui/pagination'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { toast, Toaster } from '@/components/ui/toast'
 import { Logo } from '@/components/shared/Logo'
@@ -29,7 +47,9 @@ import { CatalogShell } from '@/components/shared/CatalogShell'
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h2>
       <div className="flex flex-wrap items-center gap-3">{children}</div>
     </section>
   )
@@ -40,12 +60,17 @@ export default function UiKitPage() {
   const [page, setPage] = useState(3)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [agree, setAgree] = useState(false)
+  const [pay, setPay] = useState('card')
+  const [date, setDate] = useState('')
 
   return (
     <main className="mx-auto max-w-3xl space-y-10 p-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-bold text-foreground">DerLg UI Kit</h1>
-        <p className="text-sm text-muted-foreground">Shared primitives on the Cambodia travel palette.</p>
+        <p className="text-sm text-muted-foreground">
+          Shared primitives on the Cambodia travel palette.
+        </p>
       </header>
 
       <Section title="Brand">
@@ -56,12 +81,18 @@ export default function UiKitPage() {
       <div className="space-y-4">
         <SectionHeading
           eyebrow="Design system"
-          title={<>Premium <GradientText>green &amp; gold</GradientText></>}
+          title={
+            <>
+              Premium <GradientText>green &amp; gold</GradientText>
+            </>
+          }
           subtitle="Sora display headings, Plus Jakarta Sans body, gradients, and glassmorphism."
           align="left"
         />
         <Reveal>
-          <p className="text-sm text-muted-foreground">This paragraph fades in on scroll (reduced-motion safe).</p>
+          <p className="text-sm text-muted-foreground">
+            This paragraph fades in on scroll (reduced-motion safe).
+          </p>
         </Reveal>
       </div>
 
@@ -75,7 +106,9 @@ export default function UiKitPage() {
         <Button variant="destructive">Destructive</Button>
         <Button size="sm">Small</Button>
         <Button size="lg">Large</Button>
-        <Button size="xl" variant="gradient">Extra large</Button>
+        <Button size="xl" variant="gradient">
+          Extra large
+        </Button>
       </Section>
 
       <Section title="Badges">
@@ -104,6 +137,33 @@ export default function UiKitPage() {
             <Switch checked={on} onCheckedChange={setOn} aria-label="Notifications" />
             <span className="text-sm text-muted-foreground">Notifications {on ? 'on' : 'off'}</span>
           </div>
+          <DatePicker
+            value={date}
+            onChange={setDate}
+            placeholder="Select a date"
+            aria-label="Booking date"
+          />
+          <Checkbox
+            label="I agree to the terms"
+            checked={agree}
+            onChange={(e) => setAgree(e.target.checked)}
+          />
+          <RadioGroup aria-label="Payment method" className="pt-1">
+            <Radio
+              name="kit-pay"
+              value="card"
+              label="Card"
+              checked={pay === 'card'}
+              onChange={() => setPay('card')}
+            />
+            <Radio
+              name="kit-pay"
+              value="qr"
+              label="Bakong QR"
+              checked={pay === 'qr'}
+              onChange={() => setPay('qr')}
+            />
+          </RadioGroup>
         </div>
       </Section>
 
@@ -123,16 +183,24 @@ export default function UiKitPage() {
             </Button>
           </CardFooter>
         </Card>
-        <Card variant="elevated" className="w-full max-w-xs p-5 text-sm text-muted-foreground">Elevated card</Card>
-        <Card variant="interactive" className="w-full max-w-xs p-5 text-sm text-muted-foreground">Interactive (hover lift)</Card>
+        <Card variant="elevated" className="w-full max-w-xs p-5 text-sm text-muted-foreground">
+          Elevated card
+        </Card>
+        <Card variant="interactive" className="w-full max-w-xs p-5 text-sm text-muted-foreground">
+          Interactive (hover lift)
+        </Card>
         <div className="rounded-2xl bg-gradient-brand p-4">
-          <Card variant="glass" className="w-full max-w-xs p-5 text-sm">Glass card on gradient</Card>
+          <Card variant="glass" className="w-full max-w-xs p-5 text-sm">
+            Glass card on gradient
+          </Card>
         </div>
       </Section>
 
       <Section title="Feedback">
         <Skeleton className="h-10 w-40" />
         <Spinner />
+        <Progress value={60} label="Upload progress" className="max-w-xs" />
+        <Progress label="Loading" className="max-w-xs" />
         <Avatar name="Wendy Chen" />
         <Avatar name="Backpacker Ben" size="lg" />
         <Button variant="outline" onClick={() => toast({ title: 'Saved!', variant: 'success' })}>
@@ -145,12 +213,18 @@ export default function UiKitPage() {
           icon={Search}
           title="No trips found"
           description="Try adjusting your filters."
-          action={<Button size="sm" variant="outline">Clear filters</Button>}
+          action={
+            <Button size="sm" variant="outline">
+              Clear filters
+            </Button>
+          }
         />
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Shared shells</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Shared shells
+        </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <EntityCard
             href="#"
@@ -178,8 +252,12 @@ export default function UiKitPage() {
           toolbar={<p className="text-sm text-muted-foreground">2 results</p>}
           className="px-0 py-0"
         >
-          <div className="rounded-2xl border border-border p-4 text-sm text-muted-foreground">Card A</div>
-          <div className="rounded-2xl border border-border p-4 text-sm text-muted-foreground">Card B</div>
+          <div className="rounded-2xl border border-border p-4 text-sm text-muted-foreground">
+            Card A
+          </div>
+          <div className="rounded-2xl border border-border p-4 text-sm text-muted-foreground">
+            Card B
+          </div>
         </CatalogShell>
       </section>
 
@@ -190,9 +268,15 @@ export default function UiKitPage() {
             <TabsTrigger value="hotels">Hotels</TabsTrigger>
             <TabsTrigger value="guides">Guides</TabsTrigger>
           </TabsList>
-          <TabsContent value="trips" className="text-sm text-muted-foreground">Trips panel</TabsContent>
-          <TabsContent value="hotels" className="text-sm text-muted-foreground">Hotels panel</TabsContent>
-          <TabsContent value="guides" className="text-sm text-muted-foreground">Guides panel</TabsContent>
+          <TabsContent value="trips" className="text-sm text-muted-foreground">
+            Trips panel
+          </TabsContent>
+          <TabsContent value="hotels" className="text-sm text-muted-foreground">
+            Hotels panel
+          </TabsContent>
+          <TabsContent value="guides" className="text-sm text-muted-foreground">
+            Guides panel
+          </TabsContent>
         </Tabs>
       </Section>
 
@@ -202,18 +286,26 @@ export default function UiKitPage() {
 
       <Section title="Overlays">
         <Button onClick={() => setDialogOpen(true)}>Open dialog</Button>
-        <Button variant="outline" onClick={() => setSheetOpen(true)}>Open sheet</Button>
+        <Button variant="outline" onClick={() => setSheetOpen(true)}>
+          Open sheet
+        </Button>
       </Section>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancel booking?</DialogTitle>
-            <DialogDescription>You will receive a 100% refund (≥7 days before start).</DialogDescription>
+            <DialogDescription>
+              You will receive a 100% refund (≥7 days before start).
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Keep booking</Button>
-            <Button variant="destructive" onClick={() => setDialogOpen(false)}>Cancel booking</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Keep booking
+            </Button>
+            <Button variant="destructive" onClick={() => setDialogOpen(false)}>
+              Cancel booking
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

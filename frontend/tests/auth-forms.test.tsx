@@ -22,7 +22,10 @@ describe('auth forms', () => {
       vi.fn().mockResolvedValue(
         res(200, {
           success: true,
-          data: { accessToken: 'jwt', user: { id: 'u1', email: 'a@b.com', name: 'A', role: 'user' } },
+          data: {
+            accessToken: 'jwt',
+            user: { id: 'u1', email: 'a@b.com', name: 'A', role: 'user' },
+          },
         }),
       ),
     )
@@ -41,7 +44,9 @@ describe('auth forms', () => {
       'fetch',
       vi
         .fn()
-        .mockResolvedValue(res(401, { success: false, error: { code: 'AUTH_INVALID_CREDENTIALS', message: 'bad' } })),
+        .mockResolvedValue(
+          res(401, { success: false, error: { code: 'AUTH_INVALID_CREDENTIALS', message: 'bad' } }),
+        ),
     )
     render(<LoginForm onSuccess={vi.fn()} />)
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })
@@ -63,12 +68,25 @@ describe('auth forms', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('LoginForm: validates email field on blur and clears the error once corrected', () => {
+    render(<LoginForm onSuccess={vi.fn()} />)
+    const email = screen.getByLabelText('Email')
+    fireEvent.change(email, { target: { value: 'not-an-email' } })
+    fireEvent.blur(email)
+    expect(email).toHaveAttribute('aria-invalid', 'true')
+    fireEvent.change(email, { target: { value: 'valid@example.com' } })
+    fireEvent.blur(email)
+    expect(email).not.toHaveAttribute('aria-invalid', 'true')
+  })
+
   it('RegisterForm: 409 surfaces an email-exists field error', async () => {
     vi.stubGlobal(
       'fetch',
       vi
         .fn()
-        .mockResolvedValue(res(409, { success: false, error: { code: 'AUTH_EMAIL_EXISTS', message: 'exists' } })),
+        .mockResolvedValue(
+          res(409, { success: false, error: { code: 'AUTH_EMAIL_EXISTS', message: 'exists' } }),
+        ),
     )
     render(<RegisterForm onSuccess={vi.fn()} />)
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.com' } })

@@ -7,7 +7,7 @@ import { useApiQuery } from '@/lib/use-api-query'
 import { useZodForm } from '@/lib/use-zod-form'
 import { guideBookingSchema, type GuideBookingValues } from '@/schemas/booking'
 import { createGuideBooking, bookingErrorKey } from '@/lib/bookings-api'
-import { BookingSummary } from './BookingShell'
+import { BookingSummary, BookingNotFound } from './BookingShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,12 +23,15 @@ export function GuideBookingForm({ guideId }: { guideId: string }) {
   const router = useRouter()
   const locale = useLanguageStore((s) => s.locale)
   const currency = useCurrency()
-  const { data: guide } = useApiQuery<GuideDetail>(`/v1/guides/${guideId}`)
-  const { values, errors, setValue, validate } = useZodForm<GuideBookingValues>(guideBookingSchema, {
-    startDate: '',
-    endDate: '',
-    specialRequests: '',
-  })
+  const { data: guide, error: guideError } = useApiQuery<GuideDetail>(`/v1/guides/${guideId}`)
+  const { values, errors, setValue, validate } = useZodForm<GuideBookingValues>(
+    guideBookingSchema,
+    {
+      startDate: '',
+      endDate: '',
+      specialRequests: '',
+    },
+  )
   const [key] = useState(() => uuid())
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -41,7 +44,11 @@ export function GuideBookingForm({ guideId }: { guideId: string }) {
     setSubmitting(true)
     createGuideBooking(
       guideId,
-      { startDate: data.startDate, endDate: data.endDate, specialRequests: data.specialRequests || undefined },
+      {
+        startDate: data.startDate,
+        endDate: data.endDate,
+        specialRequests: data.specialRequests || undefined,
+      },
       key,
     )
       .then((r) => router.push(`/checkout/${r.id}/payment-method`))
@@ -51,9 +58,15 @@ export function GuideBookingForm({ guideId }: { guideId: string }) {
       })
   }
 
+  if (guideError) {
+    return <BookingNotFound backHref="/guides" />
+  }
+
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 px-4 py-4" noValidate>
-      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{t('form.title')}</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+        {t('form.title')}
+      </h1>
       {guide ? (
         <BookingSummary
           name={guide.name}

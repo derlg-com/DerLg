@@ -19,7 +19,7 @@ export function SearchResultCard({ href, imageUrl, title, subtitle }: SearchResu
         {imageUrl ? (
           <Image src={imageUrl} alt={title} fill sizes="64px" className="object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-emerald-800 to-emerald-500 text-white">
+          <div className="flex h-full items-center justify-center bg-gradient-brand text-white">
             <MapPin className="h-5 w-5" aria-hidden />
           </div>
         )}

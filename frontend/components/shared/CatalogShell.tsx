@@ -41,9 +41,9 @@ export function CatalogShell({
   gridClassName,
   className,
 }: CatalogShellProps) {
-  const grid = cn('grid grid-cols-2 gap-3 sm:grid-cols-3', gridClassName)
+  const grid = cn('grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4', gridClassName)
   return (
-    <div className={cn('mx-auto max-w-3xl space-y-4 px-4 py-4', className)}>
+    <div className={cn('mx-auto max-w-5xl space-y-4 px-4 py-4', className)}>
       {filters ? <div className="space-y-3">{filters}</div> : null}
       {toolbar ?? null}
 

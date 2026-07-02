@@ -11,6 +11,11 @@ export interface ZodFormApi<T> {
   clearErrors: () => void
   /** Validate current values; returns parsed data or null and populates field errors. */
   validate: () => T | null
+  /**
+   * Validate a single field (e.g. on blur) without surfacing errors for other,
+   * not-yet-touched fields. Sets/clears only that field's error message.
+   */
+  validateField: (key: keyof T) => void
 }
 
 /**
@@ -52,5 +57,18 @@ export function useZodForm<T extends Record<string, unknown>>(
     return null
   }, [schema, values])
 
-  return { values, errors, setValue, setError, clearErrors, validate }
+  const validateField = useCallback(
+    (key: keyof T) => {
+      const result = schema.safeParse(values)
+      if (result.success) {
+        setErrors((e) => (e[key] ? { ...e, [key]: undefined } : e))
+        return
+      }
+      const issue = result.error.issues.find((i) => i.path[0] === key)
+      setErrors((e) => ({ ...e, [key]: issue ? issue.message : undefined }))
+    },
+    [schema, values],
+  )
+
+  return { values, errors, setValue, setError, clearErrors, validate, validateField }
 }

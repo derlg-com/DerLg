@@ -32,7 +32,31 @@ describe('updateProfileSchema', () => {
     expect(updateProfileSchema.safeParse({ name: '', phone: '', avatarUrl: '' }).success).toBe(true)
   })
   it('rejects an invalid phone and avatar URL', () => {
-    expect(updateProfileSchema.safeParse({ name: 'A', phone: 'abc', avatarUrl: '' }).success).toBe(false)
-    expect(updateProfileSchema.safeParse({ name: 'A', phone: '', avatarUrl: 'not-a-url' }).success).toBe(false)
+    expect(
+      updateProfileSchema.safeParse({ name: 'Alice', phone: 'abc', avatarUrl: '' }).success,
+    ).toBe(false)
+    expect(
+      updateProfileSchema.safeParse({ name: 'Alice', phone: '', avatarUrl: 'not-a-url' }).success,
+    ).toBe(false)
+  })
+  it('rejects a name shorter than 2 characters', () => {
+    expect(updateProfileSchema.safeParse({ name: 'A', phone: '', avatarUrl: '' }).success).toBe(
+      false,
+    )
+  })
+  it('rejects a name longer than 255 characters', () => {
+    const long = 'a'.repeat(256)
+    expect(updateProfileSchema.safeParse({ name: long, phone: '', avatarUrl: '' }).success).toBe(
+      false,
+    )
+  })
+  it('accepts a valid name, phone, and avatar URL', () => {
+    expect(
+      updateProfileSchema.safeParse({
+        name: 'Alice Tan',
+        phone: '+855 12 345 678',
+        avatarUrl: 'https://example.com/a.png',
+      }).success,
+    ).toBe(true)
   })
 })

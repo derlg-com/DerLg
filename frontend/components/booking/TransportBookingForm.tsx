@@ -7,7 +7,7 @@ import { useApiQuery } from '@/lib/use-api-query'
 import { useZodForm } from '@/lib/use-zod-form'
 import { transportBookingSchema, type TransportBookingValues } from '@/schemas/booking'
 import { createTransportBooking, bookingErrorKey } from '@/lib/bookings-api'
-import { BookingSummary } from './BookingShell'
+import { BookingSummary, BookingNotFound } from './BookingShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,7 +23,9 @@ export function TransportBookingForm({ vehicleId }: { vehicleId: string }) {
   const router = useRouter()
   const locale = useLanguageStore((s) => s.locale)
   const currency = useCurrency()
-  const { data: vehicle } = useApiQuery<VehicleDetail>(`/v1/transportation/vehicles/${vehicleId}`)
+  const { data: vehicle, error: vehicleError } = useApiQuery<VehicleDetail>(
+    `/v1/transportation/vehicles/${vehicleId}`,
+  )
   const { values, errors, setValue, validate } = useZodForm<TransportBookingValues>(
     transportBookingSchema,
     { startDate: '', endDate: '', pickupLocation: '', dropoffLocation: '', specialRequests: '' },
@@ -56,9 +58,15 @@ export function TransportBookingForm({ vehicleId }: { vehicleId: string }) {
       })
   }
 
+  if (vehicleError) {
+    return <BookingNotFound backHref="/transportation" />
+  }
+
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 px-4 py-4" noValidate>
-      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{t('form.title')}</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+        {t('form.title')}
+      </h1>
       {vehicle ? (
         <BookingSummary
           name={vehicle.name}

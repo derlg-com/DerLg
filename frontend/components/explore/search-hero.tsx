@@ -36,7 +36,7 @@ export function SearchHero() {
 
   return (
     <section className="space-y-4">
-      <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+      <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
         {t('hero.title')}
       </h1>
 

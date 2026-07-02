@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, renderHook } from '@testing-library/react'
 import { TripItinerary } from '@/components/trips/TripItinerary'
+import { TripInclusions } from '@/components/trips/TripInclusions'
 import { CurrencySelector } from '@/components/trips/CurrencySelector'
 import { useCurrency } from '@/hooks/use-currency'
 import { usePreferencesStore } from '@/stores/preferences.store'
@@ -19,8 +20,45 @@ describe('TripItinerary', () => {
     expect(screen.getByText('Faces temple')).toBeInTheDocument()
   })
 
+  it('displays per-day duration when durationHours is provided', () => {
+    render(
+      <TripItinerary
+        days={[
+          { dayNumber: 1, title: 'Angkor Wat', description: 'Sunrise tour', durationHours: 6 },
+        ]}
+      />,
+    )
+    expect(screen.getByText('6h')).toBeInTheDocument()
+  })
+
+  it('omits duration when durationHours is missing or zero', () => {
+    render(
+      <TripItinerary
+        days={[
+          { dayNumber: 1, title: 'Angkor Wat', description: 'Sunrise tour' },
+          { dayNumber: 2, title: 'Bayon', description: 'Faces temple', durationHours: 0 },
+        ]}
+      />,
+    )
+    expect(screen.queryByText('0h')).not.toBeInTheDocument()
+  })
+
   it('renders nothing when there are no days', () => {
     const { container } = render(<TripItinerary days={[]} />)
+    expect(container).toBeEmptyDOMElement()
+  })
+})
+
+describe('TripInclusions', () => {
+  it('renders included and excluded items', () => {
+    render(<TripInclusions included={['Guide', 'Transport']} excluded={['Flights']} />)
+    expect(screen.getByText('Guide')).toBeInTheDocument()
+    expect(screen.getByText('Transport')).toBeInTheDocument()
+    expect(screen.getByText('Flights')).toBeInTheDocument()
+  })
+
+  it('renders nothing when both lists are empty', () => {
+    const { container } = render(<TripInclusions included={[]} excluded={[]} />)
     expect(container).toBeEmptyDOMElement()
   })
 })

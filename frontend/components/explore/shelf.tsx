@@ -46,7 +46,7 @@ export function Shelf({ title, subtitle, seeAllHref, seeAllLabel, children }: Sh
 
 /** Fixed-width snap target wrapping a single card inside a {@link Shelf}. */
 export function ShelfItem({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('w-44 shrink-0 snap-start sm:w-56', className)}>{children}</div>
+  return <div className={cn('w-44 shrink-0 snap-start sm:w-52 md:w-60', className)}>{children}</div>
 }
 
 /** Loading placeholder row matching the shelf card footprint. */
@@ -55,7 +55,9 @@ export function ShelfSkeleton({ count = 4, square = false }: { count?: number; s
     <div className="-mx-4 flex gap-3 overflow-hidden px-4 pb-1">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="w-44 shrink-0 space-y-2 sm:w-56">
-          <Skeleton className={cn('w-full rounded-2xl', square ? 'aspect-square' : 'aspect-[4/3]')} />
+          <Skeleton
+            className={cn('w-full rounded-2xl', square ? 'aspect-square' : 'aspect-[4/3]')}
+          />
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-3 w-1/2" />
         </div>

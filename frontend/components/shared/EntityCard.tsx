@@ -65,15 +65,21 @@ export function EntityCard({
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-emerald-800 to-emerald-500 text-white">
+            <div className="flex h-full items-center justify-center bg-gradient-brand text-white">
               <Fallback className="h-8 w-8" aria-hidden />
             </div>
           )}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
           {badge ? (
-            <Badge variant={badge.variant ?? 'secondary'} className="absolute left-2 top-2 shadow-sm">
-              {badge.label}
-            </Badge>
+            badge.variant ? (
+              <Badge variant={badge.variant} className="absolute left-2 top-2 shadow-sm">
+                {badge.label}
+              </Badge>
+            ) : (
+              <span className="absolute left-2 top-2 rounded-full bg-background/90 px-2.5 py-0.5 text-xs font-medium text-foreground shadow-sm backdrop-blur">
+                {badge.label}
+              </span>
+            )
           ) : null}
           {favorite ? (
             <div className="absolute right-2 top-2">
@@ -92,14 +98,19 @@ export function EntityCard({
         </div>
         <div className="space-y-1 p-3.5">
           <h3 className="line-clamp-1 font-display font-semibold text-foreground">{title}</h3>
-          {subtitle ? <p className="line-clamp-1 text-xs text-muted-foreground">{subtitle}</p> : null}
+          {subtitle ? (
+            <p className="line-clamp-1 text-xs text-muted-foreground">{subtitle}</p>
+          ) : null}
           {priceLabel || meta ? (
             <div className="flex items-center justify-between pt-1.5">
               {priceLabel ? (
                 <p className="text-base">
                   <span className="font-bold text-foreground">{priceLabel}</span>
                   {priceSuffix ? (
-                    <span className="text-xs font-normal text-muted-foreground"> {priceSuffix}</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {' '}
+                      {priceSuffix}
+                    </span>
                   ) : null}
                 </p>
               ) : (

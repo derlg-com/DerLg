@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import { TopBar } from '@/components/shared/TopBar'
 import { BottomNav } from '@/components/shared/BottomNav'
 import { OfflineBanner } from '@/components/shared/OfflineBanner'
+import { InstallPrompt } from '@/components/shared/InstallPrompt'
+import { SyncStatusIndicator } from '@/components/shared/SyncStatusIndicator'
 import ChatLauncher from '@/components/vibe-booking/ChatLauncher'
 
 /**
@@ -14,9 +16,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-col">
       <TopBar />
       <OfflineBanner />
-      <main className="flex-1 pb-20">{children}</main>
+      <SyncStatusIndicator />
+      <main className="flex-1 pb-20 animate-fade-in">{children}</main>
       <BottomNav />
       <ChatLauncher />
+      <InstallPrompt />
     </div>
   )
 }

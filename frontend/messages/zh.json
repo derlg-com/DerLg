@@ -1,13 +1,44 @@
 {
   "profile": {
     "noName": "旅行者",
-    "loyalty": "{points} 积分",
+    "loyalty": {
+      "title": "积分",
+      "balanceLabel": "可用积分",
+      "balanceError": "无法加载您的积分",
+      "balanceErrorDesc": "请稍后重试。",
+      "progressLabel": "等级进度",
+      "maxTier": "最高等级",
+      "maxTierDesc": "您已达到最高等级。尽情享受专属礼遇！",
+      "pointsToNext": "距离 {tier} 还差 {points} 积分",
+      "history": {
+        "title": "积分记录",
+        "empty": "暂无积分活动",
+        "emptyDesc": "完成预订即可赚取积分。",
+        "unavailable": "记录不可用",
+        "unavailableDesc": "我们目前无法加载您的积分记录。",
+        "expires": "{date} 到期"
+      },
+      "redeem": {
+        "title": "兑换积分",
+        "rate": "{points} 积分 = 下次预订减 $1",
+        "worth": "您的积分价值 {value}",
+        "applyHint": "在符合条件的预订结账时使用积分。"
+      },
+      "tier": {
+        "bronze": "青铜",
+        "silver": "白银",
+        "gold": "黄金",
+        "platinum": "铂金"
+      }
+    },
     "student": "学生",
     "logout": "退出登录",
     "menu": {
       "edit": "编辑资料",
       "preferences": "偏好设置",
-      "wishlist": "收藏夹"
+      "wishlist": "收藏夹",
+      "legal": "法律与隐私",
+      "admin": "管理后台"
     },
     "edit": {
       "title": "编辑资料",
@@ -18,7 +49,9 @@
       "save": "保存",
       "cancel": "取消",
       "saved": "资料已更新",
-      "error": "无法更新资料"
+      "error": "无法更新资料",
+      "avatar": "头像",
+      "emailHint": "此处无法更改邮箱。"
     },
     "preferences": {
       "title": "偏好设置",
@@ -36,6 +69,120 @@
       "title": "收藏夹",
       "empty": "您的收藏夹为空",
       "emptyDesc": "点击任意行程、酒店或向导上的爱心即可收藏。"
+    },
+    "loyaltyBadge": "{points} 积分",
+    "adminBadge": "管理员",
+    "deleteAccount": {
+      "section": "删除账户",
+      "description": "永久删除您的账户及所有相关数据。此操作无法撤销。",
+      "button": "删除账户",
+      "dialogTitle": "删除您的账户？",
+      "dialogDescription": "此操作将永久删除您的账户和预订。此操作无法撤销。",
+      "confirmLabel": "输入 DELETE 以确认",
+      "confirmWord": "DELETE",
+      "cancel": "取消",
+      "confirm": "是的，删除我的账户",
+      "deleting": "正在删除…",
+      "success": "您的账户已被删除",
+      "error": "无法删除您的账户。请重试。"
+    }
+  },
+  "legal": {
+    "lastUpdated": "最后更新：2026 年 1 月 1 日",
+    "terms": {
+      "title": "服务条款",
+      "sections": {
+        "acceptance": {
+          "heading": "接受条款",
+          "body": "使用 DerLg 探索和预订柬埔寨的旅行体验，即表示您同意本服务条款。如不同意，请勿使用本平台。本内容为占位示例，不构成法律意见。"
+        },
+        "bookings": {
+          "heading": "预订",
+          "body": "当您通过 DerLg 预订行程、酒店、交通或向导时，即与该服务的提供方达成协议。我们会确认可用性，并在您完成支付期间为您保留所选项目一段时间。价格默认以美元显示，也可按参考汇率以柬埔寨瑞尔或人民币显示。"
+        },
+        "payments": {
+          "heading": "支付",
+          "body": "支付由持牌服务商处理。我们支持通过 Stripe 使用国际银行卡，以及通过 Bakong 和 ABA 使用本地二维码付款。DerLg 绝不会存储您的完整银行卡信息。只有在支付成功完成后，预订才会被确认。"
+        },
+        "cancellations": {
+          "heading": "取消与退款",
+          "body": "大多数预订适用我们的标准退款政策：在开始日期前至少 7 天取消可获 100% 退款；提前 1 至 7 天取消可获 50% 退款；不足 24 小时取消则不予退款。部分提供方可能设定自己的条款，将在预订时向您显示。"
+        },
+        "conduct": {
+          "heading": "您的责任",
+          "body": "您同意提供准确的信息，合法使用本平台，并在柬埔寨旅行期间尊重与您接触的提供方、向导和当地社区。您有责任确保持有行程所需的签证、许可或证件。"
+        },
+        "liability": {
+          "heading": "责任限制",
+          "body": "DerLg 仅为旅客与独立服务提供方牵线搭桥，对这些提供方的行为或疏忽不承担责任。在法律允许的范围内，我们对任何预订的责任以您为该预订支付的金额为限。本内容为占位示例，不构成法律意见。"
+        },
+        "changes": {
+          "heading": "条款变更",
+          "body": "随着平台的发展，我们可能会不时更新本条款。我们将在此处发布修订后的条款并更新上方日期。变更生效后继续使用 DerLg 即表示您接受更新后的条款。"
+        }
+      }
+    },
+    "privacy": {
+      "title": "隐私政策",
+      "sections": {
+        "intro": {
+          "heading": "简介",
+          "body": "本隐私政策说明 DerLg 在您使用我们的柬埔寨旅行预订平台时如何收集、使用和保护您的个人信息。本内容为占位示例，不构成法律意见。"
+        },
+        "dataCollected": {
+          "heading": "我们收集的信息",
+          "body": "当您创建个人资料或进行预订时，我们会收集您提供的信息，例如姓名、电子邮箱、电话号码和旅行偏好。我们还会收集技术数据，例如您的设备类型、大致位置以及您如何使用应用。"
+        },
+        "dataUse": {
+          "heading": "我们如何使用您的信息",
+          "body": "我们使用您的信息来确认和管理您的预订、处理支付、提供英文、中文和高棉文的客户支持、个性化推荐以及保障平台安全。我们不会出售您的个人信息。"
+        },
+        "dataSharing": {
+          "heading": "我们如何共享您的信息",
+          "body": "我们仅与相关提供方（如酒店、交通运营商和向导）共享完成预订所需的信息。为完成交易，我们也会与支付处理方（Stripe、Bakong 和 ABA）共享数据。在柬埔寨法律要求时，我们可能会披露相关信息。"
+        },
+        "dataRetention": {
+          "heading": "我们保留数据的期限",
+          "body": "在您的账户处于活动状态期间，以及为提供服务、遵守法律义务、解决争议和执行协议所需的期间内，我们会保留您的个人信息。您可随时在个人资料中要求删除您的账户。"
+        },
+        "rights": {
+          "heading": "您的权利",
+          "body": "您可以通过个人资料设置或联系我们来访问、更正或删除您的个人信息。您也可以选择接收哪些通知，并随时管理您的语言和货币偏好。"
+        },
+        "contact": {
+          "heading": "联系我们",
+          "body": "如对本隐私政策或我们处理数据的方式有任何疑问，请通过应用联系我们的客服团队。我们将尽力在合理时间内以英文、中文或高棉文回复。"
+        }
+      }
+    },
+    "cookies": {
+      "title": "Cookie 政策",
+      "sections": {
+        "intro": {
+          "heading": "简介",
+          "body": "本 Cookie 政策说明 DerLg 在我们的旅行预订平台上如何使用 Cookie 及类似技术。本内容为占位示例，不构成法律意见。"
+        },
+        "whatAreCookies": {
+          "heading": "什么是 Cookie？",
+          "body": "Cookie 是您访问网站或使用网络应用时存储在您设备上的小型文本文件。它们有助于平台记住您的偏好并了解服务的使用情况。"
+        },
+        "typesUsed": {
+          "heading": "我们使用的 Cookie 类型",
+          "body": "我们使用两类 Cookie：平台运行所必需的基本 Cookie，以及帮助我们了解并改进旅客如何使用 DerLg 的分析 Cookie。"
+        },
+        "essential": {
+          "heading": "基本 Cookie",
+          "body": "这些 Cookie 使您保持登录状态、记住您所选的语言和货币，并保护您的预订会话。没有它们平台将无法正常运行，因此无法关闭。"
+        },
+        "analytics": {
+          "heading": "分析 Cookie",
+          "body": "这些 Cookie 收集有关平台使用方式的匿名信息，例如哪些行程受欢迎以及旅客在何处遇到困难。我们借此改进预订体验。"
+        },
+        "managing": {
+          "heading": "管理 Cookie",
+          "body": "您可以通过浏览器设置控制或删除 Cookie。屏蔽基本 Cookie 可能会导致 DerLg 的部分功能（如预订和支付）无法正常运行。"
+        }
+      }
     }
   },
   "checkout": {
@@ -68,7 +215,75 @@
       "title": "预订已确认！",
       "reference": "参考号",
       "viewBooking": "查看预订",
-      "bookAnother": "再预订一个"
+      "bookAnother": "再预订一个",
+      "loading": "正在加载您的确认信息…",
+      "message": "您的预订已确认。确认信息已发送至您的邮箱。",
+      "completePayment": "完成付款",
+      "downloadConfirmation": "下载确认单",
+      "share": "分享预订",
+      "retry": "重试",
+      "errorTitle": "无法加载您的确认信息",
+      "errorDesc": "加载此预订时出现问题。请重试。",
+      "notFoundTitle": "未找到预订",
+      "notFoundDesc": "我们找不到此预订。它可能已过期或已被删除。",
+      "pendingTitle": "付款尚未完成",
+      "pendingDesc": "您的预订尚未确认。请完成付款以确保预订。"
+    },
+    "support": {
+      "title": "联系与支持",
+      "intro": "需要帮助吗？我们的团队随时为您的预订、付款和行程规划提供协助。",
+      "email": "电子邮箱",
+      "phone": "电话",
+      "hours": "服务时间",
+      "hoursValue": "每天 上午 8:00 – 晚上 9:00（柬埔寨时间）",
+      "changes": "如需更改或取消此预订，请联系我们的支持团队，我们将协助您处理。"
+    },
+    "nextSteps": {
+      "title": "后续步骤",
+      "trip": {
+        "1": "请提前 15 分钟到达集合地点。",
+        "2": "请携带有效证件和您的预订编号。",
+        "3": "请查看天气并为当天穿着舒适的衣物。"
+      },
+      "hotel": {
+        "1": "入住时间通常为下午 2 点；请携带有效证件。",
+        "2": "请在前台准备好您的预订编号。",
+        "3": "如需提前入住，请直接联系酒店。"
+      },
+      "guide": {
+        "1": "您的导游会在行程前与您联系。",
+        "2": "请与导游确认集合地点和时间。",
+        "3": "请提前告知任何特殊要求或无障碍需求。"
+      },
+      "transportation": {
+        "1": "请提前几分钟在上车地点准备好。",
+        "2": "请准备好您的预订编号和手机。",
+        "3": "出发前请与司机确认目的地。"
+      },
+      "generic": {
+        "1": "请准备好您的预订编号。",
+        "2": "请携带有效的带照片证件。",
+        "3": "如需更改，请联系客服。"
+      }
+    },
+    "receipt": {
+      "title": "付款收据",
+      "reference": "参考编号",
+      "method": "付款方式",
+      "date": "日期",
+      "items": "项目",
+      "total": "已付总额",
+      "download": "下载 PDF",
+      "status": {
+        "succeeded": "已付款",
+        "refunded": "已退款",
+        "pending": "待处理",
+        "failed": "失败"
+      },
+      "provider": {
+        "stripe": "银行卡",
+        "bakong": "Bakong 二维码"
+      }
     }
   },
   "bookings": {
@@ -94,7 +309,17 @@
       "backToHotel": "返回酒店",
       "errorUnavailable": "所选日期不可预订，请尝试其他日期。",
       "errorInvalidDates": "请检查您的日期和信息。",
-      "errorGeneric": "无法创建预订，请重试。"
+      "errorGeneric": "无法创建预订，请重试。",
+      "notFoundTitle": "找不到该项目",
+      "notFoundDesc": "您尝试预订的项目不存在或已不再可用。",
+      "back": "返回",
+      "priceTitle": "价格摘要",
+      "priceTravelers": "{count} 名旅客",
+      "priceLineDetail": "（{quantity} × {unit}）",
+      "priceSubtotal": "小计",
+      "priceTotal": "总计",
+      "priceChildrenNote": "儿童按每人全额价格收费。",
+      "priceEstimateNote": "价格为估算值，将在结账时确认。"
     },
     "list": {
       "title": "我的行程",
@@ -130,7 +355,8 @@
       "refunded": "已退款",
       "addToCalendar": "加入日历",
       "icalError": "无法下载日历文件",
-      "cancel": "取消预订"
+      "cancel": "取消预订",
+      "location": "集合地点"
     },
     "cancel": {
       "title": "确认取消此预订？",
@@ -142,6 +368,10 @@
       "confirm": "取消预订",
       "success": "预订已取消",
       "error": "无法取消预订"
+    },
+    "emergency": {
+      "button": "紧急求助",
+      "comingSoon": "紧急求助功能即将上线。"
     }
   },
   "guides": {
@@ -374,7 +604,9 @@
       "shareCopied": "链接已复制",
       "day": "第 {n} 天",
       "currency": "显示货币",
-      "notFound": "未找到行程"
+      "notFound": "未找到行程",
+      "unavailable": "不可用",
+      "duration": "{n}小时"
     }
   },
   "account": {
@@ -417,7 +649,15 @@
       "rateLimited": "尝试次数过多，请稍后再试。",
       "generic": "出错了，请重试。"
     },
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "passwordStrength": {
+      "label": "密码强度",
+      "empty": "太短",
+      "weak": "弱",
+      "fair": "一般",
+      "good": "良好",
+      "strong": "强"
+    }
   },
   "shell": {
     "nav": {
@@ -470,7 +710,170 @@
       "guidesTitle": "认证当地向导",
       "guidesSubtitle": "预订熟悉柬埔寨的可信向导"
     },
-    "seeAll": "查看全部"
+    "seeAll": "查看全部",
+    "tabs": {
+      "title": "探索",
+      "tab": "标签",
+      "places": "景点",
+      "festivals": "节日",
+      "maps": "地图",
+      "placesPlaceholder": "浏览柬埔寨各地值得游览的景点。",
+      "festivalsPlaceholder": "发现柬埔寨各地的节日与活动。",
+      "mapsPlaceholder": "在地图上查看景点与节日。"
+    },
+    "search": {
+      "clear": "清除搜索",
+      "placeholder": "搜索"
+    },
+    "map": {
+      "title": "地图",
+      "description": "在地图上探索景点与节日。",
+      "showMyLocation": "显示我的位置",
+      "locationDenied": "无法获取你的位置。请启用位置访问权限后重试。",
+      "locationsList": "地点",
+      "offlineNote": "正在显示已保存的地点。请连接互联网以获取实时结果。",
+      "unavailable": "地图当前不可用。",
+      "youAreHere": "你在这里",
+      "viewDetails": "查看详情",
+      "free": "免费",
+      "place": "景点",
+      "kind": {
+        "place": "景点",
+        "festival": "节日"
+      },
+      "category": {
+        "temple": "寺庙",
+        "museum": "博物馆",
+        "nature": "自然",
+        "market": "市场",
+        "beach": "海滩",
+        "mountain": "山脉",
+        "landmark": "地标",
+        "unknown": "景点"
+      }
+    },
+    "places": {
+      "free": "免费",
+      "entryFee": "门票",
+      "resultsCount": "{count} 个景点",
+      "categories": {
+        "all": "全部",
+        "temple": "寺庙",
+        "museum": "博物馆",
+        "nature": "自然",
+        "market": "市场",
+        "beach": "海滩",
+        "mountain": "山脉",
+        "unknown": "景点"
+      },
+      "filters": {
+        "categoryLabel": "按类别筛选景点",
+        "priceLabel": "按价格筛选景点",
+        "price": {
+          "all": "任意价格",
+          "free": "免费",
+          "paid": "收费"
+        }
+      },
+      "search": {
+        "placeholder": "搜索景点"
+      },
+      "empty": {
+        "title": "未找到景点",
+        "desc": "请尝试调整筛选条件或搜索。",
+        "clear": "清除筛选"
+      },
+      "error": {
+        "title": "无法加载景点",
+        "desc": "请重试。",
+        "retry": "重试"
+      },
+      "modal": {
+        "free": "免费",
+        "entryFee": "门票",
+        "about": "简介",
+        "address": "地址",
+        "openingHours": "开放时间",
+        "dressCode": "着装要求",
+        "visitorTips": "游览贴士",
+        "directions": "获取路线",
+        "website": "访问网站",
+        "place": "景点",
+        "notFound": "未找到该景点",
+        "category": {
+          "temple": "寺庙",
+          "museum": "博物馆",
+          "nature": "自然",
+          "market": "市场",
+          "beach": "海滩",
+          "mountain": "山脉",
+          "unknown": "景点"
+        },
+        "error": {
+          "title": "无法加载景点",
+          "desc": "请重试。",
+          "retry": "重试"
+        }
+      }
+    },
+    "festivals": {
+      "resultsCount": "{count} 个节日",
+      "search": {
+        "placeholder": "搜索节日"
+      },
+      "filters": {
+        "timeLabel": "按时间筛选节日",
+        "monthLabel": "按月份筛选节日",
+        "provinceLabel": "按地点筛选节日",
+        "time": {
+          "upcoming": "即将到来",
+          "all": "所有节日"
+        },
+        "month": {
+          "1": "一月",
+          "2": "二月",
+          "3": "三月",
+          "4": "四月",
+          "5": "五月",
+          "6": "六月",
+          "7": "七月",
+          "8": "八月",
+          "9": "九月",
+          "10": "十月",
+          "11": "十一月",
+          "12": "十二月",
+          "all": "任意月份"
+        },
+        "province": {
+          "all": "所有地点"
+        }
+      },
+      "empty": {
+        "title": "未找到节日",
+        "desc": "请尝试调整筛选条件或搜索。",
+        "clear": "清除筛选"
+      },
+      "error": {
+        "title": "无法加载节日",
+        "desc": "请重试。",
+        "retry": "重试"
+      }
+    }
+  },
+  "festivals": {
+    "detail": {
+      "about": "简介",
+      "activities": "活动",
+      "notFound": "未找到该节日",
+      "relatedHotels": "相关酒店",
+      "relatedTrips": "相关行程",
+      "seeAll": "查看全部"
+    },
+    "error": {
+      "title": "无法加载节日",
+      "desc": "请重试。",
+      "retry": "重试"
+    }
   },
   "common": {
     "send": "发送",
@@ -511,6 +914,7 @@
   },
   "chat": {
     "title": "DerLg AI 旅行顾问",
+    "pageTitle": "DerLg AI 旅行管家",
     "placeholder": "告诉我您梦想中的旅行…",
     "welcome": "欢迎来到 DerLg！我是您的柬埔寨旅行顾问。告诉我您梦想中的旅行。",
     "resume": "欢迎回来！我记得我们之前的对话。",
@@ -559,7 +963,8 @@
     "bookingConfirmed": "预订已确认",
     "reference": "参考号",
     "addToCalendar": "加入日历",
-    "downloadReceipt": "下载收据"
+    "downloadReceipt": "下载收据",
+    "stripeNotConfigured": "银行卡支付目前不可用。请改用二维码支付。"
   },
   "hotel": {
     "perNight": "晚",
@@ -592,5 +997,239 @@
     "headline": "重新想象柬埔寨旅行",
     "subline": "DerLg 是柬埔寨 AI 驱动的旅行平台。告别无尽的标签页与选择疲劳——只需告诉 AI 管家你想要的氛围，其余交给我们。",
     "tagline": "为旅行者打造。为柬埔寨打造。🇰🇭"
+  },
+  "contact": {
+    "title": "联系与支持",
+    "subtitle": "我们随时为您的预订、付款和行程规划提供帮助。",
+    "form": {
+      "title": "给我们留言",
+      "name": "姓名",
+      "email": "电子邮箱",
+      "subject": "主题",
+      "message": "留言",
+      "messagePlaceholder": "我们能为您做些什么？",
+      "attachmentLabel": "附件（可选，最大 {mb} MB）",
+      "addAttachment": "添加附件",
+      "removeAttachment": "移除附件",
+      "submit": "发送留言",
+      "success": "留言已发送",
+      "successDesc": "我们的团队将通过电子邮件与您联系。",
+      "error": "无法发送您的留言。请重试或直接发送电子邮件给我们。",
+      "errors": {
+        "nameRequired": "请输入您的姓名",
+        "nameTooLong": "姓名过长",
+        "emailRequired": "请输入您的电子邮箱",
+        "emailInvalid": "请输入有效的电子邮箱",
+        "subjectRequired": "请输入主题",
+        "subjectTooLong": "主题过长",
+        "messageTooShort": "留言至少需要 10 个字符",
+        "messageTooLong": "留言过长"
+      },
+      "attachment": {
+        "type": "不支持的文件类型",
+        "size": "文件大于 5 MB",
+        "empty": "所选文件为空"
+      }
+    },
+    "liveChat": {
+      "title": "与管家实时聊天",
+      "desc": "与我们的 AI 旅行管家聊天，实时获得规划和预订帮助。",
+      "cta": "开始实时聊天"
+    },
+    "support": {
+      "title": "联系方式",
+      "emailLabel": "电子邮箱",
+      "phoneLabel": "电话",
+      "hoursTitle": "营业时间",
+      "hours": {
+        "weekdays": {
+          "label": "周一至周五",
+          "value": "上午 8:00 – 晚上 8:00（ICT）"
+        },
+        "weekends": {
+          "label": "周六至周日",
+          "value": "上午 9:00 – 下午 6:00（ICT）"
+        },
+        "holidays": {
+          "label": "公共假日",
+          "value": "上午 10:00 – 下午 4:00（ICT）"
+        }
+      }
+    },
+    "faq": {
+      "title": "常见问题",
+      "booking": {
+        "q": "我如何预订行程？",
+        "a": "浏览行程、酒店、向导或交通，打开项目并使用预订按钮。您也可以让我们的 AI 管家为您预订。"
+      },
+      "payment": {
+        "q": "支持哪些付款方式？",
+        "a": "我们接受通过 Stripe 的国际银行卡以及柬埔寨本地的二维码付款（Bakong/ABA）。"
+      },
+      "cancellation": {
+        "q": "我如何取消预订？",
+        "a": "在“我的行程”中打开预订并选择取消。确认前会显示取消政策和退款金额。"
+      },
+      "refund": {
+        "q": "退款政策是什么？",
+        "a": "出发前 7 天以上取消可退 100%，1–7 天退 50%，24 小时内不予退款。"
+      },
+      "languages": {
+        "q": "支持哪些语言？",
+        "a": "应用和支持提供英语、中文和高棉语。"
+      },
+      "emergency": {
+        "q": "旅途中如何获得紧急帮助？",
+        "a": "距出发 24 小时内的预订会显示紧急警报按钮，将您的位置分享给我们的支持团队。"
+      }
+    }
+  },
+  "sync": {
+    "syncing": "同步中…",
+    "synced": "已同步",
+    "pending": "{count} 项更改等待同步",
+    "error": "{count} 项更改同步失败"
+  },
+  "install": {
+    "title": "安装 DerLg",
+    "description": "将 DerLg 添加到主屏幕，以便更快访问并支持离线使用。",
+    "install": "安装应用",
+    "notNow": "暂不",
+    "dismiss": "关闭",
+    "iosBefore": "点按",
+    "iosShare": "分享，然后",
+    "iosAdd": "添加到主屏幕"
+  },
+  "emergency": {
+    "types": {
+      "sos": "求救",
+      "medical": "医疗",
+      "theft": "盗窃",
+      "lost": "走失"
+    },
+    "contacts": {
+      "heading": "紧急联系方式",
+      "police": "警察",
+      "fire": "消防",
+      "ambulance": "救护车",
+      "touristPolice": "旅游警察"
+    },
+    "modal": {
+      "title": "紧急警报",
+      "desc": "将您的位置发送给我们的支持团队，并联系当地紧急服务。",
+      "typeLabel": "发生了什么？",
+      "locationLabel": "您的位置",
+      "close": "关闭",
+      "send": "发送警报"
+    },
+    "location": {
+      "locating": "正在获取您的位置…",
+      "error": "无法获取您的位置。",
+      "denied": "位置访问被拒绝。请手动输入坐标。",
+      "invalid": "请输入有效的纬度和经度。",
+      "latLabel": "纬度",
+      "lngLabel": "经度",
+      "useManual": "使用此位置",
+      "youAreHere": "您在这里"
+    },
+    "countdown": {
+      "sendingIn": "{seconds} 秒后发送…点按取消以停止。",
+      "cancel": "取消"
+    },
+    "confirm": {
+      "title": "警报已发送",
+      "desc": "您的位置已分享给我们的支持团队。如需即时帮助，请拨打当地紧急服务电话。",
+      "done": "完成"
+    },
+    "error": {
+      "title": "无法发送警报",
+      "desc": "我们无法联系到支持团队。请直接拨打当地紧急服务电话。"
+    }
+  },
+  "map": {
+    "loading": "正在加载地图…",
+    "unavailable": "地图不可用。",
+    "unavailableOffline": "离线时地图不可用。",
+    "unavailableNoKey": "地图不可用。",
+    "distanceFromPhnomPenh": "距金边 {km} 公里",
+    "distanceFromYou": "距您 {km} 公里",
+    "showDistanceFromMe": "显示距我的距离"
+  },
+  "reviews": {
+    "title": "评价与评分",
+    "sortLabel": "排序方式",
+    "filterLabel": "筛选",
+    "loadingMore": "加载中…",
+    "showMore": "查看更多评价",
+    "count": "{count} 条评价",
+    "breakdownLabel": "按星级的评分分布",
+    "anonymous": "匿名",
+    "verified": "已验证预订",
+    "verifiedHint": "该评价来自已确认的预订。",
+    "photoAlt": "评价照片",
+    "actions": {
+      "write": "撰写评价",
+      "edit": "编辑评价",
+      "delete": "删除评价",
+      "cancel": "取消",
+      "deleteTitle": "删除评价？",
+      "deleteConfirm": "此操作将永久删除您的评价，且无法撤销。",
+      "deleteSuccess": "评价已删除",
+      "deleteError": "无法删除您的评价。请重试。"
+    },
+    "sort": {
+      "recent": "最新",
+      "rating_desc": "评分最高"
+    },
+    "filter": {
+      "all": "全部评分",
+      "stars": "{n} 星"
+    },
+    "empty": {
+      "title": "暂无评价",
+      "desc": "成为第一个分享体验的人。"
+    },
+    "emptyFiltered": {
+      "title": "没有匹配的评价",
+      "desc": "请尝试其他评分筛选。"
+    },
+    "error": {
+      "title": "无法加载评价",
+      "desc": "出现错误。请重试。",
+      "retry": "重试"
+    },
+    "form": {
+      "title": "撰写评价",
+      "editTitle": "编辑您的评价",
+      "subtitle": "分享您的体验，帮助其他旅客。",
+      "ratingLabel": "您的评分",
+      "textLabel": "您的评价",
+      "textPlaceholder": "告诉我们您的体验…",
+      "charCount": "还可输入 {remaining} 个字符",
+      "photosLabel": "照片（最多 {max} 张）",
+      "addPhotos": "添加照片",
+      "photoAlt": "评价照片",
+      "removePhoto": "移除照片",
+      "photoLimitReached": "已达照片上限",
+      "submit": "提交评价",
+      "saveEdit": "保存更改",
+      "cancel": "取消",
+      "success": "评价已提交",
+      "editSuccess": "评价已更新",
+      "error": "无法保存您的评价。请重试。",
+      "errors": {
+        "rating": "请选择 1 至 5 星的评分。",
+        "textMin": "评价至少需要 10 个字符。",
+        "textMax": "评价不得超过 1000 个字符。",
+        "tooManyPhotos": "最多可附加 5 张照片。",
+        "noBooking": "撰写评价需要已完成的预订。"
+      },
+      "upload": {
+        "type": "不支持的图片类型。",
+        "size": "图片过大（最大 5 MB）。",
+        "empty": "该文件似乎为空。",
+        "failed": "无法上传照片。请重试。"
+      }
+    }
   }
 }

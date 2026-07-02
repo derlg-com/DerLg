@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
 import { PasswordInput } from './PasswordInput'
+import { PasswordStrength } from './PasswordStrength'
 import { useZodForm } from '@/lib/use-zod-form'
 import { registerSchema, type RegisterInput } from '@/schemas/auth'
 import { registerRequest } from '@/lib/auth-api'
@@ -17,12 +18,15 @@ import { useTranslations } from '@/lib/i18n'
 export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const t = useTranslations('account')
   const setSession = useAuthStore((s) => s.setSession)
-  const { values, errors, setValue, setError, validate } = useZodForm<RegisterInput>(registerSchema, {
-    email: '',
-    password: '',
-    name: '',
-    phone: '',
-  })
+  const { values, errors, setValue, setError, validate, validateField } = useZodForm<RegisterInput>(
+    registerSchema,
+    {
+      email: '',
+      password: '',
+      name: '',
+      phone: '',
+    },
+  )
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -69,6 +73,7 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
           autoComplete="email"
           value={values.email}
           onChange={(e) => setValue('email', e.target.value)}
+          onBlur={() => validateField('email')}
           aria-invalid={Boolean(errors.email)}
         />
         {errors.email ? <p className="text-sm text-destructive">{errors.email}</p> : null}
@@ -80,8 +85,11 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
           autoComplete="new-password"
           value={values.password}
           onChange={(e) => setValue('password', e.target.value)}
+          onBlur={() => validateField('password')}
           aria-invalid={Boolean(errors.password)}
+          aria-describedby="password-strength"
         />
+        <PasswordStrength id="password-strength" password={values.password} />
         {errors.password ? <p className="text-sm text-destructive">{errors.password}</p> : null}
       </div>
       <div className="space-y-1.5">
@@ -101,12 +109,17 @@ export function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
           autoComplete="tel"
           value={values.phone ?? ''}
           onChange={(e) => setValue('phone', e.target.value)}
+          onBlur={() => validateField('phone')}
           aria-invalid={Boolean(errors.phone)}
         />
         {errors.phone ? <p className="text-sm text-destructive">{errors.phone}</p> : null}
       </div>
       <Button type="submit" variant="gradient" className="w-full" disabled={submitting}>
-        {submitting ? <Spinner size="sm" className="text-primary-foreground" /> : t('signUp.submit')}
+        {submitting ? (
+          <Spinner size="sm" className="text-primary-foreground" />
+        ) : (
+          t('signUp.submit')
+        )}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         {t('signUp.haveAccount')}{' '}

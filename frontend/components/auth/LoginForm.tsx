@@ -17,10 +17,13 @@ import { useTranslations } from '@/lib/i18n'
 export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const t = useTranslations('account')
   const setSession = useAuthStore((s) => s.setSession)
-  const { values, errors, setValue, validate } = useZodForm<LoginInput>(loginSchema, {
-    email: '',
-    password: '',
-  })
+  const { values, errors, setValue, validate, validateField } = useZodForm<LoginInput>(
+    loginSchema,
+    {
+      email: '',
+      password: '',
+    },
+  )
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -37,8 +40,10 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
       })
       .catch((err: unknown) => {
         setSubmitting(false)
-        if (err instanceof ApiError && err.status === 401) setFormError(t('errors.invalidCredentials'))
-        else if (err instanceof ApiError && err.status === 429) setFormError(t('errors.rateLimited'))
+        if (err instanceof ApiError && err.status === 401)
+          setFormError(t('errors.invalidCredentials'))
+        else if (err instanceof ApiError && err.status === 429)
+          setFormError(t('errors.rateLimited'))
         else setFormError(t('errors.generic'))
       })
   }
@@ -58,6 +63,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           autoComplete="email"
           value={values.email}
           onChange={(e) => setValue('email', e.target.value)}
+          onBlur={() => validateField('email')}
           aria-invalid={Boolean(errors.email)}
         />
         {errors.email ? <p className="text-sm text-destructive">{errors.email}</p> : null}
@@ -74,12 +80,17 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           autoComplete="current-password"
           value={values.password}
           onChange={(e) => setValue('password', e.target.value)}
+          onBlur={() => validateField('password')}
           aria-invalid={Boolean(errors.password)}
         />
         {errors.password ? <p className="text-sm text-destructive">{errors.password}</p> : null}
       </div>
       <Button type="submit" variant="gradient" className="w-full" disabled={submitting}>
-        {submitting ? <Spinner size="sm" className="text-primary-foreground" /> : t('signIn.submit')}
+        {submitting ? (
+          <Spinner size="sm" className="text-primary-foreground" />
+        ) : (
+          t('signIn.submit')
+        )}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         {t('signIn.noAccount')}{' '}

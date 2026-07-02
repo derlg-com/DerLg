@@ -25,7 +25,13 @@ export function BookingCard({ booking }: { booking: UnifiedBooking }) {
       <Card variant="interactive" className="flex items-center gap-3 p-3">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-muted">
           {booking.coverImageUrl ? (
-            <Image src={booking.coverImageUrl} alt={booking.name} fill sizes="64px" className="object-cover" />
+            <Image
+              src={booking.coverImageUrl}
+              alt={booking.name}
+              fill
+              sizes="64px"
+              className="object-cover"
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <MapPin className="h-5 w-5" aria-hidden />
@@ -34,9 +40,17 @@ export function BookingCard({ booking }: { booking: UnifiedBooking }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <p className="line-clamp-1 font-display font-semibold text-foreground">{booking.name}</p>
+            <p className="line-clamp-1 font-display font-semibold text-foreground">
+              {booking.name}
+            </p>
             <Badge variant={statusVariant(booking.status)}>{t(`status.${booking.status}`)}</Badge>
           </div>
+          {booking.location ? (
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="line-clamp-1">{booking.location}</span>
+            </p>
+          ) : null}
           <p className="mt-0.5 text-xs text-muted-foreground">{dateRange}</p>
           <p className="text-sm font-semibold text-foreground">
             {formatCurrency(booking.totalPriceUsd, locale, currency)}

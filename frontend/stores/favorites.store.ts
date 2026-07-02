@@ -3,7 +3,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type FavoriteType = 'trip' | 'hotel' | 'guide' | 'transport'
+export type FavoriteType = 'trip' | 'hotel' | 'guide' | 'transport' | 'festival'
 
 function key(type: FavoriteType, id: string): string {
   return `${type}:${id}`

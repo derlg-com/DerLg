@@ -1,17 +1,16 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BookingShell } from '@/components/booking/BookingShell'
 import { useApiQuery } from '@/lib/use-api-query'
 import { useZodForm } from '@/lib/use-zod-form'
+import { useUpdateProfile } from '@/hooks/use-update-profile'
 import { updateProfileSchema, type UpdateProfileValues } from '@/schemas/profile'
-import { api } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth.store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Avatar } from '@/components/ui/avatar'
+import { AvatarUpload } from '@/components/profile/AvatarUpload'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
@@ -22,31 +21,27 @@ function Form({ user }: { user: UserProfile }) {
   const t = useTranslations('profile')
   const router = useRouter()
   const setUser = useAuthStore((s) => s.setUser)
-  const { values, errors, setValue, validate } = useZodForm<UpdateProfileValues>(updateProfileSchema, {
-    name: user.name ?? '',
-    phone: user.phone ?? '',
-    avatarUrl: user.avatarUrl ?? '',
-  })
-  const [submitting, setSubmitting] = useState(false)
+  const { values, errors, setValue, validate, validateField } = useZodForm<UpdateProfileValues>(
+    updateProfileSchema,
+    {
+      name: user.name ?? '',
+      phone: user.phone ?? '',
+      avatarUrl: user.avatarUrl ?? '',
+    },
+  )
+  const { mutate, isPending } = useUpdateProfile()
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     const data = validate()
     if (!data) return
-    setSubmitting(true)
-    api
-      .patch<UserProfile>('/v1/users/me', {
-        name: data.name || undefined,
-        phone: data.phone || undefined,
-        avatarUrl: data.avatarUrl || undefined,
-      })
+    mutate(data)
       .then((updated) => {
         setUser({ id: updated.id, email: updated.email, name: updated.name, role: updated.role })
         toast({ title: t('edit.saved'), variant: 'success' })
         router.replace('/profile')
       })
       .catch(() => {
-        setSubmitting(false)
         toast({ title: t('edit.error'), variant: 'error' })
       })
   }
@@ -54,27 +49,53 @@ function Form({ user }: { user: UserProfile }) {
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 px-4 py-4" noValidate>
       <h1 className="text-xl font-bold text-foreground">{t('edit.title')}</h1>
-      <div className="flex items-center gap-3">
-        <Avatar src={values.avatarUrl || null} name={values.name} size="lg" />
-        <div className="flex-1 space-y-1.5">
+      <div className="space-y-3">
+        <Label>{t('edit.avatar')}</Label>
+        <AvatarUpload
+          value={values.avatarUrl || null}
+          name={values.name}
+          onUploaded={(url) => setValue('avatarUrl', url)}
+        />
+        <div className="space-y-1.5">
           <Label htmlFor="avatarUrl">{t('edit.avatarUrl')}</Label>
           <Input
             id="avatarUrl"
             value={values.avatarUrl ?? ''}
             onChange={(e) => setValue('avatarUrl', e.target.value)}
+            onBlur={() => validateField('avatarUrl')}
             placeholder="https://…"
             aria-invalid={Boolean(errors.avatarUrl)}
+            aria-describedby={errors.avatarUrl ? 'avatarUrl-error' : undefined}
           />
-          {errors.avatarUrl ? <p className="text-sm text-destructive">{errors.avatarUrl}</p> : null}
+          {errors.avatarUrl ? (
+            <p id="avatarUrl-error" className="text-sm text-destructive">
+              {errors.avatarUrl}
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="email">{t('edit.email')}</Label>
-        <Input id="email" value={user.email} readOnly disabled />
+        <Input id="email" value={user.email} readOnly disabled aria-describedby="email-hint" />
+        <p id="email-hint" className="text-sm text-muted-foreground">
+          {t('edit.emailHint')}
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="name">{t('edit.name')}</Label>
-        <Input id="name" value={values.name ?? ''} onChange={(e) => setValue('name', e.target.value)} />
+        <Input
+          id="name"
+          value={values.name ?? ''}
+          onChange={(e) => setValue('name', e.target.value)}
+          onBlur={() => validateField('name')}
+          aria-invalid={Boolean(errors.name)}
+          aria-describedby={errors.name ? 'name-error' : undefined}
+        />
+        {errors.name ? (
+          <p id="name-error" className="text-sm text-destructive">
+            {errors.name}
+          </p>
+        ) : null}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="phone">{t('edit.phone')}</Label>
@@ -83,16 +104,27 @@ function Form({ user }: { user: UserProfile }) {
           type="tel"
           value={values.phone ?? ''}
           onChange={(e) => setValue('phone', e.target.value)}
+          onBlur={() => validateField('phone')}
           aria-invalid={Boolean(errors.phone)}
+          aria-describedby={errors.phone ? 'phone-error' : undefined}
         />
-        {errors.phone ? <p className="text-sm text-destructive">{errors.phone}</p> : null}
+        {errors.phone ? (
+          <p id="phone-error" className="text-sm text-destructive">
+            {errors.phone}
+          </p>
+        ) : null}
       </div>
       <div className="flex gap-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={() => router.replace('/profile')}>
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1"
+          onClick={() => router.replace('/profile')}
+        >
           {t('edit.cancel')}
         </Button>
-        <Button type="submit" className="flex-1" disabled={submitting}>
-          {submitting ? <Spinner size="sm" className="text-primary-foreground" /> : t('edit.save')}
+        <Button type="submit" className="flex-1" disabled={isPending}>
+          {isPending ? <Spinner size="sm" className="text-primary-foreground" /> : t('edit.save')}
         </Button>
       </div>
     </form>

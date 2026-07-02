@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { bookingGroup, refundTier, refundAmount, statusVariant } from '@/lib/bookings-display'
+import {
+  bookingGroup,
+  refundTier,
+  refundAmount,
+  statusVariant,
+  resolveCancellationReason,
+  CANCELLATION_REASONS,
+} from '@/lib/bookings-display'
 
 const DAY = 86_400_000
 const HOUR = 3_600_000
@@ -33,5 +40,30 @@ describe('lib/bookings-display', () => {
     expect(statusVariant('CANCELLED')).toBe('destructive')
     expect(statusVariant('PENDING_PAYMENT')).toBe('warning')
     expect(statusVariant('COMPLETED')).toBe('secondary')
+  })
+
+  describe('resolveCancellationReason (Requirement 40.3)', () => {
+    it('exposes an "other" option for free-text alongside predefined reasons', () => {
+      expect(CANCELLATION_REASONS).toContain('other')
+      expect(CANCELLATION_REASONS.length).toBeGreaterThan(1)
+    })
+
+    it('returns undefined when no reason is selected', () => {
+      expect(resolveCancellationReason('', '', '')).toBeUndefined()
+    })
+
+    it('sends the predefined label for a predefined reason', () => {
+      expect(resolveCancellationReason('change_of_plans', 'Change of plans', '')).toBe(
+        'Change of plans',
+      )
+    })
+
+    it('sends the trimmed free-text for the "other" reason', () => {
+      expect(resolveCancellationReason('other', 'Other', '  too busy  ')).toBe('too busy')
+    })
+
+    it('returns undefined when "other" is chosen but no free-text is given', () => {
+      expect(resolveCancellationReason('other', 'Other', '   ')).toBeUndefined()
+    })
   })
 })

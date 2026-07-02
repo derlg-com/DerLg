@@ -10,8 +10,10 @@ import { Shelf, ShelfItem, ShelfSkeleton } from './shelf'
 import { TripCard } from '@/components/trips/TripCard'
 import { HotelCard } from '@/components/hotels/HotelCard'
 import { GuideCard } from '@/components/guides/GuideCard'
+import { FestivalCard } from '@/components/festivals/FestivalCard'
 import type { Paginated } from '@/types/api'
 import type { TripSummary, HotelSummary, GuideSummary } from '@/types/catalog'
+import type { FestivalSummary } from '@/types/domain'
 
 interface QueryLike<T> {
   data?: Paginated<T> | null
@@ -77,11 +79,14 @@ export function ExploreLanding() {
   const trips = useApiQuery<Paginated<TripSummary>>(
     `/v1/trips${buildQuery({ sort: 'featured', limit: 10 })}`,
   )
+  const festivals = useApiQuery<Paginated<FestivalSummary>>(
+    `/v1/festivals${buildQuery({ upcoming: true, limit: 10 })}`,
+  )
   const hotels = useApiQuery<Paginated<HotelSummary>>(`/v1/hotels${buildQuery({ limit: 10 })}`)
   const guides = useApiQuery<Paginated<GuideSummary>>(`/v1/guides${buildQuery({ limit: 10 })}`)
 
   return (
-    <div className="mx-auto max-w-5xl space-y-10 px-4 py-5">
+    <div className="mx-auto max-w-3xl space-y-10 px-4 py-5">
       <SearchHero />
       <CategoryTiles />
 
@@ -92,6 +97,14 @@ export function ExploreLanding() {
         seeAllHref="/trips"
         seeAllLabel={seeAll}
         renderCard={(trip) => <TripCard trip={trip} />}
+      />
+      <CatalogShelf
+        query={festivals}
+        title={t('shelves.festivalsTitle')}
+        subtitle={t('shelves.festivalsSubtitle')}
+        seeAllHref="/explore?tab=festivals"
+        seeAllLabel={seeAll}
+        renderCard={(festival) => <FestivalCard festival={festival} />}
       />
       <CatalogShelf
         query={hotels}

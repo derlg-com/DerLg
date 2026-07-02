@@ -36,7 +36,7 @@ export function CategoryTiles() {
       <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
         {te('categories.title')}
       </h2>
-      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-5 sm:overflow-visible sm:px-0">
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-5 md:overflow-visible md:px-0">
         {TRIP_CATEGORIES.map((category) => {
           const Icon = CATEGORY_ICON[category]
           return (

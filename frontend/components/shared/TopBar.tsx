@@ -3,11 +3,30 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ArrowLeft, Search } from 'lucide-react'
+import {
+  ArrowLeft,
+  Home,
+  Compass,
+  Ticket,
+  MessageCircle,
+  User,
+  Search,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/lib/i18n'
-import { getActiveTab, shouldShowBack } from '@/lib/nav'
+import { TABS, getActiveTab, shouldShowBack, type TabKey } from '@/lib/nav'
 import { Logo } from '@/components/shared/Logo'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { NotificationCenter } from '@/components/notifications/NotificationCenter'
+
+const NAV_ICONS: Record<TabKey, LucideIcon> = {
+  home: Home,
+  explore: Compass,
+  bookings: Ticket,
+  chat: MessageCircle,
+  profile: User,
+}
 
 const TITLE_KEYS: Record<string, string> = {
   '/search': 'nav.explore',
@@ -59,8 +78,9 @@ export function TopBar() {
       )}
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4">
-        <div className="flex min-w-10 items-center">
+      <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-4">
+        {/* Mobile: back button slot */}
+        <div className="flex min-w-10 items-center md:hidden">
           {showBack ? (
             <button
               type="button"
@@ -73,15 +93,54 @@ export function TopBar() {
           ) : null}
         </div>
 
-        {isHome ? (
-          <Logo href="/" size="sm" />
-        ) : (
-          <h1 className="flex-1 truncate text-center font-display text-base font-semibold text-foreground">
-            {title}
-          </h1>
-        )}
+        {/* Mobile: Logo on home, page title otherwise */}
+        <div className="flex flex-1 items-center justify-center md:hidden">
+          {isHome ? (
+            <Logo href="/" size="sm" />
+          ) : (
+            <h1 className="truncate font-display text-base font-semibold text-foreground">
+              {title}
+            </h1>
+          )}
+        </div>
 
-        <div className="ml-auto flex min-w-10 items-center justify-end">
+        {/* Desktop: Logo + inline nav */}
+        <div className="hidden items-center gap-6 md:flex">
+          <Logo href="/" size="sm" />
+          <nav className="flex items-center gap-1" aria-label="Primary">
+            {TABS.map((tab) => {
+              const Icon = NAV_ICONS[tab.key]
+              const isActive = getActiveTab(pathname) === tab.key
+              return (
+                <Link
+                  key={tab.key}
+                  href={tab.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={cn(
+                    'relative inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    isActive
+                      ? 'text-primary'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  {isActive ? (
+                    <span
+                      className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-gradient-brand"
+                      aria-hidden
+                    />
+                  ) : null}
+                  <Icon className="h-4 w-4" aria-hidden />
+                  {t(tab.labelKey)}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+
+        {/* Right: language selector + notifications + search icon */}
+        <div className="ml-auto flex min-w-10 items-center justify-end gap-1">
+          <LanguageSwitcher />
+          <NotificationCenter />
           {getActiveTab(pathname) !== 'explore' ? (
             <Link
               href="/search"

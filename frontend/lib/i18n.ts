@@ -11,12 +11,73 @@ export type Locale = 'en' | 'zh' | 'km'
 export const LOCALES: Locale[] = ['en', 'zh', 'km']
 export const DEFAULT_LOCALE: Locale = 'en'
 
+/** localStorage key the language store persists to (zustand `persist` name). */
+export const LANGUAGE_STORAGE_KEY = 'derlg:language'
+
 type Messages = typeof enMessages
 
 const MESSAGE_BUNDLES: Record<Locale, Messages> = {
   en: enMessages,
   zh: zhMessages,
   km: kmMessages,
+}
+
+/**
+ * Map a browser language tag (e.g. `zh-CN`, `km`, `en-US`) to a supported
+ * {@link Locale}, falling back to {@link DEFAULT_LOCALE} when unsupported.
+ *
+ * Used to seed the default language from the user's browser on their first
+ * visit (Requirement 13.3) before any choice has been persisted.
+ */
+export function resolveBrowserLocale(languages: readonly string[] | undefined): Locale {
+  if (!languages) return DEFAULT_LOCALE
+  for (const tag of languages) {
+    const primary = tag.toLowerCase().split('-')[0]
+    if ((LOCALES as string[]).includes(primary)) {
+      return primary as Locale
+    }
+  }
+  return DEFAULT_LOCALE
+}
+
+/** Read the browser's preferred languages (SSR-safe; returns the default off-DOM). */
+export function detectBrowserLocale(): Locale {
+  if (typeof navigator === 'undefined') return DEFAULT_LOCALE
+  const languages =
+    navigator.languages && navigator.languages.length > 0
+      ? navigator.languages
+      : navigator.language
+        ? [navigator.language]
+        : undefined
+  return resolveBrowserLocale(languages)
+}
+
+/** `true` when the user has previously persisted a language choice. */
+function hasPersistedLocale(): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    return window.localStorage.getItem(LANGUAGE_STORAGE_KEY) !== null
+  } catch {
+    // localStorage can throw (private mode / blocked). Treat as "no choice".
+    return false
+  }
+}
+
+/**
+ * Seed the active locale from the browser language on first visit only
+ * (Requirement 13.3). If the user has already persisted a choice
+ * (Requirement 13.5) this is a no-op, so an explicit selection always wins.
+ *
+ * Safe to call multiple times; idempotent after the first persisted choice.
+ * Returns the locale that is now active.
+ */
+export function initBrowserLocaleDefault(): Locale {
+  if (hasPersistedLocale()) {
+    return useLanguageStore.getState().locale
+  }
+  const detected = detectBrowserLocale()
+  useLanguageStore.getState().setLocale(detected)
+  return detected
 }
 
 interface LanguageState {
@@ -30,7 +91,7 @@ export const useLanguageStore = create<LanguageState>()(
       locale: DEFAULT_LOCALE,
       setLocale: (locale) => set({ locale }),
     }),
-    { name: 'derlg:language' },
+    { name: LANGUAGE_STORAGE_KEY },
   ),
 )
 
@@ -49,9 +110,7 @@ function getMessage(messages: unknown, path: string): string | undefined {
 
 function interpolate(template: string, vars?: Record<string, string | number>): string {
   if (!vars) return template
-  return template.replace(/\{(\w+)\}/g, (_, key) =>
-    key in vars ? String(vars[key]) : `{${key}}`,
-  )
+  return template.replace(/\{(\w+)\}/g, (_, key) => (key in vars ? String(vars[key]) : `{${key}}`))
 }
 
 /**

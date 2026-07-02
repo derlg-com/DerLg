@@ -8,6 +8,7 @@ import { GoogleMapView } from '@/components/shared/GoogleMapView'
 import { FavoriteButton } from '@/components/shared/FavoriteButton'
 import { ShareButton } from '@/components/shared/ShareButton'
 import { CurrencySelector } from '@/components/trips/CurrencySelector'
+import { CurrencyDisclaimer } from '@/components/trips/CurrencyDisclaimer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -72,7 +73,9 @@ export function HotelDetailView({ id }: { id: string }) {
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">{hotel.name}</h1>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
+              {hotel.name}
+            </h1>
             <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" aria-hidden />
               {hotel.address ?? hotel.location}
@@ -80,7 +83,7 @@ export function HotelDetailView({ id }: { id: string }) {
           </div>
           <div className="flex shrink-0 gap-2">
             <FavoriteButton type="hotel" id={hotel.id} />
-            <ShareButton title={hotel.name} />
+            <ShareButton title={hotel.name} entity="hotel" />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -102,14 +105,19 @@ export function HotelDetailView({ id }: { id: string }) {
         <p className="text-sm leading-relaxed text-muted-foreground">{hotel.description}</p>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <p className="text-sm text-muted-foreground">{t('detail.currency')}</p>
-        <CurrencySelector className="w-28" />
+      <div className="space-y-2 rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">{t('detail.currency')}</p>
+          <CurrencySelector className="w-28" />
+        </div>
+        <CurrencyDisclaimer />
       </div>
 
       {hotel.amenities && hotel.amenities.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.amenities')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {t('detail.amenities')}
+          </h2>
           <div className="flex flex-wrap gap-2">
             {hotel.amenities.map((a) => (
               <Badge key={a} variant="muted">
@@ -122,7 +130,9 @@ export function HotelDetailView({ id }: { id: string }) {
 
       {hotel.checkInTime || hotel.checkOutTime || hotel.cancellationPolicy ? (
         <section className="space-y-2">
-          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.policies')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {t('detail.policies')}
+          </h2>
           <div className="space-y-1 text-sm text-muted-foreground">
             {hotel.checkInTime ? (
               <p className="inline-flex items-center gap-1">
@@ -131,7 +141,8 @@ export function HotelDetailView({ id }: { id: string }) {
             ) : null}
             {hotel.checkOutTime ? (
               <p className="inline-flex items-center gap-1">
-                <Clock className="h-4 w-4" aria-hidden /> {t('detail.checkOut')}: {hotel.checkOutTime}
+                <Clock className="h-4 w-4" aria-hidden /> {t('detail.checkOut')}:{' '}
+                {hotel.checkOutTime}
               </p>
             ) : null}
             {hotel.cancellationPolicy ? <p>{hotel.cancellationPolicy}</p> : null}
@@ -154,7 +165,9 @@ export function HotelDetailView({ id }: { id: string }) {
 
       {hotel.latitude != null && hotel.longitude != null ? (
         <section className="space-y-2">
-          <h2 className="font-display text-lg font-semibold text-foreground">{t('detail.location')}</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {t('detail.location')}
+          </h2>
           <GoogleMapView lat={hotel.latitude} lng={hotel.longitude} label={hotel.name} />
         </section>
       ) : null}

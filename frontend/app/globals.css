@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* DerLg Design Theme — Cambodia travel palette
  * Primary: Forest Emerald (#1d7a45) — nature, premium service, trust
@@ -7,43 +7,47 @@
  */
 :root {
   /* Brand */
-  --color-primary: 29 122 69;            /* #1d7a45 — Forest Emerald (white ≈5.4:1 AA) */
+  --color-primary: 29 122 69; /* #1d7a45 — Forest Emerald (white ≈5.4:1 AA) */
   --color-primary-foreground: 255 255 255;
-  --color-primary-hover: 24 100 58;      /* #18643a — ≈6.5:1 */
-  --color-primary-active: 20 84 47;      /* #14542f — ≈7.7:1 */
-  --color-secondary: 205 174 74;         /* #cdae4a — Vibrant Gold (fills/badges) */
-  --color-secondary-foreground: 19 37 26;/* #13251a — near-black green on gold ≈6.9:1 */
-  --color-rating: 154 125 36;            /* #9a7d24 — gold for star icons on light ≈4:1 */
+  --color-primary-hover: 24 100 58; /* #18643a — ≈6.5:1 */
+  --color-primary-active: 20 84 47; /* #14542f — ≈7.7:1 */
+  --color-secondary: 205 174 74; /* #cdae4a — Vibrant Gold (fills/badges) */
+  --color-secondary-foreground: 19 37 26; /* #13251a — near-black green on gold ≈6.9:1 */
+  --color-rating: 138 110 30; /* #8a6e1e — gold for star icons on light ≈4.8:1 */
 
-  /* Surfaces */
-  --color-background: 255 255 255;
-  --color-foreground: 30 41 59;          /* #1e293b — slate-800 */
-  --color-card: 248 250 252;             /* #f8fafc — slate-50 surface */
-  --color-card-foreground: 30 41 59;
+  /* Surfaces — tinted page so white cards lift with real depth */
+  --color-background: 245 248 246; /* #f5f8f6 — faint sage off-white */
+  --color-foreground: 15 23 42; /* #0f172a — slate-900, crisp body text (≈15:1 on bg) */
+  --color-card: 255 255 255; /* pure white surface (pops on the page) */
+  --color-card-foreground: 15 23 42;
   --color-popover: 255 255 255;
-  --color-popover-foreground: 30 41 59;
+  --color-popover-foreground: 15 23 42;
 
   /* Neutral */
-  --color-muted: 248 250 252;
-  --color-muted-foreground: 71 85 105;   /* #475569 — slate-600, 7.0:1 on #fff (AA) */
-  --color-accent: 230 240 232;           /* tinted soft sage */
+  --color-muted: 237 242 239; /* #edf2ef — distinct soft neutral (chips/hovers/skeletons) */
+  --color-muted-foreground: 51 65 85; /* #334155 — slate-700, ≈10:1 on white; stronger secondary text (used app-wide) */
+  --color-accent: 224 238 229; /* #e0eee5 — soft sage tint */
   --color-accent-foreground: 27 79 46;
 
   /* Lines & Inputs */
-  --color-border: 226 232 240;           /* #e2e8f0 */
-  --color-input: 226 232 240;
+  --color-border: 203 213 225; /* #cbd5e1 — slate-300, clearly visible card/divider hairline */
+  --color-input: 124 138 156; /* #7c8a9c — slate-ish, 3.52:1 on white (meets 3:1 UI requirement) */
   --color-ring: 29 122 69;
 
-  /* Status */
-  --color-destructive: 185 28 28;        /* #b91c1c — red-700, 7.4:1 on #fff (AA) */
+  /* Status — solid badge backgrounds; each foreground is AA on its background (≥5.4:1) */
+  --color-destructive: 185 28 28; /* #b91c1c — red-700, 7.4:1 on #fff (AA) */
   --color-destructive-foreground: 255 255 255;
-  --color-success: 21 128 61;            /* #15803d — green-700, 5.8:1 on #fff */
-  --color-warning: 161 98 7;             /* #a16207 — amber-700, 5.4:1 on #fff */
+  --color-success: 21 128 61; /* #15803d — green-700, white ≈5.8:1 */
+  --color-success-foreground: 255 255 255;
+  --color-warning: 161 98 7; /* #a16207 — amber-700, white ≈5.4:1 */
+  --color-warning-foreground: 255 255 255;
+  --color-info: 3 105 161; /* #0369a1 — sky-700, white ≈5.4:1 (AA) */
+  --color-info-foreground: 255 255 255;
 
   /* ui-context.md aliases (brand reference only) */
   --bg-base: #ffffff;
   --bg-surface: #f8fafc;
-  --text-primary: #1e293b;
+  --text-primary: #0f172a;
   --accent-primary: #1d7a45;
   --accent-hover: #18643a;
   --accent-second: #cdae4a;
@@ -64,24 +68,24 @@
   --radius-2xl: 1.5rem;
   --radius-3xl: 2rem;
 
-  /* Gradients (premium green/gold) */
-  --gradient-brand: linear-gradient(135deg, #1b4f2e 0%, #309059 100%);
-  --gradient-emerald-gold: linear-gradient(120deg, #1d7a45 0%, #309059 52%, #cdae4a 130%);
+  /* Gradients (premium green/gold — restrained) */
+  --gradient-brand: linear-gradient(135deg, #14532d 0%, #1d7a45 100%);
+  --gradient-emerald-gold: linear-gradient(120deg, #15643a 0%, #1d7a45 100%);
   --gradient-gold: linear-gradient(135deg, #cdae4a 0%, #e6c86a 100%);
   --gradient-hero:
-    radial-gradient(1100px 560px at 72% -12%, rgba(48, 144, 89, 0.20), transparent 60%),
-    radial-gradient(800px 420px at 0% 0%, rgba(205, 174, 74, 0.14), transparent 55%),
-    linear-gradient(180deg, #ffffff 0%, #f3f8f4 100%);
+    radial-gradient(1100px 560px at 72% -12%, rgba(48, 144, 89, 0.14), transparent 60%),
+    radial-gradient(800px 420px at 0% 0%, rgba(205, 174, 74, 0.08), transparent 55%),
+    linear-gradient(180deg, #f7faf8 0%, #f1f6f3 100%);
 
   /* Glass */
-  --glass-bg: rgba(255, 255, 255, 0.65);
-  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(223, 230, 226, 0.8);
 
-  /* Elevation */
-  --shadow-soft: 0 1px 2px rgba(16, 40, 28, 0.06);
-  --shadow-md: 0 6px 20px -6px rgba(16, 40, 28, 0.18);
-  --shadow-lg: 0 18px 48px -16px rgba(16, 40, 28, 0.30);
-  --shadow-glow: 0 14px 40px -10px rgba(29, 122, 69, 0.45);
+  /* Elevation — soft, layered, non-neon */
+  --shadow-soft: 0 1px 2px rgba(16, 40, 28, 0.05);
+  --shadow-md: 0 4px 16px -6px rgba(16, 40, 28, 0.12);
+  --shadow-lg: 0 16px 40px -20px rgba(16, 40, 28, 0.22);
+  --shadow-glow: 0 10px 30px -12px rgba(29, 122, 69, 0.28);
 
   /* Motion */
   --motion-fast: 150ms;
@@ -89,30 +93,87 @@
   --motion-slow: 400ms;
 }
 
+/* ── Dark theme tokens ──────────────────────────────────────────────────
+ * Theming strategy (Requirements 27.6, 27.7): the user's explicit choice wins
+ * over the OS. We apply the dark palette in two cases:
+ *   1. `html.dark`            — user explicitly chose Dark.
+ *   2. system + no override   — OS prefers dark AND the user has not forced a
+ *                               theme (`:root:not(.light):not(.dark)`).
+ * Forcing Light is just the absence of `.dark` (the `:root` defaults above),
+ * but `html.light` under a dark OS must NOT inherit the media-query block, so
+ * that block is scoped with `:not(.light):not(.dark)`. The token list is kept
+ * identical between the two selectors. */
+html.dark {
+  --color-primary: 88 178 121; /* #58b279 — soft green for dark mode */
+  --color-primary-foreground: 10 25 16;
+  --color-primary-hover: 110 192 140; /* #6ec08c */
+  --color-primary-active: 79 159 108; /* #4f9f6c */
+  --color-secondary: 205 174 74;
+  --color-secondary-foreground: 10 25 16;
+  --color-rating: 205 174 74;
+
+  --color-background: 10 25 16; /* deep forest near-black */
+  --color-foreground: 237 237 237;
+  --color-card: 20 43 30; /* #142b1e — lifted vs background */
+  --color-card-foreground: 237 237 237;
+  --color-popover: 20 43 30;
+  --color-popover-foreground: 237 237 237;
+
+  --color-muted: 24 44 32;
+  --color-muted-foreground: 188 194 201;
+  --color-accent: 27 79 46;
+  --color-accent-foreground: 214 186 94;
+
+  --color-border: 58 84 71;
+  --color-input: 81 105 91;
+  --color-ring: 88 178 121;
+
+  --bg-base: #0a1910;
+  --bg-surface: #12261a;
+  --text-primary: #ededed;
+  --accent-primary: #58b279;
+  --accent-hover: #6ec08c;
+  --accent-second: #cdae4a;
+  --border-default: #263a2e;
+
+  --gradient-hero:
+    radial-gradient(1100px 560px at 72% -12%, rgba(88, 178, 121, 0.16), transparent 60%),
+    radial-gradient(800px 420px at 0% 0%, rgba(205, 174, 74, 0.08), transparent 55%),
+    linear-gradient(180deg, #0a1910 0%, #0c2014 100%);
+
+  --glass-bg: rgba(20, 43, 30, 0.6);
+  --glass-border: rgba(120, 160, 135, 0.16);
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 18px -6px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 44px -20px rgba(0, 0, 0, 0.55);
+  --shadow-glow: 0 10px 30px -12px rgba(88, 178, 121, 0.22);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    --color-primary: 88 178 121;          /* #58b279 — soft green for dark mode */
+  :root:not(.light):not(.dark) {
+    --color-primary: 88 178 121; /* #58b279 — soft green for dark mode */
     --color-primary-foreground: 10 25 16;
-    --color-primary-hover: 110 192 140;   /* #6ec08c */
-    --color-primary-active: 79 159 108;   /* #4f9f6c */
+    --color-primary-hover: 110 192 140; /* #6ec08c */
+    --color-primary-active: 79 159 108; /* #4f9f6c */
     --color-secondary: 205 174 74;
     --color-secondary-foreground: 10 25 16;
     --color-rating: 205 174 74;
 
-    --color-background: 10 25 16;          /* deep forest near-black */
+    --color-background: 10 25 16; /* deep forest near-black */
     --color-foreground: 237 237 237;
-    --color-card: 18 38 26;
+    --color-card: 20 43 30; /* #142b1e — lifted vs background */
     --color-card-foreground: 237 237 237;
-    --color-popover: 18 38 26;
+    --color-popover: 20 43 30;
     --color-popover-foreground: 237 237 237;
 
     --color-muted: 24 44 32;
-    --color-muted-foreground: 163 163 163;
+    --color-muted-foreground: 188 194 201;
     --color-accent: 27 79 46;
-    --color-accent-foreground: 205 174 74;
+    --color-accent-foreground: 214 186 94;
 
-    --color-border: 38 58 46;
-    --color-input: 38 58 46;
+    --color-border: 58 84 71;
+    --color-input: 81 105 91;
     --color-ring: 88 178 121;
 
     --bg-base: #0a1910;
@@ -124,17 +185,17 @@
     --border-default: #263a2e;
 
     --gradient-hero:
-      radial-gradient(1100px 560px at 72% -12%, rgba(88, 178, 121, 0.20), transparent 60%),
-      radial-gradient(800px 420px at 0% 0%, rgba(205, 174, 74, 0.10), transparent 55%),
+      radial-gradient(1100px 560px at 72% -12%, rgba(88, 178, 121, 0.16), transparent 60%),
+      radial-gradient(800px 420px at 0% 0%, rgba(205, 174, 74, 0.08), transparent 55%),
       linear-gradient(180deg, #0a1910 0%, #0c2014 100%);
 
-    --glass-bg: rgba(18, 38, 26, 0.55);
-    --glass-border: rgba(120, 160, 135, 0.18);
+    --glass-bg: rgba(20, 43, 30, 0.6);
+    --glass-border: rgba(120, 160, 135, 0.16);
 
     --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 6px 24px -6px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 18px 50px -16px rgba(0, 0, 0, 0.62);
-    --shadow-glow: 0 14px 40px -10px rgba(88, 178, 121, 0.35);
+    --shadow-md: 0 4px 18px -6px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 44px -20px rgba(0, 0, 0, 0.55);
+    --shadow-glow: 0 10px 30px -12px rgba(88, 178, 121, 0.22);
   }
 }
 
@@ -162,16 +223,39 @@
   --color-destructive: rgb(var(--color-destructive));
   --color-destructive-foreground: rgb(var(--color-destructive-foreground));
   --color-success: rgb(var(--color-success));
+  --color-success-foreground: rgb(var(--color-success-foreground));
   --color-warning: rgb(var(--color-warning));
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, "Noto Sans Khmer", "Noto Sans SC", sans-serif;
+  --color-warning-foreground: rgb(var(--color-warning-foreground));
+  --color-info: rgb(var(--color-info));
+  --color-info-foreground: rgb(var(--color-info-foreground));
+  --font-sans:
+    var(--font-jakarta), ui-sans-serif, system-ui, 'Noto Sans Khmer', 'Noto Sans SC', sans-serif;
   --font-display: var(--font-sora), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --radius: 0.75rem;
+
+  /* ── Responsive breakpoints (Requirement 27.4) ──────────────────────────
+   * Mobile-first (Requirement 27.5): unprefixed utilities target the mobile
+   * floor (320px+). `xs` pins that floor explicitly; `md` (tablet, 768px+) and
+   * `lg` (desktop, 1024px+) match the spec viewport tiers. `sm`/`xl`/`2xl`
+   * keep Tailwind's default values so existing utilities are unaffected. */
+  --breakpoint-xs: 20rem; /* 320px — mobile floor */
+  --breakpoint-sm: 40rem; /* 640px — large mobile */
+  --breakpoint-md: 48rem; /* 768px — tablet */
+  --breakpoint-lg: 64rem; /* 1024px — desktop */
+  --breakpoint-xl: 80rem; /* 1280px — large desktop */
+  --breakpoint-2xl: 96rem; /* 1536px — wide desktop */
+
+  /* ── Spacing scale (Requirement 27.1) ───────────────────────────────────
+   * 4px base unit; Tailwind multiplies this by the numeric utility (e.g.
+   * `p-4` = 1rem). Declared explicitly so the spacing system is a documented
+   * design token rather than an implicit default. */
+  --spacing: 0.25rem; /* 4px base unit */
 }
 
 /* Khmer script — proper line height + font fallback */
 :lang(km) {
-  font-family: "Noto Sans Khmer", var(--font-sans);
+  font-family: 'Noto Sans Khmer', var(--font-sans);
   line-height: 1.7;
 }
 
@@ -213,9 +297,114 @@
   font-family: var(--font-display);
 }
 
+/* ── Motion utilities ───────────────────────────────────────────────────
+ * Tasteful, GPU-friendly entrance animations (opacity + transform only) using
+ * the design motion tokens. Durations stay in the 150–300ms band. All of these
+ * are automatically disabled by the global `prefers-reduced-motion` block
+ * below, so no per-utility guard is needed. */
+@keyframes der-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes der-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes der-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes der-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.animate-fade-in {
+  animation: der-fade-in var(--motion-base) ease-out both;
+}
+.animate-fade-in-up {
+  animation: der-fade-in-up var(--motion-base) ease-out both;
+}
+.animate-scale-in {
+  animation: der-scale-in var(--motion-fast) ease-out both;
+}
+/* Staggered children: apply to a container to cascade direct children in. */
+.animate-stagger > * {
+  animation: der-fade-in-up var(--motion-base) ease-out both;
+}
+.animate-stagger > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.animate-stagger > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.animate-stagger > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.animate-stagger > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.animate-stagger > *:nth-child(6) {
+  animation-delay: 200ms;
+}
+/* Subtle tactile press feedback for interactive surfaces. */
+.press-feedback {
+  transition: transform var(--motion-fast) ease;
+}
+.press-feedback:active {
+  transform: scale(0.97);
+}
+/* Skeleton shimmer sweep (pair with a muted background). */
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  animation: der-shimmer 1.4s infinite;
+}
+
+/* Screen-reader-only utility — visually hidden but exposed to assistive tech.
+ * Used for landmark/heading text that must exist in the accessibility tree
+ * (e.g. the page-level <h1> on the Vibe Booking concierge) without affecting
+ * the visual layout. Standard WCAG visually-hidden pattern. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Reduced-motion accessibility */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -227,4 +416,27 @@ body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Print / Save-as-PDF (Task 12.5 — Requirement 6.9) ──────────────────────
+ * When a user downloads the payment receipt we trigger window.print(); the
+ * browser's native "Save as PDF" then captures the page. To produce a clean
+ * receipt document we hide app chrome and anything explicitly marked
+ * `.print-hidden`, and isolate the `.receipt-printable` card. */
+@media print {
+  body {
+    background: #fff;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+  .receipt-printable {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
 }

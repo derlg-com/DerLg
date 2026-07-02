@@ -55,7 +55,7 @@ export default function GuideCardsRenderer({ item, onAction }: Props) {
               <div className="flex items-center justify-between gap-2">
                 <p className="line-clamp-1 text-sm font-semibold">{guide.name}</p>
                 {guide.isVerified && (
-                  <span className="inline-flex shrink-0 items-center gap-0.5 text-xs text-green-600">
+                  <span className="inline-flex shrink-0 items-center gap-0.5 text-xs text-primary">
                     <BadgeCheck size={14} aria-hidden /> {t('guides.card.verified')}
                   </span>
                 )}

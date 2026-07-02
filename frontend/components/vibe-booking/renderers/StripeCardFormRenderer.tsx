@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import {
   Elements,
   CardNumberElement,
@@ -13,20 +12,11 @@ import {
 import type { ContentItem } from '@/stores/vibe-booking.store'
 import { useTranslations, useLanguageStore } from '@/lib/i18n'
 import { formatCurrency } from '@/lib/format'
+import { getStripe, isStripeConfigured } from '@/lib/stripe'
 
 interface Props {
   item: ContentItem
   onAction: (type: string, itemId?: string, payload?: Record<string, unknown>) => void
-}
-
-const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
-
-let stripePromise: Promise<Stripe | null> | null = null
-function getStripe(): Promise<Stripe | null> {
-  if (!stripePromise && STRIPE_PUBLISHABLE_KEY) {
-    stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY)
-  }
-  return stripePromise ?? Promise.resolve(null)
 }
 
 interface StripeFormPayload {
@@ -108,7 +98,9 @@ function StripePaymentForm({
       <div className="p-6 text-center space-y-2">
         <div className="text-4xl">✅</div>
         <p className="font-bold text-lg">{t('booking.paymentSuccess')}</p>
-        <p className="text-sm text-muted-foreground">{formatCurrency(payload.amount.usd, locale)}</p>
+        <p className="text-sm text-muted-foreground">
+          {formatCurrency(payload.amount.usd, locale)}
+        </p>
       </div>
     )
   }
@@ -175,10 +167,10 @@ export default function StripeCardFormRenderer({ item, onAction }: Props) {
     stripeInstance.then((s) => setStripeReady(!!s))
   }, [stripeInstance])
 
-  if (!STRIPE_PUBLISHABLE_KEY) {
+  if (!isStripeConfigured()) {
     return (
       <div className="p-6 text-center text-sm text-muted-foreground">
-        Stripe is not configured. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to enable card payments.
+        {t('booking.stripeNotConfigured')}
       </div>
     )
   }

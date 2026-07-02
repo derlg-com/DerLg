@@ -28,6 +28,32 @@ export interface UserProfile {
   createdAt: string
 }
 
+/**
+ * A single entry in the loyalty points ledger.
+ *
+ * NOTE (backend-contract assumption): the backend does not yet expose a
+ * user-facing loyalty ledger endpoint. The only loyalty data the backend
+ * surfaces today is `loyaltyPoints` on `/v1/users/me` (the current balance)
+ * and a service-key-guarded `/v1/ai-tools/loyalty` used internally by the AI
+ * agent. {@link LoyaltyView} therefore assumes a future
+ * `GET /v1/users/me/loyalty/history` endpoint returning a {@link Paginated}
+ * list of these entries, and degrades gracefully (showing the balance only,
+ * with an empty/error state for history) when that endpoint is unavailable.
+ */
+export interface LoyaltyLedgerEntry {
+  id: string
+  /** Human-readable description, e.g. "Booking #1234" or "Redeemed for discount". */
+  description: string
+  /** Signed points delta: positive = earned, negative = redeemed/expired. */
+  points: number
+  /** Booking that generated this entry, when applicable. */
+  bookingId?: string | null
+  /** ISO timestamp the entry was recorded. */
+  createdAt: string
+  /** ISO timestamp the earned points expire, when applicable (Requirement 34.5). */
+  expiresAt?: string | null
+}
+
 export interface AuthUser {
   id: string
   email: string
@@ -36,12 +62,7 @@ export interface AuthUser {
 }
 
 export type BookingStatus =
-  | 'HOLD'
-  | 'PENDING_PAYMENT'
-  | 'CONFIRMED'
-  | 'COMPLETED'
-  | 'CANCELLED'
-  | 'EXPIRED'
+  'HOLD' | 'PENDING_PAYMENT' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED'
 
 export type BookingType = 'trip' | 'guide' | 'hotel' | 'transportation'
 
@@ -52,6 +73,8 @@ export interface UnifiedBooking {
   reference: string
   type: BookingType | string
   name: string
+  /** Human-readable location label (e.g. meeting point / pickup), or null when unknown. */
+  location?: string | null
   startDate: string
   endDate: string
   status: BookingStatus | string

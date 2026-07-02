@@ -1,7 +1,13 @@
 import { z } from 'zod'
 
 export const updateProfileSchema = z.object({
-  name: z.string().max(255).optional().or(z.literal('')),
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Name must be at least 2 characters')
+    .max(255, 'Name must be 255 characters or fewer')
+    .optional()
+    .or(z.literal('')),
   phone: z
     .string()
     .regex(/^\+?[0-9\s-]{6,20}$/, 'Enter a valid phone number')

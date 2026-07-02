@@ -12,6 +12,10 @@ import type { WsOutbound } from '@/types/vibe-booking'
 const AI_WS_URL = process.env.NEXT_PUBLIC_AI_WS_URL ?? 'ws://localhost:8000'
 const MAX_RETRIES = 5
 const HEARTBEAT_MS = 30000
+// If a ping is not answered by a pong within this window the connection is
+// considered dead (Req 28.5): we close it so onclose drives the backoff
+// reconnect instead of leaving a silently-broken socket open.
+const PONG_TIMEOUT_MS = 10000
 const QUEUE_KEY = 'derlg:vibe-booking:outbox'
 const MAX_QUEUE = 100
 
@@ -39,10 +43,13 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KM' = 'EN'
   const retries = useRef(0)
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const heartbeatTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pongTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const outbox = useRef<WsOutbound[]>(loadQueue())
   // Tracks the content item optimistically marked "streaming" by an action so
   // it can be cleared on the real response (typing_end), not a fixed timer.
-  const pendingActionItem = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null)
+  const pendingActionItem = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(
+    null,
+  )
   const store = useVibeBookingStore()
 
   const clearPendingAction = useCallback(() => {
@@ -62,17 +69,14 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KM' = 'EN'
     saveQueue(outbox.current)
   }, [])
 
-  const send = useCallback(
-    (msg: WsOutbound, queueIfOffline = true) => {
-      if (ws.current?.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify(msg))
-      } else if (queueIfOffline && (msg.type === 'user_message' || msg.type === 'user_action')) {
-        outbox.current.push(msg)
-        saveQueue(outbox.current)
-      }
-    },
-    [],
-  )
+  const send = useCallback((msg: WsOutbound, queueIfOffline = true) => {
+    if (ws.current?.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify(msg))
+    } else if (queueIfOffline && (msg.type === 'user_message' || msg.type === 'user_action')) {
+      outbox.current.push(msg)
+      saveQueue(outbox.current)
+    }
+  }, [])
 
   const connectRef = useRef<(() => void) | null>(null)
 
@@ -99,6 +103,12 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KM' = 'EN'
       heartbeatTimer.current = setInterval(() => {
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({ type: 'ping' }))
+          // Arm a liveness deadline: a missing pong means the link is dead, so
+          // force-close to trigger the onclose backoff reconnect (Req 28.5).
+          if (pongTimer.current) clearTimeout(pongTimer.current)
+          pongTimer.current = setTimeout(() => {
+            if (socket.readyState === WebSocket.OPEN) socket.close()
+          }, PONG_TIMEOUT_MS)
         }
       }, HEARTBEAT_MS)
       // Drain queued offline messages
@@ -110,7 +120,11 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KM' = 'EN'
 
       switch (data.type) {
         case 'pong':
-          // Heartbeat ack — nothing to do
+          // Heartbeat ack — connection is alive, cancel the liveness deadline.
+          if (pongTimer.current) {
+            clearTimeout(pongTimer.current)
+            pongTimer.current = null
+          }
           break
 
         case 'typing_start':
@@ -211,8 +225,8 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KM' = 'EN'
             const existingItems = useVibeBookingStore.getState().contentItems
             const existingOfType = existingItems.filter((i) => i.type === itemType)
             const itemData = (parsed.data as { data?: unknown }).data ?? parsed.data
-            const actions = ((raw as { actions?: ContentAction[] }).actions) ?? []
-            const metadata = ((raw as { metadata?: ContentMetadata }).metadata) ?? {}
+            const actions = (raw as { actions?: ContentAction[] }).actions ?? []
+            const metadata = (raw as { metadata?: ContentMetadata }).metadata ?? {}
             if (existingOfType.length > 0) {
               const [keep, ...extras] = existingOfType
               for (const dup of extras) store.removeContentItem(dup.id)
@@ -340,6 +354,10 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KM' = 'EN'
     socket.onclose = () => {
       store.setConnectionStatus('disconnected')
       if (heartbeatTimer.current) clearInterval(heartbeatTimer.current)
+      if (pongTimer.current) {
+        clearTimeout(pongTimer.current)
+        pongTimer.current = null
+      }
       if (retries.current < MAX_RETRIES) {
         const delay = Math.min(1000 * 2 ** retries.current, 30000)
         retries.current++
@@ -352,13 +370,16 @@ export function useWebSocket(userId: string, language: 'EN' | 'ZH' | 'KM' = 'EN'
   }, [userId, language, flushOutbox])
 
   // Keep ref in sync so onclose can call the latest connect without capturing it
-  useEffect(() => { connectRef.current = connect }, [connect])
+  useEffect(() => {
+    connectRef.current = connect
+  }, [connect])
 
   useEffect(() => {
     connect()
     return () => {
       if (retryTimer.current) clearTimeout(retryTimer.current)
       if (heartbeatTimer.current) clearInterval(heartbeatTimer.current)
+      if (pongTimer.current) clearTimeout(pongTimer.current)
       ws.current?.close()
     }
   }, [connect])

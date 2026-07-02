@@ -11,6 +11,8 @@ import { v4 as uuid } from 'uuid'
  * - Normalize errors into a typed {@link ApiError}.
  * - On `401`, refresh the access token once (single-flight) and retry the request.
  * - Attach an `Idempotency-Key` header to mutating calls when requested.
+ * - Apply a per-request timeout (default 30s) via `AbortController`.
+ * - Retry transient failures (network errors / 5xx) with exponential backoff.
  *
  * The access token lives in module memory (never localStorage). The Zustand
  * auth store is the source of truth and mirrors the token here via
@@ -19,13 +21,39 @@ import { v4 as uuid } from 'uuid'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3003'
 
+/** Default request timeout (ms). Requirement 15.7. */
+const DEFAULT_TIMEOUT_MS = 30_000
+/** Default number of retries for transient failures. Requirement 15.9. */
+const DEFAULT_RETRIES = 2
+/** Base delay (ms) for exponential backoff between retries. */
+const RETRY_BASE_DELAY_MS = 300
+
 let accessToken: string | null = null
 let onAuthError: (() => void) | null = null
 let refreshPromise: Promise<string | null> | null = null
+let acceptLanguage: string | null = null
 
 /** Current in-memory access token, or `null` when unauthenticated. */
 export function getAccessToken(): string | null {
   return accessToken
+}
+
+/**
+ * Set the `Accept-Language` the client sends on every request, so the backend
+ * returns localized catalog content (trip/place/hotel/guide names and
+ * descriptions) for the active UI language (Requirement 13.7). The backend
+ * resolves locale from this header for both list and detail endpoints.
+ *
+ * Pass the active {@link Locale} tag (`en` | `zh` | `km`) or `null` to clear.
+ * Bridged from the Zustand language store (see `LanguageSync`).
+ */
+export function setAcceptLanguage(locale: string | null): void {
+  acceptLanguage = locale
+}
+
+/** Current `Accept-Language` value the client sends, or `null` when unset. */
+export function getAcceptLanguage(): string | null {
+  return acceptLanguage
 }
 
 /** Set (or clear) the access token the client attaches to authenticated calls. */
@@ -70,8 +98,28 @@ export interface RequestOptions {
   /** When `false`, skip Bearer injection and the 401→refresh→retry flow (e.g. login). */
   auth?: boolean
   signal?: AbortSignal
+  /**
+   * Per-request timeout in milliseconds. Defaults to 30s (Requirement 15.7).
+   * Pass `0` to disable the timeout. The timeout is combined with any caller
+   * `signal`: whichever aborts first wins.
+   */
+  timeoutMs?: number
+  /**
+   * Number of retry attempts for transient failures (network errors and 5xx
+   * responses) using exponential backoff (Requirement 15.9). Defaults to 2.
+   * Pass `0` to disable retries. Caller-initiated aborts are never retried.
+   */
+  retries?: number
   /** @internal — marks the single allowed retry after a token refresh. */
   _retry?: boolean
+}
+
+/** Thrown when a request exceeds its configured timeout. */
+export class TimeoutError extends Error {
+  constructor(public readonly timeoutMs: number) {
+    super(`Request timed out after ${timeoutMs}ms`)
+    this.name = 'TimeoutError'
+  }
 }
 
 function buildHeaders(opts: RequestOptions): Record<string, string> {
@@ -81,6 +129,11 @@ function buildHeaders(opts: RequestOptions): Record<string, string> {
   }
   if (opts.auth !== false && accessToken) {
     headers.Authorization = `Bearer ${accessToken}`
+  }
+  // Localize catalog responses for the active UI language (Requirement 13.7),
+  // unless the caller already set the header explicitly.
+  if (acceptLanguage && !('Accept-Language' in headers)) {
+    headers['Accept-Language'] = acceptLanguage
   }
   if (opts.idempotencyKey) {
     headers['Idempotency-Key'] =
@@ -145,19 +198,95 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise
 }
 
+/** `true` when the abort came from the caller's signal (not our timeout). */
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === 'AbortError'
+}
+
+/** Sleep helper for backoff between retries. */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Run a single `fetch` with a timeout (Requirement 15.7). Combines the caller's
+ * `signal` with an internal timeout controller so either can abort the request.
+ * Throws {@link TimeoutError} on timeout and rethrows caller aborts unchanged.
+ */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  callerSignal: AbortSignal | undefined,
+  timeoutMs: number,
+): Promise<Response> {
+  if (timeoutMs <= 0) {
+    return fetch(url, { ...init, signal: callerSignal })
+  }
+
+  const controller = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeoutMs)
+
+  const onCallerAbort = () => controller.abort()
+  if (callerSignal) {
+    if (callerSignal.aborted) controller.abort()
+    else callerSignal.addEventListener('abort', onCallerAbort, { once: true })
+  }
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } catch (err) {
+    if (timedOut) throw new TimeoutError(timeoutMs)
+    throw err
+  } finally {
+    clearTimeout(timer)
+    callerSignal?.removeEventListener('abort', onCallerAbort)
+  }
+}
+
 /** Core request primitive. Prefer the {@link api} verb helpers. */
 export async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const url = path.startsWith('http')
-    ? path
-    : `${API_URL}${path.startsWith('/') ? '' : '/'}${path}`
+  const url = path.startsWith('http') ? path : `${API_URL}${path.startsWith('/') ? '' : '/'}${path}`
 
-  const res = await fetch(url, {
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  const maxRetries = opts.retries ?? DEFAULT_RETRIES
+
+  const init: RequestInit = {
     method: opts.method ?? 'GET',
     credentials: 'include',
     headers: buildHeaders(opts),
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-    signal: opts.signal,
-  })
+  }
+
+  // Retry transient failures (network errors + 5xx) with exponential backoff.
+  let res: Response
+  let attempt = 0
+  for (;;) {
+    try {
+      res = await fetchWithTimeout(url, init, opts.signal, timeoutMs)
+    } catch (err) {
+      // Caller-initiated aborts are intentional — never retry them.
+      if (isAbortError(err)) throw err
+      // Network error or timeout: retry with backoff if attempts remain.
+      if (attempt < maxRetries) {
+        await delay(RETRY_BASE_DELAY_MS * 2 ** attempt)
+        attempt += 1
+        continue
+      }
+      throw err
+    }
+
+    // Retry server errors (5xx) which are typically transient.
+    if (res.status >= 500 && attempt < maxRetries) {
+      await delay(RETRY_BASE_DELAY_MS * 2 ** attempt)
+      attempt += 1
+      continue
+    }
+    break
+  }
 
   if (res.status === 401 && opts.auth !== false && !opts._retry) {
     const hadToken = accessToken !== null
@@ -199,7 +328,8 @@ export function buildQuery(params: Record<string, unknown>): string {
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null || value === '') continue
     if (Array.isArray(value)) {
-      for (const v of value) if (v !== undefined && v !== null && v !== '') sp.append(key, String(v))
+      for (const v of value)
+        if (v !== undefined && v !== null && v !== '') sp.append(key, String(v))
     } else {
       sp.append(key, String(value))
     }

@@ -22,7 +22,11 @@ interface Props {
 const RESIZE_EDGES: { edge: ResizeEdge; cursor: string; className: string }[] = [
   { edge: 'right', cursor: 'ew-resize', className: 'right-0 top-2 bottom-2 w-1 cursor-ew-resize' },
   { edge: 'left', cursor: 'ew-resize', className: 'left-0 top-2 bottom-2 w-1 cursor-ew-resize' },
-  { edge: 'bottom', cursor: 'ns-resize', className: 'bottom-0 left-2 right-2 h-1 cursor-ns-resize' },
+  {
+    edge: 'bottom',
+    cursor: 'ns-resize',
+    className: 'bottom-0 left-2 right-2 h-1 cursor-ns-resize',
+  },
   { edge: 'top', cursor: 'ns-resize', className: 'top-0 left-2 right-2 h-1 cursor-ns-resize' },
   {
     edge: 'bottom-right',
@@ -101,19 +105,21 @@ export default function SplitScreenLayout({ userId, language = 'EN', pageContext
       <LoginModal onAuthenticated={handleAuthenticated} />
       {/* Mobile: stacked single-pane */}
       <div className="md:hidden flex flex-col h-full">
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <main className="flex-1 min-h-0 overflow-hidden">
+          <h1 className="sr-only">{t('chat.pageTitle')}</h1>
           <ContentStage onAction={sendAction} />
-        </div>
-        <div className="h-1/2 border-t border-border">
+        </main>
+        <aside aria-label={t('chat.title')} className="h-1/2 border-t border-border">
           <ChatPanel onSend={handleSend} onFeedback={sendFeedback} />
-        </div>
+        </aside>
       </div>
 
       {/* Desktop: floating draggable panel + content stage */}
       <div className="hidden md:block h-full">
-        <div className="absolute inset-0">
+        <main className="absolute inset-0">
+          <h1 className="sr-only">{t('chat.pageTitle')}</h1>
           <ContentStage onAction={sendAction} />
-        </div>
+        </main>
 
         {!layout.collapsed ? (
           <div

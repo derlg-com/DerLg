@@ -1,5 +1,10 @@
+import type { Metadata } from 'next'
 import { CheckoutView } from '@/components/checkout/CheckoutView'
 import { PAYMENT_METHODS, type PaymentMethod } from '@/lib/payments'
+
+export const metadata: Metadata = {
+  title: 'Payment — DerLg',
+}
 
 export default async function CheckoutPage({
   params,

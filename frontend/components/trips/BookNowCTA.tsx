@@ -6,7 +6,25 @@ import { formatCurrency } from '@/lib/format'
 import { useCurrency } from '@/hooks/use-currency'
 import { useLanguageStore, useTranslations } from '@/lib/i18n'
 
-export function BookNowCTA({ href, priceUsd }: { href: string; priceUsd: number }) {
+/**
+ * Sticky "Book Now" call-to-action pinned above the bottom nav on the trip
+ * detail page (Requirement 36.8 — prominent button that navigates to the
+ * booking flow). The price is shown in the user's selected display currency
+ * (Requirement 30.x — currency selector) via {@link formatCurrency}.
+ *
+ * When `disabled` is set (e.g. the trip is inactive / sold out) the CTA renders
+ * a non-navigating disabled button so users can't enter a booking flow that the
+ * backend would reject.
+ */
+export function BookNowCTA({
+  href,
+  priceUsd,
+  disabled = false,
+}: {
+  href: string
+  priceUsd: number
+  disabled?: boolean
+}) {
   const t = useTranslations('trips')
   const locale = useLanguageStore((s) => s.locale)
   const currency = useCurrency()
@@ -23,9 +41,15 @@ export function BookNowCTA({ href, priceUsd }: { href: string; priceUsd: number 
             {formatCurrency(priceUsd, locale, currency)}
           </p>
         </div>
-        <Button asChild variant="gradient" size="lg">
-          <Link href={href}>{t('detail.bookNow')}</Link>
-        </Button>
+        {disabled ? (
+          <Button variant="gradient" size="lg" disabled aria-disabled="true">
+            {t('detail.unavailable')}
+          </Button>
+        ) : (
+          <Button asChild variant="gradient" size="lg">
+            <Link href={href}>{t('detail.bookNow')}</Link>
+          </Button>
+        )}
       </div>
     </div>
   )

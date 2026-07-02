@@ -5,30 +5,26 @@ import { Ticket } from 'lucide-react'
 import Link from 'next/link'
 import { BookingShell } from '@/components/booking/BookingShell'
 import { BookingCard } from './BookingCard'
-import { useApiQuery } from '@/lib/use-api-query'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
 import { useTranslations } from '@/lib/i18n'
-import { bookingGroup, type BookingGroup } from '@/lib/bookings-display'
-import type { Paginated, UnifiedBooking } from '@/types/api'
+import { type BookingGroup } from '@/lib/bookings-display'
+import { useBookings } from '@/hooks/use-bookings'
 
 const GROUPS: BookingGroup[] = ['upcoming', 'past', 'cancelled']
 
 function MyTripsInner() {
   const t = useTranslations('bookings')
   const [tab, setTab] = useState<BookingGroup>('upcoming')
-  const { data, isLoading, error, refetch } = useApiQuery<Paginated<UnifiedBooking>>(
-    '/v1/bookings?limit=50',
-  )
-
-  const grouped: Record<BookingGroup, UnifiedBooking[]> = { upcoming: [], past: [], cancelled: [] }
-  for (const b of data?.items ?? []) grouped[bookingGroup(b.status)].push(b)
+  const { grouped, isLoading, error, refetch } = useBookings()
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 px-4 py-4">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{t('list.title')}</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+        {t('list.title')}
+      </h1>
       <Tabs value={tab} onValueChange={(v) => setTab(v as BookingGroup)}>
         <TabsList className="w-full">
           {GROUPS.map((g) => (

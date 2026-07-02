@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Search as SearchIcon } from 'lucide-react'
+import { Search as SearchIcon, Clock, X, TrendingUp } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -12,6 +12,8 @@ import { useApiQuery } from '@/lib/use-api-query'
 import { buildQuery } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/lib/i18n'
+import { useSearchHistoryStore } from '@/stores/search-history.store'
+import { POPULAR_SEARCHES, deriveSuggestions } from '@/lib/search-suggestions'
 import { SEARCH_TYPES, type SearchResults, type SearchType } from '@/types/catalog'
 
 export function countResults(data: SearchResults): number {
@@ -85,9 +87,49 @@ function TripsGrid({ items }: { items: SearchResults['trips']['items'] }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </h2>
       {children}
     </section>
+  )
+}
+
+/** A tappable suggestion / recent / popular term row. */
+function TermRow({
+  term,
+  icon: Icon,
+  onSelect,
+  onRemove,
+  removeLabel,
+}: {
+  term: string
+  icon: typeof Clock
+  onSelect: (term: string) => void
+  onRemove?: (term: string) => void
+  removeLabel?: string
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg px-1 hover:bg-muted">
+      <button
+        type="button"
+        onClick={() => onSelect(term)}
+        className="flex flex-1 items-center gap-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="line-clamp-1 text-sm text-foreground">{term}</span>
+      </button>
+      {onRemove ? (
+        <button
+          type="button"
+          aria-label={removeLabel}
+          onClick={() => onRemove(term)}
+          className="rounded-full p-1.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <X className="h-4 w-4" aria-hidden />
+        </button>
+      ) : null}
+    </div>
   )
 }
 
@@ -127,6 +169,11 @@ export function SearchView() {
   const router = useRouter()
   const params = useSearchParams()
 
+  const historyTerms = useSearchHistoryStore((s) => s.terms)
+  const addHistory = useSearchHistoryStore((s) => s.add)
+  const removeHistory = useSearchHistoryStore((s) => s.remove)
+  const clearHistory = useSearchHistoryStore((s) => s.clear)
+
   const [query, setQuery] = useState(() => params.get('q') ?? '')
   const [type, setType] = useState<SearchType>(() => {
     const raw = params.get('type')
@@ -147,9 +194,24 @@ export function SearchView() {
     router.replace(str ? `/search?${str}` : '/search')
   }, [debounced, type, router])
 
+  // Record the committed (debounced) query into recent-search history. This is
+  // the "search executed" signal the spec calls for (Requirements 20.6, 20.9).
+  useEffect(() => {
+    if (debounced.length >= 2) addHistory(debounced)
+  }, [debounced, addHistory])
+
   const enabled = debounced.length >= 1
   const path = enabled ? `/v1/search${buildQuery({ q: debounced, type, limit: 20 })}` : null
   const { data, isLoading, error } = useApiQuery<SearchResults>(path)
+
+  // Autocomplete suggestions while typing, derived from recent + popular terms.
+  const suggestions = useMemo(() => deriveSuggestions(query, historyTerms), [query, historyTerms])
+  const showSuggestions = query.trim().length >= 1 && suggestions.length > 0
+
+  function select(term: string) {
+    setQuery(term)
+    setDebounced(term.trim())
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 px-4 py-4">
@@ -168,7 +230,11 @@ export function SearchView() {
         />
       </div>
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4" role="tablist" aria-label={t('placeholder')}>
+      <div
+        className="-mx-4 flex gap-2 overflow-x-auto px-4"
+        role="tablist"
+        aria-label={t('placeholder')}
+      >
         {SEARCH_TYPES.map((tp) => (
           <button
             key={tp}
@@ -188,8 +254,55 @@ export function SearchView() {
         ))}
       </div>
 
+      {showSuggestions ? (
+        <Section title={t('suggestions')}>
+          <div className="divide-y divide-border">
+            {suggestions.map((term) => (
+              <TermRow key={term} term={term} icon={SearchIcon} onSelect={select} />
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
       {!enabled ? (
-        <EmptyState icon={SearchIcon} title={t('promptTitle')} description={t('promptDesc')} />
+        <div className="space-y-6">
+          {historyTerms.length > 0 ? (
+            <section className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t('recent')}
+                </h2>
+                <button
+                  type="button"
+                  onClick={clearHistory}
+                  className="text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {t('clearHistory')}
+                </button>
+              </div>
+              <div className="divide-y divide-border">
+                {historyTerms.map((term) => (
+                  <TermRow
+                    key={term}
+                    term={term}
+                    icon={Clock}
+                    onSelect={select}
+                    onRemove={removeHistory}
+                    removeLabel={t('removeRecent', { term })}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <Section title={t('popular')}>
+            <div className="divide-y divide-border">
+              {POPULAR_SEARCHES.map((term) => (
+                <TermRow key={term} term={term} icon={TrendingUp} onSelect={select} />
+              ))}
+            </div>
+          </Section>
+        </div>
       ) : isLoading ? (
         <div className="flex justify-center py-10">
           <Spinner />

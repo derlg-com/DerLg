@@ -9,15 +9,14 @@ const cardVariants = cva('text-card-foreground', {
       glass: 'rounded-2xl glass shadow-[var(--shadow-md)]',
       elevated: 'rounded-2xl border border-border bg-card shadow-elevated',
       interactive:
-        'rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-elevated',
+        'rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] active:translate-y-0 active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none',
     },
   },
   defaultVariants: { variant: 'default' },
 })
 
 export interface CardProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof cardVariants> {}
+  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof cardVariants> {}
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant, ...props }, ref) => (
@@ -61,7 +60,11 @@ CardContent.displayName = 'CardContent'
 
 const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('flex items-center p-4 pt-0 sm:p-6 sm:pt-0', className)} {...props} />
+    <div
+      ref={ref}
+      className={cn('flex items-center p-4 pt-0 sm:p-6 sm:pt-0', className)}
+      {...props}
+    />
   ),
 )
 CardFooter.displayName = 'CardFooter'

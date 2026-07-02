@@ -1,17 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { CalendarPlus, Ticket } from 'lucide-react'
+import { MapPin, Ticket } from 'lucide-react'
 import { BookingShell } from '@/components/booking/BookingShell'
+import { SupportInfo } from '@/components/checkout/SupportInfo'
+import { GuideContactCard } from '@/components/checkout/GuideContactCard'
 import { CancelBookingModal } from './CancelBookingModal'
+import { AddToCalendarButton } from './AddToCalendarButton'
+import { WriteReviewButton } from '@/components/reviews/WriteReviewButton'
+import { EmergencyAlertButton } from '@/components/emergency/EmergencyAlertButton'
+import { EmergencyAlertModal } from '@/components/emergency/EmergencyAlertModal'
 import { useApiQuery } from '@/lib/use-api-query'
-import { fetchIcal } from '@/lib/bookings-api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
-import { toast } from '@/components/ui/toast'
 import { statusVariant, bookingGroup } from '@/lib/bookings-display'
 import { formatCurrency, formatDateShort } from '@/lib/format'
 import { useCurrency } from '@/hooks/use-currency'
@@ -22,24 +26,18 @@ function BookingDetailInner({ id }: { id: string }) {
   const t = useTranslations('bookings')
   const locale = useLanguageStore((s) => s.locale)
   const currency = useCurrency()
-  const { data: booking, isLoading, error, refetch } = useApiQuery<BookingDetail>(`/v1/bookings/${id}`)
+  const {
+    data: booking,
+    isLoading,
+    error,
+    refetch,
+  } = useApiQuery<BookingDetail>(`/v1/bookings/${id}`)
   const isConfirmed = booking?.status === 'CONFIRMED'
-  const { data: qr } = useApiQuery<{ qrCodeUrl: string }>(isConfirmed ? `/v1/bookings/${id}/qr` : null)
+  const { data: qr } = useApiQuery<{ qrCodeUrl: string }>(
+    isConfirmed ? `/v1/bookings/${id}/qr` : null,
+  )
   const [cancelOpen, setCancelOpen] = useState(false)
-
-  function downloadIcal() {
-    fetchIcal(id)
-      .then((text) => {
-        const blob = new Blob([text], { type: 'text/calendar' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `booking-${booking?.reference ?? id}.ics`
-        a.click()
-        URL.revokeObjectURL(url)
-      })
-      .catch(() => toast({ title: t('detail.icalError'), variant: 'error' }))
-  }
+  const [emergencyOpen, setEmergencyOpen] = useState(false)
 
   if (isLoading) {
     return (
@@ -85,6 +83,15 @@ function BookingDetailInner({ id }: { id: string }) {
         </div>
         <Badge variant={statusVariant(booking.status)}>{t(`status.${booking.status}`)}</Badge>
       </div>
+
+      {booking.location ? (
+        <div className="flex items-start gap-2 text-sm text-muted-foreground">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span>
+            <span className="text-foreground">{t('detail.location')}</span>: {booking.location}
+          </span>
+        </div>
+      ) : null}
 
       {isConfirmed && qr?.qrCodeUrl ? (
         <Card>
@@ -137,17 +144,44 @@ function BookingDetailInner({ id }: { id: string }) {
         </div>
       ) : null}
 
+      {/* Guide contact info for confirmed guide bookings (Requirement 38.9 / 24.5). */}
+      {booking.type === 'guide' && isConfirmed ? <GuideContactCard bookingId={booking.id} /> : null}
+
+      <SupportInfo />
+
+      <WriteReviewButton
+        bookingId={booking.id}
+        bookingType={booking.type}
+        status={booking.status}
+        className="w-full"
+      />
+
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button variant="outline" onClick={downloadIcal} className="sm:flex-1">
-          <CalendarPlus className="mr-1 h-4 w-4" aria-hidden />
-          {t('detail.addToCalendar')}
-        </Button>
+        <AddToCalendarButton
+          bookingId={booking.id}
+          reference={booking.reference}
+          className="sm:flex-1"
+        />
         {canCancel ? (
           <Button variant="destructive" onClick={() => setCancelOpen(true)} className="sm:flex-1">
             {t('detail.cancel')}
           </Button>
         ) : null}
       </div>
+
+      <EmergencyAlertButton
+        bookingId={booking.id}
+        startDate={booking.startDate}
+        status={booking.status}
+        onActivate={() => setEmergencyOpen(true)}
+        className="w-full"
+      />
+
+      <EmergencyAlertModal
+        open={emergencyOpen}
+        onOpenChange={setEmergencyOpen}
+        bookingId={booking.id}
+      />
 
       <CancelBookingModal
         open={cancelOpen}

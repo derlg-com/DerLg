@@ -8,7 +8,8 @@ import { useApiQuery } from '@/lib/use-api-query'
 import { useZodForm } from '@/lib/use-zod-form'
 import { hotelBookingSchema, type HotelBookingValues } from '@/schemas/booking'
 import { createHotelBooking, bookingErrorKey } from '@/lib/bookings-api'
-import { BookingSummary } from './BookingShell'
+import { BookingSummary, BookingNotFound } from './BookingShell'
+import { CombinedPricingSummary } from './CombinedPricingSummary'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,7 +27,7 @@ export function HotelBookingForm({ hotelId, roomId }: { hotelId: string; roomId:
   const router = useRouter()
   const locale = useLanguageStore((s) => s.locale)
   const currency = useCurrency()
-  const { data: hotel } = useApiQuery<HotelDetail>(`/v1/hotels/${hotelId}`)
+  const { data: hotel, error: hotelError } = useApiQuery<HotelDetail>(`/v1/hotels/${hotelId}`)
   const { data: roomsData } = useApiQuery<HotelRoom[] | Paginated<HotelRoom>>(
     `/v1/hotels/${hotelId}/rooms`,
   )
@@ -37,16 +38,31 @@ export function HotelBookingForm({ hotelId, roomId }: { hotelId: string; roomId:
     : (hotel?.rooms ?? [])
   const room = rooms.find((r) => r.id === roomId)
 
-  const { values, errors, setValue, validate } = useZodForm<HotelBookingValues>(hotelBookingSchema, {
-    checkInDate: '',
-    checkOutDate: '',
-    guestsAdults: 1,
-    guestsChildren: 0,
-    specialRequests: '',
-  })
+  const { values, errors, setValue, validate } = useZodForm<HotelBookingValues>(
+    hotelBookingSchema,
+    {
+      checkInDate: '',
+      checkOutDate: '',
+      guestsAdults: 1,
+      guestsChildren: 0,
+      specialRequests: '',
+    },
+  )
   const [key] = useState(() => uuid())
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  // Number of nights between check-in/check-out (0 until both valid dates set).
+  // Compared as calendar days to avoid timezone drift.
+  const nights =
+    values.checkInDate && values.checkOutDate && values.checkOutDate > values.checkInDate
+      ? Math.round((Date.parse(values.checkOutDate) - Date.parse(values.checkInDate)) / 86_400_000)
+      : 0
+  const hotelTotalUsd = room ? room.pricePerNightUsd * Math.max(nights, 1) : 0
+
+  if (hotelError) {
+    return <BookingNotFound backHref="/hotels" />
+  }
 
   if (!roomId) {
     return (
@@ -91,14 +107,18 @@ export function HotelBookingForm({ hotelId, roomId }: { hotelId: string; roomId:
 
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 px-4 py-4" noValidate>
-      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{t('form.title')}</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+        {t('form.title')}
+      </h1>
       {hotel ? (
         <BookingSummary
           name={hotel.name}
           imageUrl={room?.imageUrls?.[0] ?? hotel.coverImageUrl}
           subtitle={room?.name}
           priceLabel={
-            room ? `${formatCurrency(room.pricePerNightUsd, locale, currency)} ${t('form.perNight')}` : undefined
+            room
+              ? `${formatCurrency(room.pricePerNightUsd, locale, currency)} ${t('form.perNight')}`
+              : undefined
           }
         />
       ) : null}
@@ -164,6 +184,7 @@ export function HotelBookingForm({ hotelId, roomId }: { hotelId: string; roomId:
         />
       </div>
       <p className="text-xs text-muted-foreground">{t('form.holdNotice')}</p>
+      {room ? <CombinedPricingSummary hotelTotalUsd={hotelTotalUsd} nights={nights} /> : null}
       <Button type="submit" variant="gradient" className="w-full" disabled={submitting}>
         {submitting ? <Spinner size="sm" className="text-primary-foreground" /> : t('form.submit')}
       </Button>
