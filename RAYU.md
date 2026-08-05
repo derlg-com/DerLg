@@ -63,7 +63,7 @@ pytest --cov=agent --cov-report=html          # With coverage
 ## Infrastructure
 
 ### PostgreSQL
-Primary database is **PostgreSQL via Supabase**, local dev on port **54322**. Connection is configured via `DATABASE_URL` and `DIRECT_URL` env vars in `backend/.env`.
+Primary database is **PostgreSQL via Supabase** (local Supabase instance on port **54322** for dev). Connection is configured via `DATABASE_URL` and `DIRECT_URL` env vars in `backend/.env`. For VPS deployment (Coolify), point `DATABASE_URL` at the Coolify-managed Postgres instance.
 
 ### Redis
 Used by both the backend (sessions, rate limiting, booking holds with 15-min TTL) and the AI agent (session state, pub/sub for payment events). Dev: `redis:8.6-alpine` on port **6379** via `backend/docker-compose.yml`.

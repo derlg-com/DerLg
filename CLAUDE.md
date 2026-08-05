@@ -174,6 +174,7 @@ Key entities: `users`, `trips`, `places`, `hotels`/`hotel_rooms`, `transportatio
 - **Frontend build = `next build` + Serwist PWA.** `npm run build` runs both; use `npm run build:next` if you only need the Next.js build.
 - **Vibe-booking env precedence.** A shell-exported `NVIDIA_API_KEY` shadows the value in `vibe-booking/.env` and will cause HTTP 403s from NVIDIA NIM. Relaunch uvicorn with the conflicting env var unset (`env -u NVIDIA_API_KEY`). Run **without `--reload`** — the reloader hangs on slow in-flight LLM calls.
 - **Backend DB has pre-existing drift.** `prisma migrate dev` may not work cleanly; use `prisma db push` or `prisma migrate deploy` as needed.
+- **Dev uses local Supabase** (port 54322). For VPS deployment via Coolify, point `DATABASE_URL` / `DIRECT_URL` at the Coolify-managed Postgres — no Supabase dependency required.
 
 ---
 

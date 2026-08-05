@@ -98,6 +98,8 @@ web (3002)  ──REST /v1──►  backend (3003)  ──X-Service-Key──�
 | AI Agent | `vibe-booking/` | 8000 | Python 3.12, FastAPI, NVIDIA gpt-oss-120b, Redis sessions, hand-rolled async tool loop |
 
 > Dev runs on ports 4007/4008/4009 via shell env overrides to avoid clashes with the configured defaults.
+>
+> **Database:** Dev uses a local Supabase instance (port 54322). For VPS deployment via Coolify, point `DATABASE_URL` at the Coolify-managed Postgres — the app works with any standard Postgres, no Supabase dependency required.
 
 ---
 
@@ -127,17 +129,17 @@ web (3002)  ──REST /v1──►  backend (3003)  ──X-Service-Key──�
 
 ## Running it
 
-### Local dev (no Docker)
+### Local dev
 
 ```bash
-# 1. Start Postgres + Redis
-cd backend && docker compose up -d postgres redis
+# 1. Start local Supabase (provides Postgres on 54322 + Redis on 6379)
+#    Or use your own Postgres + Redis and update backend/.env accordingly.
 
 # 2. Backend
 cd backend
 cp .env.example .env          # then edit secrets (JWT_ACCESS_SECRET etc.)
 npm install
-npx prisma migrate dev        # create + apply the schema
+npx prisma migrate deploy     # apply migrations (use db push if migrate dev fails)
 npm run prisma:seed           # seed the catalogue
 npm run start:dev              # http://localhost:3003/v1
 
@@ -155,6 +157,16 @@ npm run dev                    # http://localhost:3002
 ```
 
 > **NVIDIA_API_KEY gotcha:** If you have `NVIDIA_API_KEY` exported in your shell, unset it before launching the agent — the shell export shadows the `.env` value and causes HTTP 403s on every chat turn.
+
+### VPS deployment (Coolify)
+
+Deploy each service as a separate Coolify application:
+
+1. **Backend** — set `DATABASE_URL` / `DIRECT_URL` to the Coolify-managed Postgres, `REDIS_URL` to the Coolify-managed Redis, and all secrets (`JWT_ACCESS_SECRET`, `AI_SERVICE_KEY`, etc.). Run `npx prisma migrate deploy` on start, then `npm run prisma:seed` once.
+2. **AI Agent** — set `BACKEND_URL` to the backend's Coolify URL, `REDIS_URL`, `NVIDIA_API_KEY`, `AI_SERVICE_KEY`. Run **without `--reload`**.
+3. **Web** — set `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_AI_WS_URL` to the Coolify URLs for backend and agent.
+
+The app works with any standard PostgreSQL — no Supabase dependency required in production.
 
 ### Environment variables
 
