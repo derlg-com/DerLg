@@ -13,7 +13,6 @@ import {
   EmptyState,
   ErrorState,
   Field,
-  Input,
   LoadingRegion,
   Select,
   Skeleton,
@@ -21,12 +20,57 @@ import {
 import { useGuides } from '@/hooks/use-catalog'
 import { useUrlFilters } from '@/hooks/use-url-filters'
 import { Link } from '@/lib/i18n/navigation'
-import { locales } from '@/lib/i18n/config'
 
 const DEFAULTS = {
   language: undefined as string | undefined,
-  speciality: undefined as string | undefined,
+  specialty: undefined as string | undefined,
   page: undefined as string | undefined,
+}
+
+/**
+ * P2: the backend widened SupportedLanguage beyond the UI locales, so the
+ * filter offers the full set rather than reusing `locales` (en/zh/km).
+ */
+export const GUIDE_LANGUAGES = ['en', 'zh', 'km', 'ja', 'ko', 'fr', 'de', 'es', 'th', 'vi'] as const
+
+/** P2: enum-backed specialties from the backend Specialty enum. */
+export const GUIDE_SPECIALTIES = [
+  'culture_history',
+  'food_tours',
+  'nature_trekking',
+  'photography',
+  'family_friendly',
+  'business',
+  'luxury',
+  'adventure',
+] as const
+
+/** culture_history -> Culture history. */
+function readableSpecialty(value: string): string {
+  const spaced = value.replace(/_/g, ' ')
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
+/**
+ * Full language name from `catalog.filters.languageNames`, falling back to the
+ * uppercased code for codes the messages do not know yet.
+ */
+function languageLabel(code: string, t: ReturnType<typeof useTranslations<'catalog'>>): string {
+  const key = `filters.languageNames.${code}` as never
+  return t.has(key) ? t(key) : code.toUpperCase()
+}
+
+/**
+ * P2: prefer the new enum-backed `specialties` field; fall back to the legacy
+ * free-text `specialities` until the backend ships the rename.
+ */
+function specialtiesOf(guide: {
+  specialties?: string[] | null
+  specialities?: string[] | null
+}): string[] {
+  return guide.specialties && guide.specialties.length > 0
+    ? guide.specialties
+    : guide.specialities ?? []
 }
 
 const PAGE_SIZE = 12
@@ -43,9 +87,8 @@ export function GuidesBrowser() {
   const { data, isPending, isError, refetch } = useGuides({
     page: Number.isFinite(page) && page > 0 ? page : 1,
     limit: PAGE_SIZE,
-    // The backend validates language against its own en|zh|km enum.
     language: filters.language,
-    speciality: filters.speciality,
+    specialty: filters.specialty,
   })
 
   return (
@@ -59,26 +102,29 @@ export function GuidesBrowser() {
               onChange={(event) => setFilters({ language: event.target.value || undefined })}
             >
               <option value="">{catalog('filters.anyLanguage')}</option>
-              {locales.map((code) => (
+              {GUIDE_LANGUAGES.map((code) => (
                 <option key={code} value={code}>
-                  {code.toUpperCase()}
+                  {languageLabel(code, catalog)}
                 </option>
               ))}
             </Select>
           )}
         </Field>
 
-        <Field label={catalog('detail.specialities')} className="min-w-48">
+        <Field label={catalog('filters.specialty')} className="min-w-48">
           {(props) => (
-            <Input
+            <Select
               {...props}
-              type="search"
-              defaultValue={filters.speciality ?? ''}
-              onChange={(event) => {
-                const value = event.target.value.trim()
-                setFilters({ speciality: value === '' ? undefined : value })
-              }}
-            />
+              value={filters.specialty ?? ''}
+              onChange={(event) => setFilters({ specialty: event.target.value || undefined })}
+            >
+              <option value="">{catalog('filters.anySpecialty')}</option>
+              {GUIDE_SPECIALTIES.map((specialty) => (
+                <option key={specialty} value={specialty}>
+                  {readableSpecialty(specialty)}
+                </option>
+              ))}
+            </Select>
           )}
         </Field>
       </FilterBar>
@@ -136,24 +182,48 @@ export function GuidesBrowser() {
                     <CardMedia src={guide.avatarUrl} ratio="1/1" sizes="(min-width: 1024px) 25vw, 50vw" />
                     <CardContent className="space-y-2 pt-4">
                       <div className="flex items-start justify-between gap-2">
-                        {/* The API provides no guide name, so the province is the heading. */}
-                        <h2 className="line-clamp-1 text-base leading-tight font-semibold tracking-tight">
-                          {guide.province ?? t('card.verified')}
+                        {/*
+                         * P2: languages + specialties are the guide's PRIMARY
+                         * identity, so they lead the card. The API provides no
+                         * guide name, so the heading is the language set.
+                         */}
+                        <h2
+                          className="line-clamp-2 text-base leading-tight font-semibold tracking-tight"
+                          aria-label={
+                            guide.languages && guide.languages.length > 0
+                              ? guide.languages.map((code) => languageLabel(code, catalog)).join(' · ')
+                              : undefined
+                          }
+                        >
+                          {guide.languages && guide.languages.length > 0
+                            ? guide.languages
+                                .map((code) => languageLabel(code, catalog))
+                                .join(' · ')
+                            : guide.province ?? t('card.verified')}
                         </h2>
                         {guide.isVerified ? (
-                          <Badge tone="success">{t('card.verified')}</Badge>
+                          <Badge tone="success" className="shrink-0">
+                            {t('card.verified')}
+                          </Badge>
                         ) : null}
                       </div>
 
-                      {guide.languages && guide.languages.length > 0 ? (
-                        <p className="text-sm text-[var(--text-secondary)]">
-                          {guide.languages.map((code) => code.toUpperCase()).join(' · ')}
-                        </p>
+                      {specialtiesOf(guide).length > 0 ? (
+                        <ul className="flex flex-wrap gap-1.5" aria-label={catalog('detail.specialities')}>
+                          {specialtiesOf(guide).map((specialty) => (
+                            <li key={specialty}>
+                              <Badge tone="neutral">{readableSpecialty(specialty)}</Badge>
+                            </li>
+                          ))}
+                        </ul>
                       ) : null}
 
-                      {guide.specialities && guide.specialities.length > 0 ? (
-                        <p className="line-clamp-2 text-sm text-[var(--text-tertiary)]">
-                          {guide.specialities.join(', ')}
+                      {guide.province ? (
+                        <p className="line-clamp-1 text-sm text-[var(--text-tertiary)]">
+                          {guide.province}
+                          {guide.provinces && guide.provinces.length > 1
+                            ? ` · ${guide.provinces.length} areas`
+                            : ''}
                         </p>
                       ) : null}
 

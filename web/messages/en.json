@@ -1023,7 +1023,14 @@
     "perNight": "per night",
     "rating": "Rating",
     "duration": "Duration",
-    "resultsLabel": "Results from the concierge"
+    "resultsLabel": "Results from the concierge",
+    "customTrip": "Custom trip",
+    "customTripDays": "{count} days",
+    "customTripTotal": "Total",
+    "customTripItems": "What's included",
+    "customTripExtras": "Extras",
+    "customTripBook": "Book this trip",
+    "customTripQuantity": "×{count}"
   },
   "booking": {
     "summary": "Booking Summary",
@@ -1344,7 +1351,30 @@
       "vehicleType": "Vehicle type",
       "anyVehicle": "Any vehicle",
       "placeCategory": "Place type",
-      "anyPlace": "All places"
+      "anyPlace": "All places",
+      "hotelType": "Hotel type",
+      "specialty": "Specialty",
+      "anySpecialty": "Any specialty",
+      "tier": "Tier",
+      "subtype": "Vehicle subtype",
+      "anySubtype": "Any subtype",
+      "languageNames": {
+        "en": "English",
+        "zh": "Chinese",
+        "km": "Khmer",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "fr": "French",
+        "de": "German",
+        "es": "Spanish",
+        "th": "Thai",
+        "vi": "Vietnamese"
+      }
+    },
+    "tiers": {
+      "normal": "Normal",
+      "vip": "VIP",
+      "bus": "Bus"
     },
     "detail": {
       "notFoundTitle": "Not found",
@@ -1361,6 +1391,9 @@
       "languages": "Languages",
       "specialities": "Specialities",
       "provinces": "Areas covered",
+      "packages": "Trip packages",
+      "package": "Package",
+      "packageDays": "{count} days",
       "capacity": "Capacity",
       "pricing": "Pricing",
       "entryFee": "Entry fee",

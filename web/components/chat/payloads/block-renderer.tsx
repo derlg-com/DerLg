@@ -17,6 +17,7 @@ import {
   StripeCardFormBlock,
 } from '@/components/chat/payloads/booking'
 import { MapViewBlock } from '@/components/chat/payloads/map-block'
+import { CustomTripCardBlock } from '@/components/chat/payloads/rich/custom-trip-card'
 import {
   BudgetEstimateBlock,
   HotelDetailBlock,
@@ -110,6 +111,10 @@ const RENDERERS: Partial<Record<ContentPayload['type'], Renderer>> = {
 
   budget_estimate: (payload) =>
     payload.type === 'budget_estimate' ? <BudgetEstimateBlock data={payload.data} /> : null,
+
+  /* The agent composed a trip and the backend persisted it as a real Trip row. */
+  custom_trip_card: (payload) =>
+    payload.type === 'custom_trip_card' ? <CustomTripCardBlock data={payload.data} /> : null,
 
   text_summary: (payload) =>
     payload.type === 'text_summary' ? <TextSummaryBlock data={payload.data} /> : null,

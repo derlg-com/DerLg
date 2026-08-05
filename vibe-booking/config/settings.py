@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     nvidia_api_key: str = ""
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
     model_llm: str = "openai/gpt-oss-120b"
+    # Per-LLM-call timeout (s). gpt-oss-120b is a reasoning model with measured
+    # 60-90s end-to-end latency on NVIDIA's free tier, so keep this high; the
+    # 2-attempt retry + structured error frame cover genuine failures (P6a).
+    model_timeout_s: float = 90.0
 
     # Ollama fallback
     ollama_base_url: str = "http://localhost:11434"

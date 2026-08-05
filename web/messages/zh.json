@@ -1023,7 +1023,14 @@
     "perNight": "每晚",
     "rating": "评分",
     "duration": "时长",
-    "resultsLabel": "来自礼宾的结果"
+    "resultsLabel": "来自礼宾的结果",
+    "customTrip": "定制行程",
+    "customTripDays": "{count} 天",
+    "customTripTotal": "总计",
+    "customTripItems": "包含项目",
+    "customTripExtras": "附加项目",
+    "customTripBook": "预订此行程",
+    "customTripQuantity": "×{count}"
   },
   "booking": {
     "summary": "预订摘要",
@@ -1344,7 +1351,30 @@
       "vehicleType": "车辆类型",
       "anyVehicle": "不限车型",
       "placeCategory": "景点类型",
-      "anyPlace": "所有景点"
+      "anyPlace": "所有景点",
+      "hotelType": "酒店类型",
+      "specialty": "专长",
+      "anySpecialty": "不限专长",
+      "tier": "档次",
+      "subtype": "车型",
+      "anySubtype": "不限车型",
+      "languageNames": {
+        "en": "英语",
+        "zh": "中文",
+        "km": "高棉语",
+        "ja": "日语",
+        "ko": "韩语",
+        "fr": "法语",
+        "de": "德语",
+        "es": "西班牙语",
+        "th": "泰语",
+        "vi": "越南语"
+      }
+    },
+    "tiers": {
+      "normal": "普通",
+      "vip": "VIP",
+      "bus": "巴士"
     },
     "detail": {
       "notFoundTitle": "未找到",
@@ -1361,6 +1391,9 @@
       "languages": "语言",
       "specialities": "专长",
       "provinces": "服务区域",
+      "packages": "旅行套餐",
+      "package": "套餐",
+      "packageDays": "{count} 天",
       "capacity": "载客量",
       "pricing": "价格",
       "entryFee": "门票",

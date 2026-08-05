@@ -146,6 +146,40 @@ enum TripCategory {
   CULTURE
   ADVENTURE
   FOOD
+  CUSTOM // AI-composed custom trip (P6b)
+}
+
+enum HotelType {
+  RESORT
+  BOUTIQUE
+  HOTEL
+  GUESTHOUSE
+  HOSTEL
+  VILLA
+}
+
+enum Specialty {
+  CULTURE_HISTORY
+  FOOD_TOURS
+  NATURE_TREKKING
+  PHOTOGRAPHY
+  FAMILY_FRIENDLY
+  BUSINESS
+  LUXURY
+  ADVENTURE
+}
+
+enum VehicleTier {
+  NORMAL
+  VIP
+}
+
+enum VehicleSubtype {
+  STAREX
+  HIACE
+  ALPHARD
+  SMALL_BUS
+  BIG_BUS
 }
 
 enum TripStatus {
@@ -171,6 +205,13 @@ enum Language {
   EN
   ZH
   KM
+  JA
+  KO
+  FR
+  DE
+  ES
+  TH
+  VI
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -261,11 +302,14 @@ model Trip {
   excludedItems    String[]   @map("excluded_items")
   meetingPoint     Json?      @map("meeting_point") // { description, latitude, longitude }
   cancellationPolicy String?  @map("cancellation_policy")
+  // AI-composed custom trips (P6b): server-priced component/extras snapshot.
+  extras           Json?      @map("extras")
   
   // Relations
   reviews         Review[]
   favorites       Favorite[]
   bookings        Booking[]
+  guides          Guide[] // implicit m2m — packages a guide runs (P2)
   
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -331,6 +375,7 @@ model Hotel {
   address           String?
   latitude          Decimal? @db.Decimal(10, 8)
   longitude         Decimal? @db.Decimal(11, 8)
+  type              HotelType? // P1: resort | boutique | hotel | guesthouse | hostel | villa
   starRating        Int?     @map("star_rating")
   pricePerNightFrom Decimal? @map("price_per_night_from") @db.Decimal(10, 2)
   amenities         String[]
@@ -395,7 +440,8 @@ model Guide {
   bio             String?
   experienceYears Int?       @map("experience_years")
   languages       Language[]
-  specialties     String[]
+  specialties     Specialty[] // P2: enum-backed (culture_history, food_tours, ...)
+  trips           Trip[]      // P2: implicit m2m — packages this guide runs
   location        String
   gender          Gender?
   pricePerDayUsd  Decimal?   @map("price_per_day_usd") @db.Decimal(10, 2)
@@ -428,6 +474,8 @@ model Guide {
 model TransportationVehicle {
   id              String            @id @default(uuid())
   type            TransportationType
+  tier            VehicleTier?      // P3: normal | vip
+  subtype         VehicleSubtype?   // P3: starex | hiace | alphard | small_bus | big_bus
   name            String
   description     String?
   capacity        Int
@@ -446,6 +494,8 @@ model TransportationVehicle {
   deletedAt       DateTime? @map("deleted_at")
   
   @@index([type])
+  @@index([tier])
+  @@index([subtype])
   @@index([isAvailable])
   @@index([deletedAt])
   @@map("transportation_vehicles")

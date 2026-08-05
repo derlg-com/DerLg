@@ -8,7 +8,9 @@ from utils.logging import logger
 
 # Retry config for transient NVIDIA failures (esp. 429 rate limits, which were
 # the root cause of "the AI sometimes doesn't call the tool").
-_MAX_ATTEMPTS = 4
+# P6a: 4 -> 2 attempts so a degraded model can't stall the chat for minutes;
+# the WebSocket layer turns the final failure into a retryable error frame.
+_MAX_ATTEMPTS = 2
 _BASE_BACKOFF = 1.0  # seconds; exponential, capped
 
 
@@ -37,7 +39,7 @@ class NvidiaClient(ModelClient):
         self._client = httpx.AsyncClient(
             base_url=settings.nvidia_base_url,
             headers={"Authorization": f"Bearer {settings.nvidia_api_key}"},
-            timeout=60.0,
+            timeout=settings.model_timeout_s,
         )
         self._model = settings.model_llm
 
@@ -142,7 +144,10 @@ class NvidiaClient(ModelClient):
         return result
 
     def _parse(self, data: dict) -> ModelResponse:
-        choice = data["choices"][0]
+        choices = data.get("choices") or []
+        if not choices:
+            raise ValueError("model returned no choices")
+        choice = choices[0]
         message = choice["message"]
         finish_reason = choice.get("finish_reason", "stop")
         stop_reason = "tool_use" if finish_reason == "tool_calls" else "end_turn"
@@ -193,7 +198,12 @@ class NvidiaClient(ModelClient):
                 except json.JSONDecodeError:
                     continue
 
-                choice = chunk.get("choices", [{}])[0]
+                # NVIDIA streams may emit chunks with an empty `choices` array
+                # (e.g. usage-only frames) — never index into it directly.
+                choices = chunk.get("choices") or []
+                if not choices:
+                    continue
+                choice = choices[0]
                 finish_reason = choice.get("finish_reason") or finish_reason
                 delta = choice.get("delta", {})
 

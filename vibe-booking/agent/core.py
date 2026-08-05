@@ -93,7 +93,25 @@ _TOOL_INTENT = {
     "send_sos_alert": "Sending an SOS alert",
     "generate_payment_qr": "Generating a payment QR",
     "get_user_loyalty": "Checking loyalty points",
+    "create_trip": "Composing your custom trip",
 }
+
+
+def _friendly_cause(exc: BaseException | None) -> str:
+    """One user-safe sentence describing why the agent loop gave up (P6a).
+
+    Never leaks exception internals to the user; maps common failure classes
+    (timeouts, HTTP errors) to plain language and falls back to a generic line.
+    """
+    if exc is None:
+        return "Please try again."
+    name = type(exc).__name__.lower()
+    msg = str(exc).lower()
+    if "timeout" in name or "timed out" in msg or "timeout" in msg:
+        return "The service took too long to respond. Please try again."
+    if "http" in name or "httpstatus" in name or "http" in msg or "status" in name or "response" in msg:
+        return "The service returned an error. Please try again."
+    return "Something went wrong on our end. Please try again."
 
 
 def _format_tool_intent(name: str, inp: dict) -> str:
@@ -222,6 +240,38 @@ def _norm_hotel_detail(h: dict) -> dict:
         "amenities": h.get("amenities") or None,
         "lat": h.get("latitude"),
         "lng": h.get("longitude"),
+    })
+
+
+def _norm_custom_trip(t: dict) -> dict:
+    """Backend POST /v1/ai-tools/trips response (snake_case) → frontend
+    custom_trip_card payload (camelCase). Items/extras keep only the fields the
+    frontend card renders; `description`/`start_date` pass through when present."""
+    return _strip_none({
+        "id": t.get("id", ""),
+        "title": t.get("title", ""),
+        "description": t.get("description"),
+        "durationDays": t.get("duration_days") or t.get("durationDays", 0),
+        "totalUsd": t.get("total_usd") or t.get("totalUsd") or 0,
+        "items": [
+            _strip_none({
+                "type": it.get("type", ""),
+                "name": it.get("name", ""),
+                "unitPriceUsd": it.get("unit_price_usd") or it.get("unitPriceUsd") or 0,
+                "quantity": it.get("quantity", 1),
+            })
+            for it in (t.get("items") or [])
+        ] or None,
+        "extras": [
+            _strip_none({
+                "name": e.get("name", ""),
+                "description": e.get("description"),
+                "unitPriceUsd": e.get("unit_price_usd") or e.get("unitPriceUsd") or 0,
+                "quantity": e.get("quantity", 1),
+            })
+            for e in (t.get("extras") or [])
+        ] or None,
+        "startDate": t.get("start_date") or t.get("startDate"),
     })
 
 
@@ -450,6 +500,10 @@ def build_content_payloads(
             if isinstance(raw, dict) and raw.get("id"):
                 payloads.append({"type": "hotel_detail", "data": _norm_hotel_detail(raw), "actions": [], "metadata": {}})
 
+        elif tool_name == "create_trip":
+            if isinstance(raw, dict) and raw.get("id"):
+                payloads.append({"type": "custom_trip_card", "data": _norm_custom_trip(raw), "actions": [], "metadata": {}})
+
     # Results header ("Results for '<query>'") on the card-list blocks.
     if query:
         title = f'Results for "{query}"'
@@ -600,11 +654,16 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
     messages = session.messages[-MAX_MESSAGES:]
     all_tool_results: list[tuple[str, dict]] = []
     search_destination: str | None = None
+    last_error: BaseException | None = None
 
     for _ in range(MAX_TOOL_LOOPS):
-        response = await client.create_message(
-            system=system, messages=messages, tools=ALL_TOOLS, max_tokens=MAX_TOKENS,
-        )
+        try:
+            response = await client.create_message(
+                system=system, messages=messages, tools=ALL_TOOLS, max_tokens=MAX_TOKENS,
+            )
+        except Exception as exc:  # model unreachable/timeout → surface cause
+            last_error = exc
+            break
 
         if response.stop_reason == "end_turn":
             text = next((b.text for b in response.content if b.type == "text"), "")
@@ -636,7 +695,11 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
             })
         session.messages.append(assistant_msg)
 
-        results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+        try:
+            results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+        except Exception as exc:  # tool layer failure (defensive; requests are caught)
+            last_error = exc
+            break
         for tc, result in zip(tool_calls, results):
             all_tool_results.append((tc.name, result))
 
@@ -649,7 +712,7 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
             })
         messages = session.messages[-MAX_MESSAGES:]
 
-    return "I'm having trouble processing your request. Please try again.", None
+    return f"I'm having trouble processing your request. {_friendly_cause(last_error)}", None
 
 
 async def run_agent_streaming(
@@ -664,6 +727,7 @@ async def run_agent_streaming(
     all_tool_results: list[tuple[str, dict]] = []
     search_destination: str | None = None
     search_label: str | None = None
+    last_error: BaseException | None = None
 
     for _ in range(MAX_TOOL_LOOPS):
         streamed = False
@@ -691,9 +755,13 @@ async def run_agent_streaming(
                 accumulated_text = ""
 
         if response is None:
-            response = await client.create_message(
-                system=system, messages=messages, tools=ALL_TOOLS, max_tokens=MAX_TOKENS,
-            )
+            try:
+                response = await client.create_message(
+                    system=system, messages=messages, tools=ALL_TOOLS, max_tokens=MAX_TOKENS,
+                )
+            except Exception as exc:  # model unreachable/timeout → surface cause
+                last_error = exc
+                break
 
         if response.stop_reason == "end_turn":
             text = next((b.text for b in response.content if b.type == "text"), "")
@@ -704,11 +772,21 @@ async def run_agent_streaming(
             session.messages.append({"role": "assistant", "content": full_text})
             payloads = build_content_payloads(all_tool_results, search_destination, query=search_label)
             # Follow-up chips + per-card blurbs run concurrently (same client) so
-            # the post-answer enrichment adds ~one round-trip, not two.
-            suggestions, payloads = await asyncio.gather(
-                generate_suggestions(session, full_text, client=client, payloads=payloads),
-                attach_card_blurbs(session, payloads, client=client),
-            )
+            # the post-answer enrichment adds ~one round-trip, not two. With a
+            # slow reasoning model (gpt-oss-120b, 60-90s/call) that round-trip
+            # would delay `final` for minutes — bound it so the answer always
+            # lands promptly; chips/blurbs degrade gracefully when skipped.
+            try:
+                suggestions, payloads = await asyncio.wait_for(
+                    asyncio.gather(
+                        generate_suggestions(session, full_text, client=client, payloads=payloads),
+                        attach_card_blurbs(session, payloads, client=client),
+                    ),
+                    timeout=25.0,
+                )
+            except Exception:
+                suggestions = []
+                logger.warning("enrichment_skipped_timeout")
             yield {
                 "type": "final",
                 "text": full_text,
@@ -777,7 +855,11 @@ async def run_agent_streaming(
         for tc in tool_calls:
             yield {"type": "agent_tool_status", "tool_use_id": tc.id, "name": tc.name, "status": "running"}
 
-        results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+        try:
+            results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+        except Exception as exc:  # tool layer failure (defensive; requests are caught)
+            last_error = exc
+            break
 
         for tc, result in zip(tool_calls, results):
             status = "completed" if result.get("success") else "failed"
@@ -793,4 +875,5 @@ async def run_agent_streaming(
             })
         messages = session.messages[-MAX_MESSAGES:]
 
-    yield {"type": "final", "text": "I'm having trouble processing your request. Please try again.", "content_payload": None, "content_payloads": [], "suggestions": [], "requires_payment": None}
+    fallback_text = f"I'm having trouble processing your request. {_friendly_cause(last_error)}"
+    yield {"type": "final", "text": fallback_text, "content_payload": None, "content_payloads": [], "suggestions": [], "requires_payment": None}

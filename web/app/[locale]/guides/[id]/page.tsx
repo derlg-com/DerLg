@@ -139,7 +139,14 @@ export default async function GuideDetailPage({
                   <span className="text-[var(--text-tertiary)]">
                     {catalog('detail.languages')}:{' '}
                   </span>
-                  {guide.languages.map((code) => code.toUpperCase()).join(' · ')}
+                  {guide.languages
+                    .map((code) => {
+                      const key = `filters.languageNames.${code}`
+                      return catalog.has(key as never)
+                        ? catalog(key as never)
+                        : code.toUpperCase()
+                    })
+                    .join(' · ')}
                 </p>
               ) : null}
             </header>
@@ -153,20 +160,28 @@ export default async function GuideDetailPage({
               </section>
             ) : null}
 
-            {guide.specialities && guide.specialities.length > 0 ? (
-              <section className="space-y-3">
-                <h2 className="text-xl font-semibold tracking-tight">
-                  {catalog('detail.specialities')}
-                </h2>
-                <ul className="flex flex-wrap gap-2">
-                  {guide.specialities.map((item) => (
-                    <li key={item}>
-                      <Badge tone="neutral">{item}</Badge>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+            {(() => {
+              // P2: prefer the enum-backed specialties; fall back to legacy free-text.
+              const specialties =
+                guide.specialties && guide.specialties.length > 0
+                  ? guide.specialties
+                  : guide.specialities
+              if (!specialties || specialties.length === 0) return null
+              return (
+                <section className="space-y-3">
+                  <h2 className="text-xl font-semibold tracking-tight">
+                    {catalog('detail.specialities')}
+                  </h2>
+                  <ul className="flex flex-wrap gap-2">
+                    {specialties.map((item) => (
+                      <li key={item}>
+                        <Badge tone="neutral">{item.replace(/_/g, ' ')}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )
+            })()}
 
             {guide.provinces && guide.provinces.length > 0 ? (
               <section className="space-y-3">
@@ -174,6 +189,45 @@ export default async function GuideDetailPage({
                   {catalog('detail.provinces')}
                 </h2>
                 <p className="text-[var(--text-secondary)]">{guide.provinces.join(' · ')}</p>
+              </section>
+            ) : null}
+
+            {guide.packages && guide.packages.length > 0 ? (
+              <section className="space-y-3">
+                <h2 className="text-xl font-semibold tracking-tight">
+                  {catalog('detail.packages')}
+                </h2>
+                <ul className="flex flex-col gap-2">
+                  {guide.packages.map((pkg) => (
+                    <li key={pkg.id ?? pkg.name ?? 'pkg'}>
+                      <Link
+                        href={`/trips/${pkg.id}`}
+                        className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface)] px-4 py-3 transition-colors duration-[var(--duration-fast)] hover:bg-[var(--surface-hover)]"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-[var(--text-primary)]">
+                            {pkg.name ?? catalog('detail.package')}
+                          </span>
+                          <span className="block text-xs text-[var(--text-tertiary)]">
+                            {[
+                              typeof pkg.durationDays === 'number'
+                                ? catalog('detail.packageDays', { count: pkg.durationDays })
+                                : null,
+                              typeof pkg.priceUsd === 'number'
+                                ? `$${pkg.priceUsd}`
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        </span>
+                        <span aria-hidden="true" className="text-[var(--text-tertiary)]">
+                          →
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </section>
             ) : null}
 

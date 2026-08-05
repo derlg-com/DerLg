@@ -1023,7 +1023,14 @@
     "perNight": "ក្នុងមួយយប់",
     "rating": "ការវាយតម្លៃ",
     "duration": "រយៈពេល",
-    "resultsLabel": "លទ្ធផលពីអ្នកបម្រើ"
+    "resultsLabel": "លទ្ធផលពីអ្នកបម្រើ",
+    "customTrip": "ដំណើរកម្សាន្តផ្ទាល់ខ្លួន",
+    "customTripDays": "{count} ថ្ងៃ",
+    "customTripTotal": "សរុប",
+    "customTripItems": "អ្វីដែលរួមបញ្ចូល",
+    "customTripExtras": "បន្ថែម",
+    "customTripBook": "កក់ដំណើរកម្សាន្តនេះ",
+    "customTripQuantity": "×{count}"
   },
   "booking": {
     "summary": "សេចក្តីសង្ខេបការកក់",
@@ -1344,7 +1351,30 @@
       "vehicleType": "ប្រភេទយានយន្ត",
       "anyVehicle": "យានយន្តណាក៏បាន",
       "placeCategory": "ប្រភេទទីកន្លែង",
-      "anyPlace": "ទីកន្លែងទាំងអស់"
+      "anyPlace": "ទីកន្លែងទាំងអស់",
+      "hotelType": "ប្រភេទសណ្ឋាគារ",
+      "specialty": "ជំនាញ",
+      "anySpecialty": "ជំនាញណាក៏បាន",
+      "tier": "ថ្នាក់",
+      "subtype": "ប្រភេទរថយន្ត",
+      "anySubtype": "ប្រភេទណាក៏បាន",
+      "languageNames": {
+        "en": "អង់គ្លេស",
+        "zh": "ចិន",
+        "km": "ខ្មែរ",
+        "ja": "ជប៉ុន",
+        "ko": "កូរ៉េ",
+        "fr": "បារាំង",
+        "de": "អាល្លឺម៉ង់",
+        "es": "អេស្ប៉ាញ",
+        "th": "ថៃ",
+        "vi": "វៀតណាម"
+      }
+    },
+    "tiers": {
+      "normal": "ធម្មតា",
+      "vip": "VIP",
+      "bus": "ឡានក្រុង"
     },
     "detail": {
       "notFoundTitle": "រកមិនឃើញ",
@@ -1361,6 +1391,9 @@
       "languages": "ភាសា",
       "specialities": "ជំនាញ",
       "provinces": "តំបន់ដែលបម្រើ",
+      "packages": "កញ្ចប់ដំណើរកម្សាន្ត",
+      "package": "កញ្ចប់",
+      "packageDays": "{count} ថ្ងៃ",
       "capacity": "ចំណុះ",
       "pricing": "តម្លៃ",
       "entryFee": "ថ្លៃចូល",

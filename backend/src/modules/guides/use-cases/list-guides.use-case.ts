@@ -19,7 +19,21 @@ const GUIDE_SELECT = {
   provinces: true,
   isVerified: true,
   languages: { select: { language: true } },
-  specialities: { select: { speciality: true } },
+  specialties: { select: { specialty: true } },
+  trips: {
+    select: {
+      id: true,
+      durationDays: true,
+      basePriceUsd: true,
+      coverImage: true,
+      category: true,
+      translations: {
+        where: { language: 'en' },
+        select: { title: true },
+      },
+    },
+    take: 5,
+  },
 } satisfies Prisma.GuideSelect;
 
 @Injectable()
@@ -33,12 +47,12 @@ export class ListGuidesUseCase {
     query: ListGuidesDto,
     lang: Lang,
   ): Promise<PaginatedResponse<GuideSummary>> {
-    const { page = 1, limit = 20, language, speciality } = query;
+    const { page = 1, limit = 20, language, specialty, tripId } = query;
     const safePage = Math.max(1, page);
     const safeLimit = Math.min(100, Math.max(1, limit));
 
     const cacheKey = guideListKey(
-      { page: safePage, limit: safeLimit, language, speciality },
+      { page: safePage, limit: safeLimit, language, specialty, tripId },
       lang,
     );
 
@@ -48,8 +62,11 @@ export class ListGuidesUseCase {
         ...(language && {
           languages: { some: { language } },
         }),
-        ...(speciality && {
-          specialities: { some: { speciality } },
+        ...(specialty && {
+          specialties: { some: { specialty } },
+        }),
+        ...(tripId && {
+          trips: { some: { id: tripId } },
         }),
       };
 

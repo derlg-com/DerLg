@@ -33,6 +33,7 @@ BACKEND_ROUTES = {
     "get_user_loyalty":       ("GET",  "ai-tools/loyalty",            set()),  # user_id server-injected
     "get_trip_detail":        ("GET",  "trips/{trip_id}",             {"trip_id"}),
     "get_hotel_detail":       ("GET",  "hotels/{hotel_id}",           {"hotel_id"}),
+    "create_trip":            ("POST", "ai-tools/trips",              {"title", "duration_days"}),
 }
 
 # user_id is injected server-side for these, so it must NOT be a model-required param.

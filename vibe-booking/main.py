@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import settings
-from utils.logging import configure_logging
+from utils.logging import configure_logging, logger
 from utils.redis import init_redis, close_redis
 from api.middleware import LoggingMiddleware
 from api.health import router as health_router
@@ -15,6 +15,15 @@ from api.websocket import websocket_endpoint
 async def lifespan(app: FastAPI):
     configure_logging()
     _validate_startup()
+    # P6a: log the resolved model + provider so a stale .env (e.g. a shell-
+    # exported NVIDIA_API_KEY or wrong MODEL_LLM) is visible at boot, not after
+    # the first 403.
+    logger.info(
+        "model_configured",
+        model=settings.model_llm,
+        backend="ollama" if settings.use_ollama else "nvidia",
+        timeout_s=settings.model_timeout_s,
+    )
     await init_redis()
     if settings.sentry_dsn:
         sentry_sdk.init(dsn=settings.sentry_dsn)

@@ -14,7 +14,10 @@ export class PrismaService
     try {
       await this.$connect();
     } catch (e) {
-      console.warn('[PrismaService] DB connect failed at startup (will retry on first query):', (e as Error).message.slice(0, 120));
+      console.warn(
+        '[PrismaService] DB connect failed at startup (will retry on first query):',
+        (e as Error).message.slice(0, 120),
+      );
     }
   }
 

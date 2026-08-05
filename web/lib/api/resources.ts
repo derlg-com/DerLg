@@ -124,6 +124,11 @@ export const tripsApi = {
 
 export interface HotelFilters extends ListParams {
   starRating?: number
+  /**
+   * P1: hotel category (resort | boutique | hotel | guesthouse | hostel |
+   * villa). Only sent when a type chip is active; the backend DTO declares it.
+   */
+  type?: string
 }
 
 export const hotelsApi = {
@@ -160,9 +165,10 @@ export const hotelsApi = {
 /* ----------------------------------------------------------------- guides */
 
 export interface GuideFilters extends ListParams {
-  /** Backend enum: 'en' | 'zh' | 'km'. */
+  /** Backend enum: 'en' | 'zh' | 'km' | 'ja' | 'ko' | 'fr' | 'de' | 'es' | 'th' | 'vi' (P2 widen). */
   language?: string
-  speciality?: string
+  /** P2: enum-backed specialty filter, replacing the old free-text `speciality`. */
+  specialty?: string
 }
 
 export const guidesApi = {
@@ -202,6 +208,10 @@ export interface VehicleFilters extends ListParams {
    * `vehicleType` and `province` with "property should not exist".
    */
   type?: string
+  /** P3: tier (normal | vip). The backend DTO declares it. */
+  tier?: string
+  /** P3: subtype (starex | hiace | alphard | small_bus | big_bus). */
+  subtype?: string
 }
 
 export const transportApi = {

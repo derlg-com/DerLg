@@ -10,7 +10,7 @@ def test_all_tools_present():
         "check_availability", "create_booking_hold", "check_payment_status",
         "estimate_budget", "get_weather", "get_emergency_contacts",
         "send_sos_alert", "get_user_loyalty", "generate_payment_qr",
-        "get_trip_detail", "get_hotel_detail",
+        "get_trip_detail", "get_hotel_detail", "create_trip",
     }
     assert names == expected
 
@@ -39,4 +39,4 @@ def test_parallel_execution_order_preservation():
     """Tool dispatch dict preserves insertion order (Python 3.7+)."""
     names = list(TOOL_DISPATCH.keys())
     assert names == sorted(names, key=lambda n: list(TOOL_DISPATCH.keys()).index(n))
-    assert len(names) == 15
+    assert len(names) == 16

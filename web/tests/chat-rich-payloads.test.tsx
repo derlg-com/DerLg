@@ -317,6 +317,56 @@ describe('map view block', () => {
   })
 })
 
+describe('custom trip card block', () => {
+  it('renders the composed trip with items, extras and a book link', () => {
+    renderBlocks([
+      {
+        type: 'custom_trip_card',
+        data: {
+          id: 'trip-custom-1',
+          title: 'Siem Reap in 3 days',
+          durationDays: 3,
+          totalUsd: 420,
+          items: [
+            { type: 'hotel_room', name: 'Boutique Deluxe', unitPriceUsd: 90, quantity: 3 },
+            { type: 'guide', name: 'Sokha', unitPriceUsd: 50, quantity: 2 },
+          ],
+          extras: [{ name: 'Sunrise pass', unitPriceUsd: 20, quantity: 1 }],
+        },
+      },
+    ])
+
+    const card = screen.getByTestId('custom-trip-card')
+    expect(card).toHaveTextContent('Siem Reap in 3 days')
+    expect(card).toHaveTextContent('3 days')
+    // Item subtotals are unit price x quantity.
+    expect(card).toHaveTextContent('270')
+    expect(card).toHaveTextContent('100')
+    expect(card).toHaveTextContent('Sunrise pass')
+    expect(card.querySelector('a[href="/trips/trip-custom-1"]')).toHaveTextContent('Book this trip')
+  })
+
+  it('renders with no extras and no price-visible quantity when quantity is 1', () => {
+    renderBlocks([
+      {
+        type: 'custom_trip_card',
+        data: {
+          id: 'trip-custom-2',
+          title: 'Phnom Penh express',
+          durationDays: 1,
+          totalUsd: 120,
+          items: [{ type: 'vehicle', name: 'VIP Hiace', unitPriceUsd: 120, quantity: 1 }],
+        },
+      },
+    ])
+
+    const card = screen.getByTestId('custom-trip-card')
+    expect(card).toHaveTextContent('Phnom Penh express')
+    expect(card).toHaveTextContent('VIP Hiace')
+    expect(card).not.toHaveTextContent('Sunrise pass')
+  })
+})
+
 describe('registry coverage after rich renderers', () => {
   it('renders every rich type', () => {
     for (const type of [
@@ -327,6 +377,7 @@ describe('registry coverage after rich renderers', () => {
       'map_view',
       'weather',
       'budget_estimate',
+      'custom_trip_card',
       'text_summary',
     ]) {
       expect(hasRenderer(type)).toBe(true)

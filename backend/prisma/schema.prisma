@@ -174,6 +174,13 @@ enum SupportedLanguage {
   en
   zh
   km
+  ja
+  ko
+  fr
+  de
+  es
+  th
+  vi
 
   @@map("supported_language")
 }
@@ -195,6 +202,7 @@ enum TripCategory {
   culture
   adventure
   food
+  custom // AI-composed custom trip (P6b)
 
   @@map("trip_category")
 }
@@ -205,6 +213,47 @@ enum VehicleType {
   bus
 
   @@map("vehicle_type")
+}
+
+enum HotelType {
+  resort
+  boutique
+  hotel
+  guesthouse
+  hostel
+  villa
+
+  @@map("hotel_type")
+}
+
+enum Specialty {
+  culture_history
+  food_tours
+  nature_trekking
+  photography
+  family_friendly
+  business
+  luxury
+  adventure
+
+  @@map("specialty")
+}
+
+enum VehicleTier {
+  normal
+  vip
+
+  @@map("vehicle_tier")
+}
+
+enum VehicleSubtype {
+  starex
+  hiace
+  alphard
+  small_bus
+  big_bus
+
+  @@map("vehicle_subtype")
 }
 
 enum PricingModel {
@@ -360,6 +409,9 @@ model Trip {
   basePriceUsd Decimal @map("base_price_usd") @db.Decimal(10, 2)
   maxCapacity  Int     @default(10) @map("max_capacity")
 
+  // AI-composed custom trips (P6b): server-priced component extras snapshot.
+  extras Json? @db.JsonB
+
   // Cover
   coverImage String?  @map("cover_image")
   images     String[] @default([]) @db.Text
@@ -372,6 +424,7 @@ model Trip {
   // Relations
   translations       TripTranslation[]
   itineraryItems     TripItineraryItem[]
+  guides             Guide[] // implicit m2m — trip packages a guide runs (P2)
   reviews            Review[]
   favorites          Favorite[]
   bookingItems       BookingItem[]
@@ -477,15 +530,16 @@ model FestivalTranslation {
 // =============================================================================
 
 model Hotel {
-  id          String   @id @default(uuid()) @db.Uuid
-  latitude    Decimal  @db.Decimal(10, 7)
-  longitude   Decimal  @db.Decimal(10, 7)
-  starRating  Int?     @map("star_rating")
-  images      String[] @default([]) @db.Text
-  amenities   String[] @default([]) @db.Text
-  isPublished Boolean  @default(false) @map("is_published")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  id          String     @id @default(uuid()) @db.Uuid
+  latitude    Decimal    @db.Decimal(10, 7)
+  longitude   Decimal    @db.Decimal(10, 7)
+  type        HotelType? @map("type")
+  starRating  Int?       @map("star_rating")
+  images      String[]   @default([]) @db.Text
+  amenities   String[]   @default([]) @db.Text
+  isPublished Boolean    @default(false) @map("is_published")
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   translations HotelTranslation[]
@@ -495,6 +549,7 @@ model Hotel {
   tripItems    TripItineraryItem[]
 
   @@index([isPublished])
+  @@index([type])
   @@map("hotels")
 }
 
@@ -540,6 +595,8 @@ model HotelRoom {
 model TransportationVehicle {
   id           String      @id @default(uuid()) @db.Uuid
   vehicleType  VehicleType @map("vehicle_type")
+  tier         VehicleTier?    @map("tier")
+  subtype      VehicleSubtype? @map("subtype")
   name         String
   licensePlate String?     @map("license_plate")
 
@@ -559,6 +616,8 @@ model TransportationVehicle {
   bookingItems BookingItem[]
 
   @@index([vehicleType])
+  @@index([tier])
+  @@index([subtype])
   @@index([province])
   @@index([isActive])
   @@map("transportation_vehicles")
@@ -594,11 +653,12 @@ model Guide {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
-  languages    GuideLanguage[]
-  specialities GuideSpeciality[]
-  reviews      Review[]
+  languages  GuideLanguage[]
+  specialties GuideSpecialty[]
+  trips      Trip[] // implicit m2m — packages this guide runs (P2)
+  reviews    Review[]
   bookingItems BookingItem[]
-  favorites    Favorite[]
+  favorites  Favorite[]
 
   @@index([province])
   @@index([isVerified])
@@ -617,15 +677,15 @@ model GuideLanguage {
   @@map("guide_languages")
 }
 
-model GuideSpeciality {
-  id         String @id @default(uuid()) @db.Uuid
-  guideId    String @map("guide_id") @db.Uuid
-  speciality String // e.g. "Angkor Wat historian", "street food expert", "nature trekking"
+model GuideSpecialty {
+  id        String    @id @default(uuid()) @db.Uuid
+  guideId   String    @map("guide_id") @db.Uuid
+  specialty Specialty
 
   guide Guide @relation(fields: [guideId], references: [id], onDelete: Cascade)
 
-  @@unique([guideId, speciality])
-  @@map("guide_specialities")
+  @@unique([guideId, specialty])
+  @@map("guide_specialties")
 }
 
 // =============================================================================

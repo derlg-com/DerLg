@@ -2,13 +2,14 @@
 // Seed: 05 — Hotels (Siem Reap, Phnom Penh, Sihanoukville, Kampot)
 // =============================================================================
 
-import type { PrismaClient, SupportedLanguage } from '@prisma/client';
+import type { PrismaClient, SupportedLanguage, HotelType } from '@prisma/client';
 
 import imageUrls = require('./image-urls.json');
 
 interface HotelEntry {
   lat: number;
   lng: number;
+  type: HotelType;
   starRating?: number;
   images: string[];
   amenities: string[];
@@ -26,6 +27,7 @@ const HOTELS: HotelEntry[] = [
   {
     lat: 13.3642,
     lng: 103.8615,
+    type: 'resort',
     starRating: 5,
     images: [imageUrls['hotels/sokha-siem-reap.jpg']],
     amenities: ['WiFi', 'Pool', 'Spa', 'Gym', 'Restaurant', 'Bar', 'Parking', 'Airport Shuttle'],
@@ -43,6 +45,7 @@ const HOTELS: HotelEntry[] = [
   {
     lat: 11.5724,
     lng: 104.9281,
+    type: 'hotel',
     starRating: 5,
     images: [imageUrls['hotels/park-hyatt-phnom-penh.jpg']],
     amenities: ['WiFi', 'Pool', 'Spa', 'Gym', 'Rooftop Bar', 'Fine Dining', 'Concierge'],
@@ -59,6 +62,7 @@ const HOTELS: HotelEntry[] = [
   {
     lat: 11.5691,
     lng: 104.9308,
+    type: 'hotel',
     starRating: 5,
     images: [imageUrls['hotels/raffles-grand.jpg']],
     amenities: ['WiFi', 'Pool', 'Spa', 'Historic Charm', 'French Restaurant', 'Courtyard Garden'],
@@ -75,6 +79,7 @@ const HOTELS: HotelEntry[] = [
   {
     lat: 13.3528,
     lng: 103.8578,
+    type: 'boutique',
     starRating: 4,
     images: [imageUrls['hotels/belmond-la-residence.jpg']],
     amenities: ['WiFi', 'Pool', 'Spa', 'Fine Dining', 'Cooking Classes', 'Tuk-Tuk Service'],
@@ -91,6 +96,7 @@ const HOTELS: HotelEntry[] = [
   {
     lat: 13.3555,
     lng: 103.8550,
+    type: 'boutique',
     starRating: 4,
     images: [imageUrls['hotels/shinta-mani.jpg']],
     amenities: ['WiFi', 'Pool', 'Spa', 'Social Enterprise', 'Rooftop Bar', 'Art Gallery'],
@@ -119,6 +125,7 @@ export = async function seed(prisma: PrismaClient): Promise<void> {
       data: {
         latitude: h.lat,
         longitude: h.lng,
+        type: h.type,
         starRating: h.starRating,
         images: h.images,
         amenities: h.amenities,

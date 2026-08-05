@@ -3,10 +3,12 @@
 import { useTranslations } from 'next-intl'
 
 import { FilterBar } from '@/components/shared/filter-bar'
+import { FilterChips } from '@/components/shared/filter-chips'
 import { Pagination } from '@/components/shared/pagination'
 import { CardMedia } from '@/components/shared/card-media'
 import { Price } from '@/components/shared/price'
 import {
+  Badge,
   Card,
   CardContent,
   EmptyState,
@@ -24,7 +26,16 @@ import { Link } from '@/lib/i18n/navigation'
 const DEFAULTS = {
   q: undefined as string | undefined,
   starRating: undefined as string | undefined,
+  type: undefined as string | undefined,
   page: undefined as string | undefined,
+}
+
+/** P1: hotel categories the backend enum declares. */
+export const HOTEL_TYPES = ['resort', 'boutique', 'hotel', 'guesthouse', 'hostel', 'villa'] as const
+
+/** resort -> Resort. Type names are single words, so just capitalise. */
+function readableType(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
 const PAGE_SIZE = 12
@@ -44,6 +55,7 @@ export function HotelsBrowser() {
     // The backend requires at least two characters, so shorter terms are dropped.
     q: filters.q && filters.q.trim().length >= 2 ? filters.q.trim() : undefined,
     starRating: filters.starRating ? Number(filters.starRating) : undefined,
+    type: filters.type,
   })
 
   return (
@@ -80,6 +92,13 @@ export function HotelsBrowser() {
             </Select>
           )}
         </Field>
+
+        <FilterChips
+          label={catalog('filters.hotelType')}
+          value={filters.type}
+          onChange={(type) => setFilters({ type })}
+          options={HOTEL_TYPES.map((type) => ({ value: type, label: readableType(type) }))}
+        />
       </FilterBar>
 
       {isPending ? (
@@ -137,9 +156,17 @@ export function HotelsBrowser() {
                     {/* Hotels expose `coverImage`, not `coverImageUrl`. */}
                     <CardMedia src={hotel.coverImage} />
                     <CardContent className="space-y-2 pt-4">
-                      <h2 className="line-clamp-2 text-base leading-tight font-semibold tracking-tight">
-                        {hotel.name}
-                      </h2>
+                      <div className="flex items-start justify-between gap-2">
+                        <h2 className="line-clamp-2 text-base leading-tight font-semibold tracking-tight">
+                          {hotel.name}
+                        </h2>
+                        {/* P1: hotel type badge (resort, boutique, ...). */}
+                        {hotel.type ? (
+                          <Badge tone="neutral" className="shrink-0">
+                            {readableType(hotel.type)}
+                          </Badge>
+                        ) : null}
+                      </div>
                       {hotel.address ? (
                         <p className="line-clamp-1 text-sm text-[var(--text-secondary)]">
                           {hotel.address}

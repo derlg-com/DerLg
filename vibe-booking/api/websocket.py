@@ -149,7 +149,15 @@ async def _stream_agent_response(
     except Exception as exc:
         logger.error("agent_error", session_id=session.session_id, error=str(exc))
         await websocket.send_json({"type": "typing_end"})
-        await websocket.send_json({"type": "error", "message": "Something went wrong. Please try again."})
+        # P6a: structured, machine-readable error frame (the frontend surfaces
+        # the message and offers a retry when `retryable` is true) instead of
+        # the old hardcoded catch-all string.
+        await websocket.send_json({
+            "type": "error",
+            "code": "AGENT_INTERNAL_ERROR",
+            "message": "Something went wrong while processing your message. Please try again.",
+            "retryable": True,
+        })
 
 
 async def websocket_endpoint(websocket: WebSocket) -> None:

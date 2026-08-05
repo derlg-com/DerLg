@@ -14,6 +14,8 @@ const VEHICLE_DETAIL_SELECT = {
   name: true,
   licensePlate: true,
   capacity: true,
+  tier: true,
+  subtype: true,
   priceUsd: true,
   pricingModel: true,
   province: true,

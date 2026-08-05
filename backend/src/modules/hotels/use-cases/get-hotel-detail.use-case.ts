@@ -21,6 +21,7 @@ export class GetHotelDetailUseCase {
         where: { id, isPublished: true },
         select: {
           id: true,
+          type: true,
           starRating: true,
           images: true,
           amenities: true,

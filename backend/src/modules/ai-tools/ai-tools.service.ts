@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { SingleResourceKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -8,12 +12,14 @@ import {
   SearchTransportDto,
   CheckAvailabilityDto,
   CreateBookingHoldDto,
+  CreateCustomTripDto,
   SendSosAlertDto,
   GeneratePaymentQrDto,
   EstimateBudgetDto,
   GetPlacesDto,
   GetFestivalsDto,
 } from './ai-tools.dto';
+import { ErrorCode } from '../../common/errors/error-codes';
 
 const HOLD_TTL_MIN = 15;
 
@@ -31,7 +37,12 @@ export class AiToolsService {
         // Duration is a ±2-day tolerance window (not exact) so a 5-day trip
         // still surfaces for a "3 day" request instead of returning empty.
         ...(dto.duration_days
-          ? { durationDays: { gte: dto.duration_days - 2, lte: dto.duration_days + 2 } }
+          ? {
+              durationDays: {
+                gte: dto.duration_days - 2,
+                lte: dto.duration_days + 2,
+              },
+            }
           : {}),
         ...(dto.budget_usd ? { basePriceUsd: { lte: dto.budget_usd } } : {}),
         ...(dto.destination
@@ -39,8 +50,15 @@ export class AiToolsService {
               translations: {
                 some: {
                   OR: [
-                    { title: { contains: dto.destination, mode: 'insensitive' } },
-                    { subtitle: { contains: dto.destination, mode: 'insensitive' } },
+                    {
+                      title: { contains: dto.destination, mode: 'insensitive' },
+                    },
+                    {
+                      subtitle: {
+                        contains: dto.destination,
+                        mode: 'insensitive',
+                      },
+                    },
                     {
                       description: {
                         contains: dto.destination,
@@ -77,6 +95,7 @@ export class AiToolsService {
               },
             }
           : {}),
+        ...(dto.type ? { type: dto.type } : {}),
         rooms: {
           some: {
             isActive: true,
@@ -101,6 +120,7 @@ export class AiToolsService {
       id: h.id,
       name: h.translations[0]?.name ?? '',
       address: h.translations[0]?.address ?? '',
+      type: h.type,
       star_rating: h.starRating,
       price_from_usd: h.rooms[0] ? Number(h.rooms[0].priceUsd) : null,
       images: h.images,
@@ -113,7 +133,7 @@ export class AiToolsService {
         isActive: true,
         isVerified: true,
         province: { contains: dto.location, mode: 'insensitive' },
-        languages: { some: { language: dto.language as 'en' | 'zh' | 'km' } },
+        languages: { some: { language: dto.language as never } },
       },
       select: {
         id: true,
@@ -124,7 +144,20 @@ export class AiToolsService {
         province: true,
         isVerified: true,
         languages: { select: { language: true } },
-        specialities: { select: { speciality: true } },
+        specialties: { select: { specialty: true } },
+        trips: {
+          select: {
+            id: true,
+            durationDays: true,
+            basePriceUsd: true,
+            coverImage: true,
+            translations: {
+              where: { language: 'en' },
+              select: { title: true },
+            },
+          },
+          take: 5,
+        },
       },
       take: 10,
     });
@@ -145,11 +178,18 @@ export class AiToolsService {
       name: nameByUserId.get(g.userId) || 'Local Guide',
       bio: g.bio,
       languages: g.languages.map((l) => l.language),
-      specialities: g.specialities.map((s) => s.speciality),
+      specialties: g.specialties.map((s) => s.specialty),
       price_per_day_usd: Number(g.pricePerDayUsd),
       province: g.province,
       avatar_url: g.avatarUrl,
       is_verified: g.isVerified,
+      packages: g.trips.map((t) => ({
+        id: t.id,
+        title: t.translations[0]?.title ?? '',
+        duration_days: t.durationDays,
+        price_usd: Number(t.basePriceUsd),
+        cover_image: t.coverImage,
+      })),
     }));
   }
 
@@ -159,6 +199,8 @@ export class AiToolsService {
         isActive: true,
         province: { contains: dto.from_location, mode: 'insensitive' },
         ...(dto.mode ? { vehicleType: dto.mode as never } : {}),
+        ...(dto.tier ? { tier: dto.tier } : {}),
+        ...(dto.subtype ? { subtype: dto.subtype } : {}),
       },
       take: 10,
       orderBy: { priceUsd: 'asc' },
@@ -169,12 +211,173 @@ export class AiToolsService {
       operator: v.name,
       price_usd: Number(v.priceUsd),
       capacity: v.capacity,
+      tier: v.tier,
+      subtype: v.subtype,
       from_location: dto.from_location,
       to_location: dto.to_location,
       departure_date: dto.departure_date,
       pricing_model: v.pricingModel,
       images: v.images,
     }));
+  }
+
+  /**
+   * P6b — AI-composed custom trip. Prices components server-side (hotel room
+   * and guide/vehicle per-day rates x duration), caps extras at $500/unit via
+   * the DTO, persists a real Trip row (category=custom, extras JSON) and
+   * returns the composed quote in snake_case for the agent's normalizer.
+   */
+  async createCustomTrip(dto: CreateCustomTripDto) {
+    const durationDays = dto.duration_days;
+    const hasComponents =
+      Boolean(dto.hotel_room_id) ||
+      Boolean(dto.guide_id) ||
+      Boolean(dto.vehicle_id);
+    const extras = dto.extras ?? [];
+    if (!hasComponents && extras.length === 0) {
+      throw new BadRequestException({
+        code: ErrorCode.AI_TRIP_EMPTY,
+        message: 'Custom trip must include at least one component or extra',
+      });
+    }
+
+    const [room, guide, vehicle] = await Promise.all([
+      dto.hotel_room_id
+        ? this.prisma.hotelRoom.findUnique({
+            where: { id: dto.hotel_room_id },
+            include: {
+              hotel: {
+                include: {
+                  translations: {
+                    where: { language: 'en' },
+                    select: { name: true },
+                  },
+                },
+              },
+            },
+          })
+        : Promise.resolve(null),
+      dto.guide_id
+        ? this.prisma.guide.findUnique({ where: { id: dto.guide_id } })
+        : Promise.resolve(null),
+      dto.vehicle_id
+        ? this.prisma.transportationVehicle.findUnique({
+            where: { id: dto.vehicle_id },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    if (dto.hotel_room_id && !room) {
+      throw new NotFoundException({
+        code: ErrorCode.AI_TRIP_COMPONENT_NOT_FOUND,
+        message: 'Hotel room not found',
+      });
+    }
+    if (dto.guide_id && !guide) {
+      throw new NotFoundException({
+        code: ErrorCode.AI_TRIP_COMPONENT_NOT_FOUND,
+        message: 'Guide not found',
+      });
+    }
+    if (dto.vehicle_id && !vehicle) {
+      throw new NotFoundException({
+        code: ErrorCode.AI_TRIP_COMPONENT_NOT_FOUND,
+        message: 'Vehicle not found',
+      });
+    }
+
+    // Guide has no name column; resolve display name from the linked user.
+    let guideName: string | null = null;
+    if (guide) {
+      const guideUser = await this.prisma.user.findUnique({
+        where: { id: guide.userId },
+        select: { fullName: true },
+      });
+      guideName = guideUser?.fullName ?? null;
+    }
+
+    // Per-day components are priced as unit x duration (nights ≈ duration days).
+    const items: {
+      type: 'hotel' | 'guide' | 'transport';
+      name: string;
+      unit_price_usd: number;
+      quantity: number;
+      subtotal_usd: number;
+    }[] = [];
+
+    if (room) {
+      const unit = Number(room.priceUsd);
+      items.push({
+        type: 'hotel',
+        name: room.hotel.translations[0]?.name ?? room.roomType,
+        unit_price_usd: unit,
+        quantity: durationDays,
+        subtotal_usd: round2(unit * durationDays),
+      });
+    }
+    if (guide) {
+      const unit = Number(guide.pricePerDayUsd);
+      items.push({
+        type: 'guide',
+        name: guideName ?? 'Tour Guide',
+        unit_price_usd: unit,
+        quantity: durationDays,
+        subtotal_usd: round2(unit * durationDays),
+      });
+    }
+    if (vehicle) {
+      const unit = Number(vehicle.priceUsd);
+      items.push({
+        type: 'transport',
+        name: vehicle.name,
+        unit_price_usd: unit,
+        quantity: durationDays,
+        subtotal_usd: round2(unit * durationDays),
+      });
+    }
+
+    const extrasOut = extras.map((e) => ({
+      name: e.name,
+      description: e.description ?? null,
+      unit_price_usd: e.unit_price_usd,
+      quantity: e.quantity,
+      subtotal_usd: round2(e.unit_price_usd * e.quantity),
+    }));
+
+    const totalUsd = round2(
+      items.reduce((s, i) => s + i.subtotal_usd, 0) +
+        extrasOut.reduce((s, e) => s + e.subtotal_usd, 0),
+    );
+
+    const trip = await this.prisma.trip.create({
+      data: {
+        category: 'custom',
+        durationDays,
+        basePriceUsd: totalUsd,
+        maxCapacity: 10,
+        isPublished: true, // published so /v1/trips/:id renders the bookable card
+        extras: extrasOut,
+        ...(guide ? { guides: { connect: { id: guide.id } } } : {}),
+        translations: {
+          create: {
+            language: 'en',
+            title: dto.title,
+            description: dto.description ?? undefined,
+          },
+        },
+      },
+    });
+
+    return {
+      id: trip.id,
+      title: dto.title,
+      description: dto.description ?? null,
+      duration_days: durationDays,
+      total_usd: totalUsd,
+      items,
+      extras: extrasOut,
+      ...(dto.start_date ? { start_date: dto.start_date } : {}),
+    };
   }
 
   async checkAvailability(dto: CheckAvailabilityDto) {
@@ -284,34 +487,69 @@ export class AiToolsService {
         if (!trip) throw new NotFoundException('Trip not found');
         // Atomic availability check
         const booked = await tx.bookingItem.count({
-          where: { tripId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+          where: {
+            tripId: dto.item_id,
+            startDate: { lte: travelDate },
+            endDate: { gte: travelDate },
+            booking: {
+              status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            },
+          },
         });
-        if (booked >= trip.maxCapacity) throw new Error('Trip is fully booked for this date');
+        if (booked >= trip.maxCapacity)
+          throw new Error('Trip is fully booked for this date');
         unitPrice = Number(trip.basePriceUsd);
         bookingType = 'trip_package';
       } else if (dto.item_type === 'hotel') {
-        const room = await tx.hotelRoom.findUnique({ where: { id: dto.item_id } });
+        const room = await tx.hotelRoom.findUnique({
+          where: { id: dto.item_id },
+        });
         if (!room) throw new NotFoundException('Hotel room not found');
         const booked = await tx.bookingItem.count({
-          where: { hotelRoomId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+          where: {
+            hotelRoomId: dto.item_id,
+            startDate: { lte: travelDate },
+            endDate: { gte: travelDate },
+            booking: {
+              status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            },
+          },
         });
-        if (booked > 0) throw new Error('Hotel room is not available for this date');
+        if (booked > 0)
+          throw new Error('Hotel room is not available for this date');
         unitPrice = Number(room.priceUsd);
         bookingType = 'hotel_room';
       } else if (dto.item_type === 'transport') {
-        const vehicle = await tx.transportationVehicle.findUnique({ where: { id: dto.item_id } });
+        const vehicle = await tx.transportationVehicle.findUnique({
+          where: { id: dto.item_id },
+        });
         if (!vehicle) throw new NotFoundException('Vehicle not found');
         const booked = await tx.bookingItem.count({
-          where: { vehicleId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+          where: {
+            vehicleId: dto.item_id,
+            startDate: { lte: travelDate },
+            endDate: { gte: travelDate },
+            booking: {
+              status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            },
+          },
         });
-        if (booked >= vehicle.capacity) throw new Error('Vehicle is fully booked for this date');
+        if (booked >= vehicle.capacity)
+          throw new Error('Vehicle is fully booked for this date');
         unitPrice = Number(vehicle.priceUsd);
         bookingType = 'transportation';
       } else {
         const guide = await tx.guide.findUnique({ where: { id: dto.item_id } });
         if (!guide) throw new NotFoundException('Guide not found');
         const booked = await tx.bookingItem.count({
-          where: { guideId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+          where: {
+            guideId: dto.item_id,
+            startDate: { lte: travelDate },
+            endDate: { gte: travelDate },
+            booking: {
+              status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            },
+          },
         });
         if (booked > 0) throw new Error('Guide is not available for this date');
         unitPrice = Number(guide.pricePerDayUsd);
@@ -336,9 +574,13 @@ export class AiToolsService {
             create: {
               bookingType,
               ...(dto.item_type === 'trip' ? { tripId: dto.item_id } : {}),
-              ...(dto.item_type === 'hotel' ? { hotelRoomId: dto.item_id } : {}),
+              ...(dto.item_type === 'hotel'
+                ? { hotelRoomId: dto.item_id }
+                : {}),
               ...(dto.item_type === 'guide' ? { guideId: dto.item_id } : {}),
-              ...(dto.item_type === 'transport' ? { vehicleId: dto.item_id } : {}),
+              ...(dto.item_type === 'transport'
+                ? { vehicleId: dto.item_id }
+                : {}),
               startDate: travelDate,
               endDate: travelDate,
               snapshot: {},
@@ -354,8 +596,8 @@ export class AiToolsService {
         booking_id: booking.id,
         reference: booking.reference,
         amount_usd: Number(booking.totalUsd),
-        expires_at: booking.expiresAt!.toISOString(),
-        hold_expires_at: booking.expiresAt!.toISOString(),
+        expires_at: booking.expiresAt.toISOString(),
+        hold_expires_at: booking.expiresAt.toISOString(),
         methods: ['stripe', 'bakong'],
       };
     });
@@ -604,6 +846,10 @@ export class AiToolsService {
     if (!user) throw new NotFoundException('User not found');
     return { user_id: userId, points: user.loyaltyPoints };
   }
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 function monthNameToIndex(month: string): number | null {

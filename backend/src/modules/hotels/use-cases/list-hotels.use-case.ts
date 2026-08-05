@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client';
 
 const HOTEL_SUMMARY_SELECT = {
   id: true,
+  type: true,
   starRating: true,
   images: true,
   latitude: true,
@@ -34,12 +35,12 @@ export class ListHotelsUseCase {
     query: ListHotelsDto,
     lang: Lang,
   ): Promise<PaginatedResponse<HotelSummary>> {
-    const { page = 1, limit = 20, starRating } = query;
+    const { page = 1, limit = 20, starRating, type } = query;
     const safePage = Math.max(1, page);
     const safeLimit = Math.min(100, Math.max(1, limit));
 
     const cacheKey = hotelListKey(
-      { page: safePage, limit: safeLimit, starRating },
+      { page: safePage, limit: safeLimit, starRating, type },
       lang,
     );
 
@@ -47,6 +48,7 @@ export class ListHotelsUseCase {
       const where: Prisma.HotelWhereInput = {
         isPublished: true,
         ...(starRating !== undefined && { starRating }),
+        ...(type !== undefined && { type }),
       };
 
       const [total, rows] = await Promise.all([

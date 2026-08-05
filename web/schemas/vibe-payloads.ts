@@ -344,6 +344,44 @@ export const PaymentStatusPayloadSchema = z.object({
   ...envelope,
 })
 
+/**
+ * A trip the AGENT composed and the backend persisted as a real Trip row
+ * (category=custom). The agent's `_norm_custom_trip` normaliser converts the
+ * backend's snake_case response (`duration_days`, `total_usd`, `unit_price_usd`)
+ * into these camelCase fields before emitting the block.
+ *
+ * `items` are the priced components (hotel room, guide, vehicle, ...); `extras`
+ * are add-ons with no component type. The backend prices everything server-side,
+ * so `totalUsd` is authoritative and this block renders it without re-summing.
+ */
+export const CustomTripCardPayloadSchema = z.object({
+  type: z.literal('custom_trip_card'),
+  data: z.object({
+    id: z.string(),
+    title: z.string(),
+    durationDays: z.number(),
+    totalUsd: z.number(),
+    items: z.array(
+      z.object({
+        type: z.string(),
+        name: z.string(),
+        unitPriceUsd: z.number(),
+        quantity: z.number(),
+      }),
+    ),
+    extras: z
+      .array(
+        z.object({
+          name: z.string(),
+          unitPriceUsd: z.number(),
+          quantity: z.number(),
+        }),
+      )
+      .optional(),
+  }),
+  ...envelope,
+})
+
 /* ------------------------------------------------------------------- union */
 
 export const ContentPayloadSchema = z.discriminatedUnion('type', [
@@ -359,6 +397,7 @@ export const ContentPayloadSchema = z.discriminatedUnion('type', [
   MapViewPayloadSchema,
   WeatherPayloadSchema,
   BudgetEstimatePayloadSchema,
+  CustomTripCardPayloadSchema,
   TextSummaryPayloadSchema,
   BookingSummaryPayloadSchema,
   BookingConfirmedPayloadSchema,
@@ -390,6 +429,7 @@ export const CONTENT_PAYLOAD_TYPES = [
   'map_view',
   'weather',
   'budget_estimate',
+  'custom_trip_card',
   'text_summary',
   'booking_summary',
   'booking_confirmed',

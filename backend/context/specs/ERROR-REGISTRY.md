@@ -228,6 +228,8 @@
 | `AI_SERVICE_UNAVAILABLE` | 503 | AI service is temporarily unavailable | All AI endpoints |
 | `AI_TIMEOUT` | 504 | AI request timed out | All AI endpoints |
 | `AI_INVALID_CONTEXT` | 400 | Invalid or incomplete booking context | Booking tool |
+| `AI_TRIP_EMPTY` | 400 | Custom trip must include at least one component or extra | `POST /v1/ai-tools/trips` |
+| `AI_TRIP_COMPONENT_NOT_FOUND` | 404 | Referenced trip component (hotel room / guide / vehicle) not found | `POST /v1/ai-tools/trips` |
 
 ---
 

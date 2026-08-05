@@ -201,9 +201,38 @@ describe('booking and rich payload contract', () => {
         },
       },
       { type: 'text_summary', data: { text: 'Three days is enough for the main temples.' } },
+      {
+        type: 'custom_trip_card',
+        data: {
+          id: 'trip-custom-1',
+          title: 'Siem Reap in 3 days',
+          durationDays: 3,
+          totalUsd: 420,
+          items: [
+            { type: 'hotel_room', name: 'Boutique Deluxe', unitPriceUsd: 90, quantity: 3 },
+            { type: 'guide', name: 'Sokha', unitPriceUsd: 50, quantity: 3 },
+          ],
+          extras: [{ name: 'Sunrise pass', unitPriceUsd: 20, quantity: 2 }],
+        },
+      },
     ]
 
     for (const block of blocks) expect(parseContentPayload(block)).not.toBeNull()
+  })
+
+  it('accepts a custom_trip_card with no extras, which the agent may omit', () => {
+    const payload = parseContentPayload({
+      type: 'custom_trip_card',
+      data: {
+        id: 'trip-custom-2',
+        title: 'Phnom Penh express',
+        durationDays: 1,
+        totalUsd: 120,
+        items: [{ type: 'vehicle', name: 'VIP Hiace', unitPriceUsd: 120, quantity: 1 }],
+      },
+    })
+    expect(payload).not.toBeNull()
+    if (payload?.type === 'custom_trip_card') expect(payload.data.extras).toBeUndefined()
   })
 })
 
@@ -213,7 +242,7 @@ describe('payload type registry', () => {
     expect([...CONTENT_PAYLOAD_TYPES].sort()).toEqual([...unionTypes].sort())
   })
 
-  it('covers all 18 documented block types', () => {
-    expect(CONTENT_PAYLOAD_TYPES).toHaveLength(18)
+  it('covers all 19 documented block types', () => {
+    expect(CONTENT_PAYLOAD_TYPES).toHaveLength(19)
   })
 })

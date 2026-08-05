@@ -38,6 +38,10 @@ class PaymentCompletedMessage(BaseModel):
 class ErrorMessage(BaseModel):
     type: Literal["error"]
     message: str
+    # P6a: machine-readable error code + retry hint (the frontend shows a retry
+    # affordance when retryable is true). Optional for back-compat.
+    code: str | None = None
+    retryable: bool | None = None
 
 
 class PingMessage(BaseModel):

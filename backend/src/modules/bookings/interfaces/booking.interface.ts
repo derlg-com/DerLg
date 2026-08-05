@@ -1,7 +1,4 @@
-import type {
-  BookingMethod,
-  SingleResourceKind,
-} from '@prisma/client';
+import type { BookingMethod, SingleResourceKind } from '@prisma/client';
 
 /**
  * Public Booking summary (used by list endpoints + nested in BookingDetail).

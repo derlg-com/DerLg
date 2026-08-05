@@ -68,6 +68,12 @@ export const HotelSummarySchema = z.object({
   name: z.string(),
   address: z.string().nullish(),
   starRating: z.number().nullish(),
+  /**
+   * P1: hotel category added by the backend (resort | boutique | hotel |
+   * guesthouse | hostel | villa). Optional so parsing survives before the
+   * backend ships the field.
+   */
+  type: z.string().nullish(),
   coverImage: z.string().nullish(),
   latitude: z.number().nullish(),
   longitude: z.number().nullish(),
@@ -108,6 +114,25 @@ export type HotelRoom = z.infer<typeof HotelRoomSchema>
 /* ----------------------------------------------------------------- guides */
 
 /**
+ * Trip packages a guide runs, from the guide<->trip relation (P2).
+ *
+ * Every field is nullish because the backend mapper has not shipped yet: the
+ * item shape is expected to mirror the trip list projection, and a nullish
+ * object accepts any subset of those fields without failing the whole guide
+ * parse if the backend names one differently.
+ */
+export const GuidePackageSchema = z.object({
+  id: z.string().nullish(),
+  name: z.string().nullish(),
+  coverImageUrl: z.string().nullish(),
+  durationDays: z.number().nullish(),
+  priceUsd: z.number().nullish(),
+  category: z.string().nullish(),
+  location: z.string().nullish(),
+})
+export type GuidePackage = z.infer<typeof GuidePackageSchema>
+
+/**
  * Guide list item.
  *
  * The list projection has NO `name` field — verified against the live API. Only
@@ -122,7 +147,15 @@ export const GuideSummarySchema = z.object({
   province: z.string().nullish(),
   provinces: z.array(z.string()).nullish(),
   languages: z.array(z.string()).nullish(),
+  /** Legacy free-text specialities (spelling matches the current API). */
   specialities: z.array(z.string()).nullish(),
+  /**
+   * P2: enum-backed specialties (culture_history | food_tours | ...) added by
+   * the backend. Optional so a response that still ships `specialities` parses.
+   */
+  specialties: z.array(z.string()).nullish(),
+  /** P2: trip packages linked to this guide (implicit m2m). */
+  packages: z.array(GuidePackageSchema).nullish(),
   isVerified: z.boolean().nullish(),
   ratingAverage: z.number().nullish(),
   ratingCount: z.number().nullish(),
@@ -176,6 +209,13 @@ export const VehicleSummarySchema = z.object({
   vehicleType: z.string(),
   name: z.string(),
   capacity: z.number(),
+  /**
+   * P3: tier (normal | vip) and subtype (starex | hiace | alphard |
+   * small_bus | big_bus) added by the backend. Optional so parsing survives
+   * before the backend ships the fields.
+   */
+  tier: z.string().nullish(),
+  subtype: z.string().nullish(),
   priceUsd: z.number(),
   pricingModel: z.string().nullish(),
   province: z.string().nullish(),

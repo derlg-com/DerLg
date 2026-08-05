@@ -1,71 +1,73 @@
-Everything is in place. Let me do a final summary of what was implemented and the verification results.
+# FRONTEND — Phase 1 contract notes (2026-08-05)
 
-## Implementation Summary
+Domain: `/home/rayu/DerLg/web/` (Next.js 16, Tailwind v4, next-intl, zod, react-query). Stack per shared.json.
 
-### What was implemented
+## What shipped this round
 
-**78 files** across the following areas:
+### Slice A — catalog-browse (P1/P2/P3)
 
-#### 1. Theme + Tokens (`app/globals.css`)
-- All semantic CSS variables from PRD Section 2.2 (light + dark mode)
-- Font imports: Playfair Display (display), Geist (body), Noto Sans Khmer (Khmer), JetBrains Mono (mono)
-- Reduced-motion global styles, shimmer/fade-up/typing-dot/pulse animations
-- Safe area insets, scrollbar utilities, touch target minimums
+Files changed:
+- `web/schemas/domain.ts`
+- `web/lib/api/resources.ts`
+- `web/components/hotels/hotels-browser.tsx`
+- `web/components/guides/guides-browser.tsx`
+- `web/components/transport/transport-browser.tsx`
+- `web/components/shared/filter-chips.tsx` (NEW — chip group, single-select)
+- `web/app/[locale]/guides/[id]/page.tsx`
 
-#### 2. shadcn/ui Components (12 base components)
-- Button, Input, Textarea, Card, Dialog, Sheet, Avatar, Badge, Skeleton, Separator, Tooltip, Label, Checkbox, Switch, Sonner
-- All themed with CSS custom properties (no hardcoded colors)
-- **Note:** shadcn/ui CLI was not used; all components were created manually following the Radix + CVA pattern to ensure Tailwind v4 compatibility
+**Zod fields added (all optional/nullish — parsing never breaks pre-migration):**
+- `HotelSummary.type?: string | null` (values: resort | boutique | hotel | guesthouse | hostel | villa)
+- `GuideSummary.specialties?: string[] | null` (enum Specialty: culture_history, food_tours, nature_trekking, photography, family_friendly, business, luxury, adventure) — legacy `specialities` kept for fallback
+- `GuideSummary.packages?: GuidePackage[] | null` where `GuidePackage = { id?, name?, coverImageUrl?, durationDays?, priceUsd?, category?, location? }` (ALL nullish — backend mapper shape unverified; please confirm the exact field names the guide mapper emits for `packages`)
+- `VehicleSummary.tier?: string | null` (normal | vip)
+- `VehicleSummary.subtype?: string | null` (starex | hiace | alphard | small_bus | big_bus)
 
-#### 3. Layout + Routing
-- `app/(public)/page.tsx` — landing page with hero, trust bar, language selector
-- `app/(auth)/login/page.tsx` — login form with password visibility toggle
-- `app/(auth)/register/page.tsx` — register form with password checklist, language selector, terms checkbox
-- `app/(app)/vibe-booking/page.tsx` — split-screen vibe booking with greeting
-- `app/(app)/profile/page.tsx` — profile with settings, trip history, logout
-- `app/manifest.ts` — PWA manifest (theme_color #0D8A5D, standalone display)
-- `app/layout.tsx` — root layout with all fonts, I18nProvider, Toaster, skip link, viewport meta
+**Query params the web now sends (backend DTOs must declare them — forbidNonWhitelisted):**
+- `GET /v1/hotels?type=` (P1)
+- `GET /v1/guides?language=&specialty=` — NOTE: the browser now sends `specialty` (not the old free-text `speciality`)
+- `GET /v1/transportation/vehicles?type=&tier=&subtype=` (P3)
 
-#### 4. Core Shared Components (6 components)
-- `BrandLogo` (mark + full variants), `BottomNav` (4 items, active pill), `SplitScreenLayout` (desktop resizable + mobile bottom sheet), `ContentItemShell` (error boundary + actions), `QuickReplyChips` (horizontal scroll, listbox role), `CountdownTimer` (urgent pulse, aria-live), `ConnectionPill` (status dot)
+UI: hotels type filter chips + card type badge; guide cards lead with languages (full names via `catalog.filters.languageNames`) + specialty badges, province demoted to meta; guide detail has a Packages list linking `/trips/[id]`; transport grouped by tier (Normal/VIP/Bus, derived: tier field, else vehicleType==='bus', else own type), tier/subtype filters, subtype + seat-count badges.
 
-#### 5. Content Renderers (15 renderers)
-- TripCardsRenderer, HotelCardsRenderer, TransportOptionsRenderer, ItineraryRenderer, MapViewRenderer, BudgetEstimateRenderer, BookingSummaryRenderer, QRPaymentRenderer, PaymentStatusRenderer, BookingConfirmedRenderer, ReviewsRenderer, ComparisonRenderer, ImageGalleryRenderer, WeatherRenderer, TextSummaryRenderer (fallback)
-- All accept typed `content_payload` validated via Zod schemas
-- Content pipeline at `lib/vibe-booking/content-pipeline.ts` validates and routes, falling back to TextSummaryRenderer
+### Slice B — custom-trip-card (P6b)
 
-#### 6. State + WebSocket Hook
-- `stores/vibe-booking.store.ts` — Zustand with persist (chat, content, layout, booking slices)
-- `hooks/useVibeWebSocket.ts` — auto-reconnect with exponential backoff (1s to 30s), offline queue persisted to localStorage, mock mode that simulates the full AI booking flow (trips, hotels, budget, booking, QR payment, confirmation)
+Files changed:
+- `web/schemas/vibe-payloads.ts`
+- `web/components/chat/payloads/block-renderer.tsx`
+- `web/components/chat/payloads/rich/custom-trip-card.tsx` (NEW)
+- `web/tests/vibe-payloads.test.ts`, `web/tests/chat-rich-payloads.test.tsx` (19th block type)
+- `web/lib/vibe/protocol.ts` — NO change needed (ContentBlockSchema is loose; `custom_trip_card` flows through)
 
-#### 7. API Client
-- `lib/api-client.ts` — Axios with JWT refresh interceptors, envelope handling, stubbed auth (register, login, refresh, getMe) using localStorage
+**Block registered: `custom_trip_card`.** The web expects the agent's `_norm_custom_trip` normalizer to emit EXACTLY these camelCase fields (snake_case response → camelCase):
 
-#### 8. i18n
-- Custom `I18nProvider` with messages for EN, ZH, KM
-- Covers landing, auth, vibe-booking, profile labels
-- Khmer uses Noto Sans Khmer with increased line-height (1.8)
-- **Deviation:** `next-intl` is installed but unused at runtime; a custom provider replaces it to avoid App Router i18n routing complexity (locale is user-preference-based, not route-based)
+```
+{
+  type: 'custom_trip_card',
+  data: {
+    id: string,            // real Trip row id (category=custom) — /trips/[id] must resolve
+    title: string,
+    durationDays: number,
+    totalUsd: number,      // backend-authoritative total
+    items: [ { type: string, name: string, unitPriceUsd: number, quantity: number } ],
+    extras: [ { name: string, unitPriceUsd: number, quantity: number } ]  // optional
+  }
+}
+```
 
-#### 9. Tests (28 tests, 4 files)
-- Content pipeline Zod validation (10 tests)
-- WebSocket mock behavior (5 tests)
-- CountdownTimer logic (6 tests)
-- Component render tests: QuickReplyChips, ConnectionPill (7 tests)
+Renders a rich panel (title, total + days, per-item lines with subtotal = unitPriceUsd × quantity, extras section) and a "Book this trip" link to `/trips/[id]`.
 
-#### 10. Polish
-- Fade-up enter animations on content items, typing indicator, countdown pulse
-- Focus-visible rings, skip link, ARIA roles (log, region, navigation, listbox)
-- 44px minimum touch targets, safe area insets
-- Floating chat bubble + mobile bottom sheet for vibe-booking
+## i18n
+`web/messages/{en,zh,km}.json` — added (all 3 locales, key parity verified by tests):
+- `catalog.filters.{hotelType,specialty,anySpecialty,tier,subtype,anySubtype,languageNames.*}`
+- `catalog.tiers.{normal,vip,bus}`
+- `catalog.detail.{packages,package,packageDays}`
+- `content.{customTrip,customTripDays,customTripTotal,customTripItems,customTripExtras,customTripBook,customTripQuantity}`
 
-### Deviations from PRD
-1. **next-intl unused at runtime** — replaced with a custom `I18nProvider` to support user-preference locale switching without route-based i18n (the app uses single routes like `/vibe-booking`, not `/en/vibe-booking`)
-2. **MapViewRenderer** uses a static placeholder visualization instead of Leaflet.js (deferred to full implementation per plan Phase 7)
-3. **ESLint config** migrated from `.eslintrc.json` to `eslint.config.mjs` flat config for ESLint v9 compatibility
+## Assumptions / flags for backend
+1. Guide `packages` item shape assumed trip-list-like; all fields nullish so any shape parses, but rendering shows name/duration/price only if the backend emits those names. Confirm the mapper output.
+2. `specialty` filter param replaces `speciality` — backend `ListGuidesDto` must declare `specialty`.
+3. `GET /v1/ai-tools/*` P1-P3 fields and `POST /v1/ai-tools/trips` are the backend's job; web consumes via `domain.ts` (REST, nullish) and `vibe-payloads.ts` (WS, camelCase).
+4. If a filter is applied before the backend DTO ships, that request 400s (forbidNonWhitelisted) — expected during migration; zod parsing itself never breaks.
 
-### Verification Results
-- `npm run lint -w frontend` — **0 errors, 14 warnings** (all unused variables)
-- `npm run typecheck -w frontend` — **passes clean**
-- `npm run test -w frontend` — **28/28 tests pass**
-- `npm run build -w frontend` — **builds successfully** (8 static pages generated)
+## Verification
+`npm run typecheck` ✓ · `npm run lint` ✓ · `npm run test` ✓ (393 tests, 21 files) · `npm run build` ✓ (exit 0)
