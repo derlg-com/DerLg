@@ -82,7 +82,7 @@ The AI handles the entire loop: **discover → plan → book → pay** — all w
 This repo is a monorepo of three independently runnable services:
 
 ```
-web (3002)  ──REST /v1──►  backend (3003)  ──X-Service-Key──►  vibe-booking (8000)
+web (3002)  ──REST /v1──►  backend (3003)  ──X-Service-Key──►  vibe-booking (8001)
                                      │
                         ┌────────────┼────────────┐
                         ▼            ▼            ▼
@@ -95,7 +95,7 @@ web (3002)  ──REST /v1──►  backend (3003)  ──X-Service-Key──�
 |---------|-----------|------|------------|
 | Web | `web/` | 3002 | Next.js 16, React 19, TypeScript 5, Tailwind v4, Zustand, React Query, next-intl, Leaflet, react-markdown |
 | API | `backend/` | 3003 | NestJS 11, Prisma 6, TypeScript 5, Jest, class-validator, Passport JWT |
-| AI Agent | `vibe-booking/` | 8000 | Python 3.12, FastAPI, NVIDIA gpt-oss-120b, Redis sessions, hand-rolled async tool loop |
+| AI Agent | `vibe-booking/` | 8001 | Python 3.12, FastAPI, NVIDIA gpt-oss-120b, Redis sessions, hand-rolled async tool loop |
 
 > Dev runs on ports 4007/4008/4009 via shell env overrides to avoid clashes with the configured defaults.
 >
@@ -147,7 +147,7 @@ npm run start:dev              # http://localhost:3003/v1
 cd vibe-booking
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8000  # http://localhost:8000
+env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8001  # http://localhost:8001
 
 # 4. Web (other terminal)
 cd web
@@ -192,7 +192,7 @@ Copy `backend/.env.example` → `backend/.env` and `web/.env.local.example` → 
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `NEXT_PUBLIC_API_URL` | yes | `http://localhost:3003` |
-| `NEXT_PUBLIC_AI_WS_URL` | yes | `ws://localhost:8000` |
+| `NEXT_PUBLIC_AI_WS_URL` | yes | `ws://localhost:8001` |
 | `NEXT_PUBLIC_APP_URL` | yes | `http://localhost:3002` |
 | `AI_SERVICE_KEY` | yes | Must match `backend/.env` (for BFF routes) |
 | `JWT_ACCESS_SECRET` | yes | Must match `backend/.env` (for BFF token verification) |

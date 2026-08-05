@@ -10,7 +10,7 @@ Three independently runnable services:
 |---------|-----------|------|------|
 | Frontend | `web/` | 3002 | Next.js 16, React 19, Tailwind v4, TypeScript |
 | Backend | `backend/` | 3003 | NestJS 11, Prisma, TypeScript |
-| AI Agent | `vibe-booking/` | 8000 | Python 3.12, FastAPI, NVIDIA gpt-oss-120b |
+| AI Agent | `vibe-booking/` | 8001 | Python 3.12, FastAPI, NVIDIA gpt-oss-120b |
 
 > Dev runs on ports 4007/4008/4009 via shell env overrides to avoid clashes with the configured defaults above.
 
@@ -119,21 +119,13 @@ next-intl translation files live in `web/messages/{en,zh,km}.json` (not `public/
 - Naming: React components `PascalCase`, utilities `kebab-case`, variables/functions `camelCase`, constants `UPPER_SNAKE_CASE`, DB tables `snake_case`
 - Frontend imports use `@/` alias; backend uses relative imports within a module
 - Never hardcode secrets — all credentials via env vars; `.env` files are gitignored
-- Backend spec files live in `backend/context/` — read before modifying endpoints or schema:
-  - `context/guides/` — CONSTITUTION.md (module dependency rules), CODE-STANDARD.md, TECH-STACK.md, SUPABASE-WORKFLOW.md, MISSION.md
-  - `context/specs/` — SCHEMA.md, API-CONTRACT.md, ERROR-REGISTRY.md, EVENT-CATALOG.md
-  - `context/plans/` — ROADMAP.md, TEST-PLAN.md, SEED-SPEC.md
 - AI agent module docs in `vibe-booking/AGENT.md`; frontend docs in `web/AGENTS.md`
 
 ## Authoritative Spec Files
 
 | What | Where |
 |------|-------|
-| DB schema (Prisma) | `backend/context/specs/SCHEMA.md` + `backend/prisma/schema.prisma` |
-| All ~80 API endpoints | `backend/context/specs/API-CONTRACT.md` |
-| Error codes | `backend/context/specs/ERROR-REGISTRY.md` |
-| Backend implementation roadmap | `backend/context/plans/ROADMAP.md` + `IMPLEMENTATION-ROADMAP.md` |
-| Backend code rules & patterns | `backend/context/guides/CONSTITUTION.md`, `CODE-STANDARD.md` |
+| DB schema (Prisma) | `backend/prisma/schema.prisma` |
 | AI agent architecture | `vibe-booking/AGENT.md` |
 | Frontend specs | `.kiro/specs/frontend-nextjs-implementation/` |
 | Vibe Booking AI specs | `.kiro/specs/vibe-booking/` |

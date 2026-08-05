@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 derlg/
 ├── web/                 # Next.js 16 App Router (port 3002, dev on 4008)
 ├── backend/             # NestJS 11 API (port 3003, dev on 4007)
-├── vibe-booking/        # Python FastAPI AI agent (port 8000, dev on 4009)
+├── vibe-booking/        # Python FastAPI AI agent (port 8001, dev on 4009)
 ├── data/                # Seed images and static data
 ├── docs/                # PRD, architecture, feature specs
 │   ├── product/         # prd.md, feature-decisions.md
@@ -105,7 +105,7 @@ For detailed requirements and design decisions, see `docs/product/prd.md` and `d
 
 | Command | Purpose |
 |---------|---------|
-| `uvicorn main:app --host 0.0.0.0 --port 8000 --reload` | Dev server (use `env -u NVIDIA_API_KEY` to avoid 403s) |
+| `uvicorn main:app --host 0.0.0.0 --port 8001 --reload` | Dev server (use `env -u NVIDIA_API_KEY` to avoid 403s) |
 | `pytest` | All tests |
 | `pytest tests/unit/` | Unit only |
 | `pytest --cov=agent --cov-report=html` | With coverage |
@@ -118,7 +118,7 @@ For detailed requirements and design decisions, see `docs/product/prd.md` and `d
 ┌──────────────┐     REST      ┌──────────────┐     Tools     ┌──────────────┐
 │  Next.js     │ ◄──────────► │   NestJS     │ ◄──────────► │ Python AI    │
 │  (Frontend)  │   (/v1/*)    │  (Backend)   │   (/v1/ai-tools/*) │  (FastAPI)   │
-│  Port 3002   │              │  Port 3003   │              │  Port 8000   │
+│  Port 3002   │              │  Port 3003   │              │  Port 8001   │
 └──────────────┘              └──────┬───────┘              └──────────────┘
                                      │
                     ┌────────────────┼────────────────┬────────────────┐

@@ -3,7 +3,7 @@
 > **Layer:** Python AI Agent Service
 > **Directory:** `vibe-booking/`
 > **Framework:** FastAPI + hand-rolled async tool loop + NVIDIA gpt-oss-120b
-> **Port:** 8000
+> **Port:** 8001
 > **Protocol:** WebSocket (`/ws/chat`) + HTTP tools to backend
 
 ---
@@ -139,7 +139,7 @@ Tools are dispatched via `TOOL_DISPATCH` map in `_defs.py`: tool name → (HTTP 
 
 ### Connection
 ```
-Client ──ws://localhost:8000/ws/chat──▶ AI Agent
+Client ──ws://localhost:8001/ws/chat──▶ AI Agent
 ```
 
 ### Client → Server Messages
@@ -288,7 +288,7 @@ class ConversationState(BaseModel):
 cd vibe-booking
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8000
+env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8001
 ```
 
 > **Run without `--reload`** — the reloader hangs on slow in-flight LLM calls.

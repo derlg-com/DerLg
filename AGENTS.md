@@ -22,7 +22,7 @@
 ┌──────────────┐     REST      ┌──────────────┐     Tools    ┌──────────────┐
 │  Next.js     │ ◄──────────►  │   NestJS     │ ◄──────────► │ Python AI    │
 │  (Frontend)  │   (/v1/*)     │  (Backend)   │   (/v1/ai-tools/*) │  (FastAPI)   │
-│  Port 3002   │               │  Port 3003   │              │  Port 8000   │
+│  Port 3002   │               │  Port 3003   │              │  Port 8001   │
 └──────────────┘               └──────┬───────┘              └──────────────┘
                                      │
                     ┌────────────────┼────────────────┬────────────────┐
@@ -81,7 +81,7 @@ These rules apply to **all** layers regardless of which agent is working:
 |-------|------|-----------------|-----------|
 | Frontend | Next.js 16 + React 19 + Tailwind v4 | `3002` | `web/` |
 | Backend | NestJS 11 + Prisma + Supabase PG | `3003` | `backend/` |
-| AI Agent | Python + FastAPI + NVIDIA gpt-oss-120b | `8000` | `vibe-booking/` |
+| AI Agent | Python + FastAPI + NVIDIA gpt-oss-120b | `8001` | `vibe-booking/` |
 | Cache | Redis (Upstash prod / Docker dev) | `6379` | — |
 | Storage | MinIO (self-hosted Docker) | `9000` | — |
 | DB | PostgreSQL via Supabase | `5432` | — |

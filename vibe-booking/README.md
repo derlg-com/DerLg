@@ -17,7 +17,7 @@
 ```
 ┌──────────────┐     WebSocket      ┌─────────────────────────────┐
 │   Next.js    │ ◄───────────────►  │  Python AI Agent (FastAPI)  │
-│  (web/)      │   ws://agent:8000  │  hand-rolled async tool loop │
+│  (web/)      │   ws://agent:8001  │  hand-rolled async tool loop │
 │   Port 3002  │                    │  NVIDIA gpt-oss-120b        │
 └──────────────┘                    └──────────────┬──────────────┘
        ▲                                           │ HTTP + X-Service-Key
@@ -117,7 +117,7 @@
 cd vibe-booking
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8000  # no --reload
+env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8001  # no --reload
 ```
 
 > **NVIDIA_API_KEY gotcha:** Unset the shell variable before launching, or it shadows `.env` and causes 403s on every turn.

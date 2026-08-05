@@ -6,7 +6,7 @@ The DerLg web client: Cambodia travel booking with the Vibe Booking AI concierge
 |-----|------|-----------|
 | **This app** | `3002` | `web/` |
 | Backend API (NestJS) | `3003` | `backend/` |
-| AI agent (FastAPI) | `8000` | `vibe-booking/` |
+| AI agent (FastAPI) | `8001` | `vibe-booking/` |
 
 > Dev runs on ports **4008/4007/4009** via shell env overrides to avoid clashes with the configured defaults.
 
@@ -32,7 +32,7 @@ See `.env.local.example` for the full annotated list. Key values:
 - **`AI_SERVICE_KEY`** — must be the exact same value as `AI_SERVICE_KEY` in `backend/.env`. Read **only** by server-side BFF route handlers under `app/api/ai/*`. Must never have a `NEXT_PUBLIC_` prefix.
 - **`JWT_ACCESS_SECRET`** — must equal `backend/.env`'s `JWT_ACCESS_SECRET` for BFF token verification.
 - **`NEXT_PUBLIC_API_URL`** — backend URL (default: `http://localhost:3003`)
-- **`NEXT_PUBLIC_AI_WS_URL`** — AI agent WebSocket URL (default: `ws://localhost:8000`)
+- **`NEXT_PUBLIC_AI_WS_URL`** — AI agent WebSocket URL (default: `ws://localhost:8001`)
 
 No Google Maps key is needed — maps use Leaflet with OpenStreetMap tiles.
 
@@ -47,8 +47,8 @@ cd backend && docker compose up -d
 # 2. Backend API on :3003
 cd backend && npm run start:dev
 
-# 3. AI agent on :8000
-cd vibe-booking && source .venv/bin/activate && env -u NVIDIA_API_KEY uvicorn main:app --port 8000  # no --reload
+# 3. AI agent on :8001
+cd vibe-booking && source .venv/bin/activate && env -u NVIDIA_API_KEY uvicorn main:app --port 8001  # no --reload
 
 # 4. This app on :3002
 cd web && npm run dev
@@ -98,7 +98,7 @@ Translations live in `messages/{en,zh,km}.json`. `tests/i18n.test.ts` fails the 
 Server Components ──fetch, Accept-Language──> NestJS /v1 (:3003)
 Client Components ──TanStack Query──────────> NestJS /v1 (:3003)
 Client Components ──> BFF /api/ai/* ──x-service-key──> /v1/ai-tools/*
-Typed WS client ────────────────────────────> FastAPI agent (:8000/ws/chat)
+Typed WS client ────────────────────────────> FastAPI agent (:8001/ws/chat)
 ```
 
 Directory conventions:
