@@ -1,98 +1,78 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# DerLg Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS 11 API for the DerLg Cambodia travel booking platform. Exposes REST endpoints under `/v1/` for the web frontend and `/v1/ai-tools/*` for the AI agent service.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Stack
 
-## Description
+NestJS 11 · Prisma 6 · TypeScript 5.7 · Jest 30 · class-validator · Passport JWT · pino
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Modules
 
-## Project setup
-
-```bash
-$ npm install
+```
+src/modules/
+  ai-tools    # /v1/ai-tools/* endpoints for the AI agent (X-Service-Key auth)
+  auth        # JWT access + refresh, Telegram OAuth
+  bookings    # Booking creation, confirmation, cancellation, holds
+  guides      # Tour guide catalogue (languages, specialties, trip packages)
+  hotels      # Hotel catalogue (types, rooms, star ratings)
+  places      # Points of interest (categories, regions)
+  prisma      # Prisma service + client
+  redis       # Redis connection, cache, rate limiting
+  search      # Global search across trips/places/hotels/guides
+  transportation # Vehicle catalogue (tiers, subtypes, availability)
+  trips       # Trip packages (categories, custom trips, itineraries)
+  users       # User profiles, loyalty points
 ```
 
-## Compile and run the project
+Cross-cutting code: `src/common/` (guards, interceptors, filters, decorators, DTOs, errors, cache, i18n, types).
+
+## Getting started
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cd backend
+npm install
+cp .env.example .env          # then edit secrets (JWT_ACCESS_SECRET, AI_SERVICE_KEY, etc.)
+npx prisma migrate deploy     # apply migrations (use db push if migrate dev fails)
+npm run prisma:seed           # seed the catalogue
+npm run start:dev              # http://localhost:3003/v1
 ```
 
-## Run tests
+> Dev runs on port **4007** via `PORT=4007 npm run start:dev` to avoid clashes with the configured 3003.
 
-```bash
-# unit tests
-$ npm run test
+## Environment variables
 
-# e2e tests
-$ npm run test:e2e
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DATABASE_URL` | yes | Postgres URL. Dev: local Supabase on `localhost:54322`. VPS: Coolify-managed Postgres. |
+| `DIRECT_URL` | yes | Direct connection for migrations |
+| `JWT_ACCESS_SECRET` | yes | ≥32 chars |
+| `JWT_REFRESH_SECRET` | yes | ≥32 chars |
+| `AI_SERVICE_KEY` | yes | ≥32 chars. Must match `vibe-booking/.env` and `web/.env.local` |
+| `REDIS_URL` | yes | `redis://localhost:6379/0` |
+| `MINIO_ACCESS_KEY` | yes | MinIO credentials |
+| `MINIO_SECRET_KEY` | yes | MinIO credentials |
+| `STRIPE_SECRET_KEY` | no | Empty → payments return 503 |
 
-# test coverage
-$ npm run test:cov
-```
+## Database
 
-## Deployment
+Dev uses a **local Supabase** instance (port 54322). For VPS deployment via Coolify, point `DATABASE_URL` at the Coolify-managed Postgres — the app works with any standard PostgreSQL, no Supabase dependency required.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+The DB has pre-existing drift from earlier `db push` operations. Use `npx prisma migrate deploy` or `npx prisma db push` rather than `migrate dev`.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Scripts
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+| Command | Purpose |
+|---------|---------|
+| `npm run start:dev` | Hot-reload dev server |
+| `npm run build` | Compile TS → dist/ |
+| `npm run test` / `npm run test:e2e` | Jest unit / E2E |
+| `npm run lint` / `npm run format` | ESLint / Prettier |
+| `npx prisma migrate deploy` | Apply pending migrations |
+| `npm run prisma:seed` | Seed the catalogue |
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## API conventions
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Prefix: `/v1/` (user-facing), `/v1/ai-tools/*` (AI agent, X-Service-Key auth)
+- Envelope: `{ success, data, message, error }`
+- Auth: Bearer JWT in `Authorization` header
+- `forbidNonWhitelisted: true` — every query param must be declared in the DTO or requests return 400

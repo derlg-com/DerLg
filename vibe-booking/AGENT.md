@@ -1,10 +1,10 @@
 # Vibe Booking AI Agent — Agent Guide
 
-> **Layer:** Python AI Agent Service  
-> **Directory:** `vibe-booking/`  
-> **Framework:** FastAPI + LangGraph + NVIDIA gpt-oss-120b (default) / Ollama fallback  
-> **Port:** 8000  
-> **Protocol:** WebSocket (`/ws/{session_id}`) + HTTP tools to backend
+> **Layer:** Python AI Agent Service
+> **Directory:** `vibe-booking/`
+> **Framework:** FastAPI + hand-rolled async tool loop + NVIDIA gpt-oss-120b
+> **Port:** 8000
+> **Protocol:** WebSocket (`/ws/chat`) + HTTP tools to backend
 
 ---
 
@@ -12,16 +12,16 @@
 
 The Vibe Booking AI Agent is a **stateful, purpose-built conversational booking concierge** implemented as a Python FastAPI microservice. It is DerLg's core differentiator.
 
-**It is NOT a general-purpose chatbot.** It is designed exclusively for Cambodia travel booking, with strict rules about data accuracy, state management, and controlled side effects. Every fact (price, availability, hotel name) comes from backend tool calls — the agent never invents data.
+**It is NOT a general-purpose chatbot.** It is designed exclusively for Cambodia travel booking. Every fact (price, availability, hotel name) comes from backend tool calls — the agent never invents data.
 
 ### Responsibilities
-- Orchestrate 7-stage booking journeys via LangGraph state machine
+- Orchestrate booking journeys via an async tool loop (search → compose → book → pay)
 - Communicate with travelers via WebSocket (real-time bidirectional)
 - Call backend tool endpoints (`/v1/ai-tools/*`) to fetch data and perform actions
 - Format structured JSON responses for frontend auto-rendering
 - Manage persistent sessions in Redis (7-day TTL)
-- Listen for payment events via Redis pub/sub
 - Support multi-language responses (EN, ZH, KM)
+- Compose and save custom trips from hotel + guide + transport + extras (server-side pricing)
 
 ---
 
@@ -30,15 +30,15 @@ The Vibe Booking AI Agent is a **stateful, purpose-built conversational booking 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      API Layer                               │
-│  WebSocket Handler (/ws/{session_id})  Health  Metrics      │
+│  WebSocket Handler (/ws/chat)  Health  Metrics              │
 └─────────────────────────┬───────────────────────────────────┘
                           │
 ┌─────────────────────────▼───────────────────────────────────┐
 │                      Agent Core                              │
-│  run_agent() → LangGraph StateGraph → System Prompt Builder │
-│     │              call_llm ──► execute_tools ──► format    │
+│  run_agent() → async tool loop → system prompt builder      │
+│     │              call_llm ──► execute_tools ──► format     │
 │     │                ▲─────────────────────────────┘        │
-│     └───────────────────────────────────────────────────────┘
+│     └──────────────────────────────────────────────────────┘
 └─────────────────────────┬───────────────────────────────────┘
                           │
         ┌─────────────────┼─────────────────┐
@@ -46,8 +46,9 @@ The Vibe Booking AI Agent is a **stateful, purpose-built conversational booking 
   ┌──────────┐     ┌──────────┐     ┌──────────┐
   │  Model   │     │  Tool    │     │ Session  │
   │  Layer   │     │  Layer   │     │  Layer   │
-  │(NVIDIA gpt-oss-120b /           │     │(20 tools │     │(Redis   │
-  │ Ollama)  │     │ → NestJS)│     │ checkpt) │
+  │(NVIDIA   │     │ 15 tools │     │(Redis   │
+  │ gpt-oss- │     │ → NestJS)│     │ checkpt) │
+  │ 120b)    │     │          │     │          │
   └──────────┘     └──────────┘     └──────────┘
 ```
 
@@ -56,29 +57,26 @@ The Vibe Booking AI Agent is a **stateful, purpose-built conversational booking 
 ```
 vibe-booking/
 ├── agent/
-│   ├── core.py              # Agent execution loop (run_agent)
-│   ├── graph.py             # LangGraph StateGraph definition
+│   ├── core.py              # Agent execution loop (run_agent, run_agent_streaming)
+│   ├── backend_client.py    # HTTP client to backend /v1/ai-tools/* (circuit breaker, 15s timeout)
+│   ├── messages.py          # Message type definitions
+│   ├── blurbs.py            # Card blurb generation
+│   ├── suggestions.py       # Follow-up suggestion generation
 │   ├── models/
 │   │   ├── client.py        # ModelClient abstract interface
 │   │   ├── nvidia.py        # NvidiaClient — default LLM client (gpt-oss-120b)
-│   │   └── ollama.py        # OllamaClient — local model fallback
+│   │   ├── ollama.py        # OllamaClient — local model fallback
+│   │   └── factory.py       # Model client factory
 │   ├── tools/
-│   │   ├── schemas.py       # 20 tool schema definitions (JSON for LLM)
-│   │   ├── executor.py      # execute_tools_parallel with asyncio.gather
-│   │   └── handlers/
-│   │       ├── trips.py     # getTripSuggestions, getTripItinerary, etc.
-│   │       ├── booking.py   # createBooking, cancelBooking, modifyBooking
-│   │       ├── payment.py   # generatePaymentQR, checkPaymentStatus
-│   │       └── info.py      # getWeatherForecast, getPlaces, estimateBudget
+│   │   └── _defs.py         # 15 tool schemas + TOOL_DISPATCH map
 │   ├── prompts/
 │   │   ├── builder.py       # build_system_prompt() — dynamic by state
-│   │   └── templates.py     # Stage-specific prompt templates
+│   │   └── templates.py     # System prompt templates (ANSWER STYLE, CUSTOM TRIPS, etc.)
 │   ├── session/
 │   │   ├── manager.py       # SessionManager (Redis CRUD)
 │   │   └── state.py         # ConversationState Pydantic model
-│   └── formatters/
-│       ├── formatter.py     # format_response() — tool result → frontend message
-│       └── message_types.py # Pydantic models for all frontend message types
+│   └── utils/
+│       └── ...
 ├── api/
 │   ├── websocket.py         # WebSocket endpoint, auth, message handling
 │   ├── health.py            # GET /health
@@ -89,114 +87,50 @@ vibe-booking/
 │   ├── logging.py           # structlog setup
 │   └── redis.py             # Redis connection lifecycle
 ├── tests/
-│   ├── unit/                # Tool handlers, prompts, formatters, side effects
+│   ├── unit/                # Tool handlers, prompts, models, side effects
 │   ├── integration/         # WebSocket flow, tool execution, payment events
 │   └── property/            # Round-trip serialization, schema validation
 ├── main.py                  # FastAPI entry point
 ├── requirements.txt         # Pinned Python dependencies
-├── Dockerfile               # Multi-stage production build
-├── Dockerfile.dev           # Hot-reload development build
-└── docker-compose.yml       # Local orchestration (with backend, redis, postgres)
+└── .env                     # Environment variables (gitignored)
 ```
-
----
-
-## LangGraph State Machine
-
-```
-                    ┌─────────────┐
-                    │   START     │
-                    └──────┬──────┘
-                           │
-                           ▼
-                   ┌─────────────┐
-         ┌─────────│  DISCOVERY  │─────────┐
-         │         │ (ask Qs)    │         │
-         │         └──────┬──────┘         │
-         │                │                │
-         ▼                ▼                ▼
-  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-  │ SUGGESTION  │  │ EXPLORATION │  │ CUSTOMIZATION│
-  │(show cards) │◄─┤ (details)   │◄─┤ (modify)    │
-  └──────┬──────┘  └─────────────┘  └─────────────┘
-         │
-         ▼
-  ┌─────────────┐
-  │   BOOKING   │
-  │ (confirm)   │
-  └──────┬──────┘
-         │
-         ▼
-  ┌─────────────┐
-  │   PAYMENT   │
-  │ (QR/monitor)│
-  └──────┬──────┘
-         │
-         ▼
-  ┌─────────────┐
-  │ POST_BOOKING│
-  │(confirmed)  │
-  └─────────────┘
-```
-
-### State Transitions
-- `DISCOVERY` → gather 6 required fields before calling `getTripSuggestions`
-- `SUGGESTION` → present trip options, guide selection
-- `EXPLORATION` → answer questions, provide details
-- `CUSTOMIZATION` → discuss modifications, calculate pricing
-- `BOOKING` → 3-step flow: summary → confirmation → collect details
-- `PAYMENT` → generate QR, monitor payment status
-- `POST_BOOKING` → confirmation, next steps, receipts
-
-### Side Effects (Session Mutation)
-| Event | Session Update |
-|-------|---------------|
-| `getTripSuggestions` succeeds | `suggested_trip_ids` populated |
-| `createBooking` succeeds | `booking_id`, `booking_ref`, `reserved_until` set; state → `PAYMENT` |
-| `generatePaymentQR` succeeds | `payment_intent_id` set |
-| `checkPaymentStatus` → "SUCCEEDED" | `payment_status` → "CONFIRMED"; state → `POST_BOOKING` |
-| `cancelBooking` succeeds | Clear booking fields; state → `DISCOVERY` |
-| Booking hold expires | Clear booking fields; state → `BOOKING`; notify user |
 
 ---
 
 ## Tool System
 
-### Tool Schema Definitions (`agent/tools/schemas.py`)
-All 20 tools are defined as JSON schemas in OpenAI-compatible tool calling format. Each schema includes:
-- Detailed description (when to call)
-- Required parameters
-- Type constraints
+### Tool Definitions (`agent/tools/_defs.py`)
+All 15 tools are defined as JSON schemas in OpenAI-compatible tool calling format. Each schema includes a description, required parameters, and type constraints.
 
 ### Tool List
 
 | Tool | Purpose | Backend Endpoint |
 |------|---------|-----------------|
-| `getTripSuggestions` | Search trips by mood, budget, duration | `POST /v1/ai-tools/search/trips` |
-| `getTripItinerary` | Get day-by-day plan for a trip | `POST /v1/ai-tools/search/itinerary` |
-| `getTripImages` | Get photo gallery for a trip | `POST /v1/ai-tools/search/images` |
-| `getHotelDetails` | Get hotel info by ID | `POST /v1/ai-tools/search/hotels` |
-| `getWeatherForecast` | Get 5-day forecast for destination | `POST /v1/ai-tools/search/weather` |
-| `compareTrips` | Compare up to 3 trips side-by-side | `POST /v1/ai-tools/search/compare` |
-| `calculateCustomTrip` | Calculate price for customizations | `POST /v1/ai-tools/search/custom` |
-| `customizeTrip` | Apply customizations to a trip | `POST /v1/ai-tools/search/customize` |
-| `applyDiscountCode` | Apply discount to booking | `POST /v1/ai-tools/discounts/apply` |
-| `validateUserDetails` | Validate name, phone, email | `POST /v1/ai-tools/users/validate` |
-| `createBooking` | Create booking with HOLD status | `POST /v1/ai-tools/bookings` |
-| `generatePaymentQR` | Generate QR payment intent | `POST /v1/ai-tools/payments/qr` |
-| `checkPaymentStatus` | Check payment intent status | `POST /v1/ai-tools/payments/status` |
-| `cancelBooking` | Cancel a booking | `POST /v1/ai-tools/bookings/cancel` |
-| `modifyBooking` | Modify booking details | `POST /v1/ai-tools/bookings/modify` |
-| `getPlaces` | Get places by category/region | `POST /v1/ai-tools/search/places` |
-| `getUpcomingFestivals` | Get festivals by date range | `POST /v1/ai-tools/search/festivals` |
-| `estimateBudget` | Estimate trip cost breakdown | `POST /v1/ai-tools/budget/estimate` |
-| `getCurrencyRates` | Get exchange rates | `POST /v1/ai-tools/currency/rates` |
-| `getTransportOptions` | Get transport between locations | `POST /v1/ai-tools/search/transport` |
+| `search_trips` | Search trips by mood, budget, duration | `POST ai-tools/search/trips` |
+| `search_hotels` | Search hotels by city, price, type | `GET ai-tools/hotels` |
+| `search_guides` | Search guides by language, specialty, location | `GET ai-tools/guides` |
+| `search_transport` | Search transport by mode, tier, subtype | `GET ai-tools/search/transport` |
+| `check_availability` | Check resource availability for dates | `GET ai-tools/availability` |
+| `create_trip` | Compose and save a custom trip (server-priced) | `POST ai-tools/trips` |
+| `create_booking_hold` | Create a booking with HOLD status | `POST ai-tools/bookings` |
+| `check_payment_status` | Check payment intent status | `GET ai-tools/payments/status` |
+| `generate_payment_qr` | Generate QR payment intent | `POST ai-tools/payments/qr` |
+| `estimate_budget` | Estimate trip cost breakdown | `POST ai-tools/budget/estimate` |
+| `get_weather` | Get weather forecast | `GET ai-tools/weather` |
+| `get_emergency_contacts` | Get emergency contacts | `GET ai-tools/emergency-contacts` |
+| `send_sos_alert` | Send SOS alert | `POST ai-tools/sos` |
+| `get_user_loyalty` | Get user loyalty points | `GET ai-tools/loyalty` |
+| `get_trip_detail` | Get trip details | `GET trips/{trip_id}` |
+| `get_hotel_detail` | Get hotel details | `GET ai-tools/hotels` |
+
+### Tool Dispatch
+Tools are dispatched via `TOOL_DISPATCH` map in `_defs.py`: tool name → (HTTP method, backend path). The dispatch path must match `ai-tools.controller.ts` exactly.
 
 ### Tool Execution
 - Parallel execution via `asyncio.gather` when the LLM returns multiple `tool_use` blocks
 - Timeout: 15 seconds per tool request
 - Backend auth: `X-Service-Key` header + `Accept-Language` header
+- Circuit breaker: opens after 5 failures for 60s
 - Error handling: catch exceptions → generic error response → continue conversation
 
 ---
@@ -205,16 +139,13 @@ All 20 tools are defined as JSON schemas in OpenAI-compatible tool calling forma
 
 ### Connection
 ```
-Client ──wss://ai.derlg.com/ws/{session_id}──▶ AI Service
-Headers:
-  Authorization: Bearer <user_jwt>
+Client ──ws://localhost:8000/ws/chat──▶ AI Agent
 ```
 
 ### Client → Server Messages
-
 ```typescript
 // Auth (first message)
-{ type: "auth", user_id: "uuid", preferred_language: "EN" | "ZH" | "KM" }
+{ type: "auth", user_id: "uuid", session_id: "uuid", preferred_language: "EN" | "ZH" | "KM" }
 
 // User text message
 { type: "user_message", content: "3-day temple tour in Siem Reap" }
@@ -227,85 +158,70 @@ Headers:
 ```
 
 ### Server → Client Messages
-
 ```typescript
 // Typing indicators
 { type: "typing_start" }
 { type: "typing_end" }
 
-// Agent response (triggers auto-render on frontend)
-{
-  type: "agent_message",
-  text: "I found 2 incredible temple tours...",
-  content_payload: {
-    type: "trip_cards",
-    data: { trips: [...] },
-    actions: [...],
-    metadata: { title: "...", replace: true }
-  },
-  state: "SUGGESTION"
-}
+// Streaming reasoning (gpt-oss-120b reasoning_content)
+{ type: "agent_reasoning_chunk", delta: "..." }
 
-// Payment status push
-{ type: "payment_status", payload: { status: "SUCCEEDED", ... } }
+// Tool execution status
+{ type: "agent_tool_status", tool_use_id: "...", tool_name: "...", status: "running" | "done" }
 
-// Booking hold expiry warning
-{ type: "booking_hold_expiry", payload: { secondsRemaining: 120 } }
+// Final agent response
+{ type: "agent_message", text: "...", content_payloads: [...], suggestions: [...] }
 
-// Error
-{ type: "error", payload: { message: "..." } }
+// Error (structured, retryable)
+{ type: "error", code: "AGENT_INTERNAL_ERROR", message: "...", retryable: true }
 ```
 
 ---
 
-## Response Formatting System
+## Response Formatting
 
-The `format_response()` function analyzes tool results and returns structured frontend messages:
+The `text` field in `agent_message` is the raw model output (Markdown-formatted per the system prompt). The frontend renders it with react-markdown.
 
-| Tool Result Contains | Frontend Message Type |
-|---------------------|----------------------|
-| `"trips"` array | `TripCardsMessage` |
-| `"qr_code_url"` | `QRPaymentMessage` |
-| Payment success + POST_BOOKING | `BookingConfirmedMessage` |
-| `"forecast"` | `WeatherMessage` |
-| `"itinerary"` | `ItineraryMessage` |
-| `"total_estimate_usd"` | `BudgetEstimateMessage` |
-| Exactly 2 trips | `ComparisonMessage` |
-| `"images"` array | `ImageGalleryMessage` |
-| Default | `TextMessage` |
+The `content_payloads` field contains typed blocks that the frontend auto-renders:
 
-**Rule:** The AI agent never sends HTML, JSX, or rendered markup. It sends structured JSON. The frontend owns all rendering logic.
+| Block Type | What It Shows |
+|-----------|---------------|
+| `trip_cards` | Grid of trip cards |
+| `hotel_cards` | Hotel listings |
+| `guide_cards` | Guide profiles |
+| `transport_options` | Vehicle comparison |
+| `custom_trip_card` | AI-composed custom trip (bookable) |
+| `booking_summary` | Booking hold confirmation |
+| `booking_confirmed` | Confirmed booking |
+| `qr_payment` | QR code + expiry countdown |
+| `payment_status` | Payment status badge |
+| `itinerary` | Day-by-day plan |
+| `budget_estimate` | Cost breakdown |
+| `weather` | Forecast widget |
+| `comparison` | Side-by-side comparison |
+| `text_summary` | Fallback text |
 
 ---
 
 ## Session Management
 
-### ConversationState Model
+### ConversationState Model (`agent/session/state.py`)
 ```python
 class ConversationState(BaseModel):
     session_id: str
     user_id: str
-    state: AgentState  # Enum of 7 stages
+    is_authenticated: bool
     messages: list[dict]  # OpenAI-compatible format
     preferred_language: str  # "EN" | "KH" | "ZH"
-    suggested_trip_ids: list[str]
-    selected_trip_id: str
-    selected_trip_name: str
-    booking_id: str
-    booking_ref: str
-    reserved_until: datetime
-    payment_intent_id: str
-    payment_status: str
     last_active: datetime
     created_at: datetime
 ```
 
 ### Redis Persistence
 - Key format: `session:{session_id}`
-- TTL: 7 days (604,800 seconds)
-- LangGraph checkpointer: `RedisSaver`
-- State saved after every node execution
-- On load: check for expired booking holds, recover state
+- TTL: 7 days (604800 seconds)
+- Messages capped at 60
+- State saved after every turn
 
 ---
 
@@ -313,8 +229,8 @@ class ConversationState(BaseModel):
 
 | Language | Code | Behavior |
 |----------|------|----------|
-| English | `EN` | Default; NVIDIA gpt-oss-120b responds in English |
-| Khmer | `KM` | **Always uses NvidiaClient** (best Khmer support); proper font fallback |
+| English | `EN` | Default |
+| Khmer | `KM` | Always uses NVIDIA (best Khmer support) |
 | Chinese (Simplified) | `ZH` | NVIDIA gpt-oss-120b responds in Simplified Chinese |
 
 - `preferred_language` set via WebSocket auth message
@@ -331,10 +247,9 @@ class ConversationState(BaseModel):
 | User auth | `user_id` required in WebSocket auth message before processing |
 | Session validation | `session_id` must be UUID format |
 | Rate limiting | 10 messages/minute per session (Redis-backed) |
-| Input sanitization | All user input sanitized to prevent injection |
-| TLS | `wss://` for WebSocket, `rediss://` for Redis |
+| Input sanitization | All user input sanitized |
 | Sensitive data | `user_id`, `booking_id`, `payment_intent_id` never logged in plain text |
-| Booking cap | $5,000 USD per transaction (human approval above) |
+| Booking cap | $5,000 USD per transaction |
 
 ---
 
@@ -342,42 +257,12 @@ class ConversationState(BaseModel):
 
 | Scenario | Behavior |
 |----------|----------|
-| Model API timeout (60s) | Retry once with exponential backoff → user-friendly error |
+| Model API timeout (90s) | Retry once with exponential backoff → user-friendly error with cause |
 | Tool call timeout (15s) | Return error response → continue conversation |
 | Redis connection failure | Log error → attempt reconnection with backoff |
 | Backend unavailable | Circuit breaker (open after 5 failures, half-open after 30s) |
 | WebSocket disconnect | Save session → remove from active connections |
-| Invalid tool input | Validate before backend call → return validation error |
-| Unknown content_type | Fallback to `text_summary` → log warning |
-| Zod validation fails | Render `ContentError` with retry button |
-
----
-
-## Testing
-
-### Test Structure
-```
-tests/
-├── unit/
-│   ├── test_tool_handlers.py      # All 20 tools with mocked backend
-│   ├── test_prompt_builder.py     # All 7 states × 3 languages
-│   ├── test_response_formatter.py # All message types
-│   └── test_session_side_effects.py
-├── integration/
-│   ├── test_websocket_flow.py
-│   ├── test_tool_execution.py
-│   ├── test_payment_events.py
-│   └── test_state_machine.py
-└── property/
-    ├── test_state_roundtrip.py    # parse(format(x)) == x
-    └── test_schema_validation.py
-```
-
-### Requirements
-- **Coverage:** Minimum 80%
-- **Framework:** pytest + pytest-asyncio
-- **Mocking:** NVIDIA API, backend API, Redis
-- **Property tests:** Hypothesis library
+| Streaming failure | Fall back to non-streaming (graceful degradation) |
 
 ---
 
@@ -385,46 +270,34 @@ tests/
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `MODEL_BACKEND` | Yes | `"nvidia"` (default) or `"ollama"` |
-| `NVIDIA_API_KEY` | Yes* | NVIDIA API key (default; required unless using Ollama) |
-| `OLLAMA_BASE_URL` | Yes* | Ollama server URL (required when MODEL_BACKEND=ollama) |
-| `BACKEND_URL` | Yes | NestJS backend base URL (e.g., `http://backend:3001`) |
-| `AI_SERVICE_KEY` | Yes | 32+ character service key for backend auth |
-| `REDIS_URL` | Yes | Redis connection string |
-| `HOST` | No | Default `0.0.0.0` |
-| `PORT` | No | Default `8000` |
-| `LOG_LEVEL` | No | Default `info` |
-| `SENTRY_DSN` | No | Sentry error tracking |
-
-### Startup Validation
-- All required env vars checked on startup
-- `AI_SERVICE_KEY` length validated (≥32 chars)
-- Fail fast with clear error message if config missing
+| `NVIDIA_API_KEY` | yes | NVIDIA NIM API key |
+| `MODEL_LLM` | no | Default: `openai/gpt-oss-120b` |
+| `MODEL_TIMEOUT_S` | no | Default: 90 (gpt-oss-120b is slow on free tier) |
+| `BACKEND_URL` | yes | NestJS backend base URL |
+| `AI_SERVICE_KEY` | yes | 32+ char secret for backend auth |
+| `REDIS_URL` | yes | Redis connection string |
+| `JWT_SECRET` | no | Must equal backend JWT_ACCESS_SECRET for signed-in chat |
+| `ALLOWED_WS_ORIGINS` | no | Comma-separated WebSocket origins |
 
 ---
 
 ## Development Workflow
 
-### Local (Docker Compose)
-```bash
-# From project root
-docker-compose up
-# Services: postgres (5432), redis (6379), backend (3001), ai-agent (8000), frontend (3000)
-```
-
-### Direct Python
+### Local
 ```bash
 cd vibe-booking
-python -m venv .venv
-source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-### Running Tests
+> **Run without `--reload`** — the reloader hangs on slow in-flight LLM calls.
+> **Unset NVIDIA_API_KEY** — a shell-exported key shadows `.env` and causes 403s.
+
+### Running tests
 ```bash
 pytest                          # All tests
-pytest tests/unit/             # Unit only
+pytest tests/unit/              # Unit only
 pytest --cov=agent --cov-report=html  # With coverage
 ```
 
@@ -433,10 +306,11 @@ pytest --cov=agent --cov-report=html  # With coverage
 ## Integration Points
 
 ### With Frontend (Next.js)
-- **Protocol:** WebSocket at `/ws/{session_id}`
+- **Protocol:** WebSocket at `/ws/chat`
 - **Auth:** JWT Bearer token in connection header
 - **Message format:** JSON with `type` field
-- **Auto-render:** AI sends `content_payload`; frontend routes to renderer
+- **Auto-render:** AI sends `content_payloads`; frontend routes to renderer
+- **Markdown:** AI sends Markdown in `text`; frontend renders with react-markdown
 
 ### With Backend (NestJS)
 - **Protocol:** HTTP (`httpx.AsyncClient`)
@@ -448,39 +322,17 @@ pytest --cov=agent --cov-report=html  # With coverage
 ### With Redis
 - **Session store:** Key-value with 7-day TTL
 - **Pub/Sub:** `payment_events:{user_id}` channel for payment notifications
-- **Checkpointer:** LangGraph `RedisSaver` for state persistence
 
 ---
 
 ## Agent Conventions
 
 1. **Never invent data.** All facts come from backend tool calls.
-2. **Always confirm before booking.** `createBooking` only after explicit user confirmation.
+2. **Always confirm before booking.** `create_booking_hold` only after explicit user confirmation.
 3. **Khmer = NVIDIA.** When `preferred_language == "KM"`, always use NvidiaClient.
-4. **State drives behavior.** System prompt includes stage-specific instructions based on `session.state`.
-5. **JSON only to frontend.** Never send HTML/JSX. Send structured `content_payload`.
-6. **Parallel tools.** Execute multiple tool calls concurrently with `asyncio.gather`.
-7. **Limit context window.** Pass last 20 messages to model; max 5 tool call loops.
-8. **Sanitize errors.** Never expose stack traces or internal details to users.
-9. **Log structured.** Use `structlog` for JSON logs; include token counts and latency.
-10. **Test everything.** 80%+ coverage; mock all external dependencies.
-
----
-
-## Related Documentation
-
-| Document | Path |
-|----------|------|
-| Feature Requirements | `docs/modules/vibe-booking/requirements.md` |
-| System Architecture | `docs/modules/vibe-booking/architecture.md` |
-| AI Agent Requirements | `.kiro/specs/vibe-booking/requirements.md` |
-| AI Agent Design | `.kiro/specs/vibe-booking/design.md` |
-| Implementation Tasks | `.kiro/specs/vibe-booking/tasks.md` |
-| Frontend Requirements | `.kiro/specs/vibe-booking-frontend/requirements.md` |
-| Frontend Design | `.kiro/specs/vibe-booking-frontend/design.md` |
-| Auto-Render Architecture | `.kiro/specs/vibe-booking-frontend/auto-render-system-design.md` |
-| Research Synthesis | `.kiro/specs/vibe-booking-frontend/vibe_booking_researched.md` |
-
----
-
-*Last updated: 2026-05-14*
+4. **JSON only to frontend.** Never send HTML/JSX. Send structured `content_payload`.
+5. **Parallel tools.** Execute multiple tool calls concurrently with `asyncio.gather`.
+6. **Limit context window.** Pass last 20 messages to model; max 5 tool call loops.
+7. **Sanitize errors.** Never expose stack traces or internal details to users.
+8. **Log structured.** Use `structlog` for JSON logs; include token counts and latency.
+9. **Test everything.** 80%+ coverage; mock all external dependencies.

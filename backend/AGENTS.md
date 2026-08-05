@@ -1,6 +1,6 @@
 # DerLg Backend — Agent Context Index
 
-> This file lives in the backend root to keep agent context **local to this directory**. When working on backend code, read the files listed here first. Do not rely on global project memory — these specs are the source of truth.
+> This file lives in the backend root to keep agent context **local to this directory**. When working on backend code, read the files listed here first.
 
 ---
 
@@ -8,144 +8,82 @@
 
 When starting work on the backend, read these files **in this order**:
 
-1. `context/guides/MISSION.md` — Why this backend exists and what success looks like
-2. `context/guides/CONSTITUTION.md` — Rules all backend code must follow
-3. `context/guides/CODE-STANDARD.md` — How we write code (formatting, patterns, NestJS conventions)
-4. `context/guides/TECH-STACK.md` — Exact package versions and configs
-5. `context/guides/SUPABASE-WORKFLOW.md` — Prisma + Supabase commands and workflows
-6. `context/plans/ROADMAP.md` — Current phase and what comes next
-7. `context/specs/SCHEMA.md` — Database schema (Prisma)
-8. `context/specs/API-CONTRACT.md` — All endpoints as TypeScript contracts
+1. `src/app.module.ts` — module dependency graph and imports
+2. `prisma/schema.prisma` — database schema (Prisma)
+3. `src/common/` — cross-cutting code (guards, interceptors, filters, errors, cache, i18n)
+4. The relevant module under `src/modules/<name>/`
 
 Then read the relevant domain specs for the task at hand.
 
 ---
 
-## Context Files
+## Module Index
 
-All spec files are in `backend/context/` organized by category.
+All implementation is under `src/modules/`:
 
-### `context/guides/` — How We Work (read first)
+| Module | Purpose | Key Files |
+|--------|---------|-----------|
+| `ai-tools` | `/v1/ai-tools/*` endpoints for the AI agent | `ai-tools.controller.ts`, `ai-tools.service.ts`, `ai-tools.dto.ts` |
+| `auth` | JWT access + refresh, Telegram OAuth | `auth.controller.ts`, `auth.service.ts` |
+| `bookings` | Booking creation, confirmation, cancellation, holds | `bookings.controller.ts`, `use-cases/`, `dto/` |
+| `guides` | Tour guide catalogue | `guides.controller.ts`, `list-guides.use-case.ts`, `utils/` |
+| `hotels` | Hotel catalogue (types, rooms, star ratings) | `hotels.controller.ts`, `list-hotels.use-case.ts`, `dto/` |
+| `places` | Points of interest | `places.controller.ts`, `list-places.use-case.ts` |
+| `prisma` | Prisma service + client | `prisma.service.ts` |
+| `redis` | Redis connection, cache, rate limiting | `redis.service.ts` |
+| `search` | Global search across all catalogues | `search.controller.ts`, `global-search.use-case.ts` |
+| `transportation` | Vehicle catalogue | `transportation.controller.ts`, `list-vehicles.use-case.ts` |
+| `trips` | Trip packages (incl. custom trips) | `trips.controller.ts`, `list-trips.use-case.ts` |
+| `users` | User profiles, loyalty points | `users.controller.ts`, `users.service.ts` |
 
-| File | Purpose | When to Read |
-|------|---------|-------------|
-| `guides/MISSION.md` | Purpose, success criteria, scope vs. out-of-scope, definition of done, target state | Before any implementation — understand the "why" |
-| `guides/CONSTITUTION.md` | Immutable rules: module structure, dependency DAG, API envelope, auth strategy, naming conventions, testing gates | Before any implementation |
-| `guides/CODE-STANDARD.md` | Code style: Prettier/ESLint config, import order, TypeScript patterns, NestJS patterns, DTO rules, git practices, PR checklist, security checklist | Before writing code, during code review |
-| `guides/TECH-STACK.md` | Exact versions for every package, env var list, Docker images, external services, version pinning policy | Before installing packages, debugging version issues |
-| `guides/SUPABASE-WORKFLOW.md` | Prisma + Supabase commands: migrate, seed, studio, troubleshooting, daily workflow | When running any Prisma command against Supabase |
+Cross-cutting code lives in `src/common/`:
 
-### `context/specs/` — What We Build (domain specs)
-
-| File | Purpose | When to Read |
-|------|---------|-------------|
-| `specs/SCHEMA.md` | Complete Prisma schema: 20 models, 18 enums, all relations, indexes, soft delete conventions | When writing database queries, migrations, or DTOs |
-| `specs/API-CONTRACT.md` | All ~80 endpoints: request DTOs, response types, auth requirements, error codes per endpoint | When implementing or modifying endpoints |
-| `specs/ERROR-REGISTRY.md` | ~100 error codes by domain: code format, HTTP status, message template, module assignment | When adding new errors, writing exception handling |
-| `specs/EVENT-CATALOG.md` | 18 domain events: payload TypeScript interfaces, producers, consumers, priority, implementation examples | When emitting or handling events, adding cross-module communication |
-
-### `context/plans/` — Planning & Operations
-
-| File | Purpose | When to Read |
-|------|---------|-------------|
-| `plans/IMPLEMENTATION-ROADMAP.md` | **Primary task index:** 7 tracks, ~60 tasks, dependency graph, week-by-week execution, spec references per task | **Start here** when picking next work |
-| `plans/ROADMAP.md` | 13 sequential phases with deliverables, milestone summary, dependency graph, decision log, risk register | When planning work, estimating timelines |
-| `plans/TEST-PLAN.md` | Test strategy: levels, coverage gates, 9 critical E2E flows, unit/integration patterns, property-based tests, CI pipeline | When writing tests, estimating test effort |
-| `plans/SEED-SPEC.md` | Seed data: 5 users, 5 guides, 3 hotels, 8 places, 5 trips, vehicles, discount codes, festivals, seed order | When setting up local dev, writing E2E tests, demo prep |
-
----
-
-## Directory Layout
-
-```
-backend/
-  AGENTS.md              <-- you are here
-  context/               <-- all spec files live here
-    guides/              <-- how we work (read first)
-      CONSTITUTION.md
-      CODE-STANDARD.md
-      TECH-STACK.md
-    specs/               <-- what we build (domain specs)
-      SCHEMA.md
-      API-CONTRACT.md
-      ERROR-REGISTRY.md
-      EVENT-CATALOG.md
-    plans/               <-- planning & operations
-      ROADMAP.md
-      TEST-PLAN.md
-      SEED-SPEC.md
-  src/                   <-- implementation code
-  prisma/                <-- schema.prisma, migrations, seed.ts
-  test/                  <-- E2E tests
-  docker-compose.yml     <-- local services
-  Dockerfile             <-- production build
-```
+| Directory | Purpose |
+|-----------|---------|
+| `guards/` | JWT guard, service-key guard, current-user guard |
+| `interceptors/` | Logging interceptor |
+| `filters/` | Prisma filter, all-exceptions filter |
+| `decorators/` | Public decorator, current-user decorator |
+| `dto/` | List query DTO, base DTOs |
+| `errors/` | Error codes, custom exceptions |
+| `cache/` | Cached service base, cache keys |
+| `i18n/` | Language types, translation helpers |
+| `types/` | Paginated response type |
 
 ---
 
-## How to Use This Index
+## API Conventions
 
-### Starting a new feature
-1. Read `plans/ROADMAP.md` — identify the phase and milestone
-2. Read `guides/CONSTITUTION.md` — verify module structure and dependency rules
-3. Read `specs/SCHEMA.md` — understand the data model
-4. Read `specs/API-CONTRACT.md` — implement the endpoint contracts
-5. Read `plans/TEST-PLAN.md` — write tests to the specified level
-
-### Fixing a bug
-1. Read `specs/ERROR-REGISTRY.md` — check if the error code exists
-2. Read `guides/CODE-STANDARD.md` — ensure the fix follows patterns
-3. Read relevant section of `specs/API-CONTRACT.md` — verify expected behavior
-
-### Adding a new error code
-1. Read `specs/ERROR-REGISTRY.md` — check for duplicates
-2. Add to `specs/ERROR-REGISTRY.md` first
-3. Add to `src/common/errors/error-codes.ts`
-4. Update `specs/API-CONTRACT.md` if endpoint behavior changes
-
-### Modifying the database schema
-1. Read `specs/SCHEMA.md` — understand current state
-2. Edit `specs/SCHEMA.md` to reflect the change
-3. Edit `prisma/schema.prisma` to match
-4. Run migration: `npx prisma migrate dev`
-5. Update `specs/API-CONTRACT.md` if response shapes change
-6. Update `plans/SEED-SPEC.md` if new required fields are added
+- Prefix: `/v1/` (user-facing), `/v1/ai-tools/*` (AI agent, X-Service-Key auth)
+- Envelope: `{ success, data, message, error }`
+- Auth: Bearer JWT in `Authorization` header; service-to-service via `X-Service-Key`
+- `forbidNonWhitelisted: true` — every new query param **must** be declared in the DTO or requests return 400
+- Naming: NestJS controllers `feature.controller.ts`, services `feature.service.ts`, DTOs `feature.dto.ts`
 
 ---
 
-## Change Process
+## Database
 
-When a spec file changes, update **all affected files**:
+- Schema: `prisma/schema.prisma`
+- Dev: local Supabase on port 54322
+- VPS (Coolify): point `DATABASE_URL` at Coolify-managed Postgres
+- Migrations: `npx prisma migrate deploy` (use `db push` if `migrate dev` fails — DB has pre-existing drift)
+- Seed: `npm run prisma:seed` (idempotent, dependency-ordered)
 
-| Change In | Also Update |
-|-----------|-------------|
-| `specs/SCHEMA.md` | `prisma/schema.prisma`, `specs/API-CONTRACT.md` (if shapes change), `plans/SEED-SPEC.md` |
-| `specs/API-CONTRACT.md` | Implementation code, `specs/ERROR-REGISTRY.md` (if new errors) |
-| `specs/ERROR-REGISTRY.md` | `src/common/errors/error-codes.ts` |
-| `specs/EVENT-CATALOG.md` | Event producer/consumer implementations |
-| `guides/CONSTITUTION.md` | All implementation code that may be affected (amendment process) |
-| `plans/ROADMAP.md` | Nothing — this is planning-only |
+---
+
+## Dev Gotchas
+
+- **NVIDIA_API_KEY shadowing** (affects AI agent, not backend directly): unset before launching the agent
+- **Pre-existing DB drift**: `prisma migrate dev` won't work cleanly; use `migrate deploy` or `db push`
+- **forbidNonWhitelisted**: every new query param must be in the DTO
 
 ---
 
 ## External References
 
-These files live outside `backend/` but are relevant:
-
 | File | Purpose |
 |------|---------|
-| `docs/modules/*/api.yaml` | Original OpenAPI specs (source for `API-CONTRACT.md`) |
-| `docs/platform/backend/*.md` | Architecture deep-dives: security, async, AI integration, operations |
-| `.kiro/specs/backend-nestjs-supabase/*.md` | Detailed requirements, design, and task breakdown |
-| `CLAUDE.md` | Project-wide conventions (frontend + backend) |
-
----
-
-## Agent Reminders
-
-- **Do not use global memory** for backend decisions — check these files first
-- **Do not guess error codes** — use `specs/ERROR-REGISTRY.md`
-- **Do not guess schema fields** — use `specs/SCHEMA.md`
-- **Do not skip tests** — follow `plans/TEST-PLAN.md` coverage gates
-- **Do not add cross-module imports** — follow `guides/CONSTITUTION.md` dependency rules
-- **Run lint and format before finishing** — per `guides/CODE-STANDARD.md`
+| `RAYU.md` | RAYU project-wide conventions |
+| `AGENTS.md` | Agent routing (root level) |
+| `CLAUDE.md` | Claude Code project-wide conventions |
