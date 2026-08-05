@@ -41,22 +41,25 @@ The AI handles the entire loop: **discover → plan → book → pay** — all w
 
 | Feature | Description |
 |---------|-------------|
-| **Vibe Booking (AI Chat)** | Full-screen WebSocket chat with a LangGraph + Claude AI agent. Renders trip cards, hotel listings, action buttons, and payment QR codes inline. |
-| **Trip Discovery** | Curated Cambodia trip packages — temples, nature, culture, adventure, food. Hero home screen with category filtering. |
-| **Multi-Booking Engine** | Book trips, hotels, transportation (van/bus/tuk-tuk), and verified tour guides in one place. |
+| **Vibe Booking (AI Chat)** | Full-screen WebSocket chat with an NVIDIA gpt-oss-120b AI agent. Renders trip cards, hotel listings, guide profiles, transport options, custom trip packages, and payment QR codes inline. Markdown-formatted responses. |
+| **Trip Discovery** | Curated Cambodia trip packages — temples, nature, culture, adventure, food, and AI-composed custom trips. |
+| **Hotel Booking** | Hotels with types (resort, boutique, hotel, guesthouse, hostel, villa), star ratings, room availability. |
+| **Transportation** | Book tuk-tuks, vans (Starex/Hiace/Alphard), and buses (small 25-seat, large 45-seat) — filtered by tier (Normal/VIP). |
+| **Verified Guides** | Tour guides with spoken languages (10 languages), specialties (culture, food, adventure, photography, etc.), and linked trip packages. |
+| **Multi-Booking Engine** | Book trips, hotels, transportation, and verified tour guides — compose multi-item bookings. |
 | **Smart Availability** | 15-minute booking holds with Redis TTL, conflict detection, and auto-cancellation. |
 | **Payments** | Stripe card payments (3D Secure) + Bakong/ABA QR codes for Cambodian and Chinese markets. |
 | **Multi-Language** | Full support for **English, Chinese (中文), and Khmer (ខ្មែរ)** across all content. |
-| **PWA** | Installable Progressive Web App with offline static asset caching. Feels like a native app without the app store. |
+| **PWA** | Installable Progressive Web App with offline static asset caching. |
 
 ### Coming Soon
 
 | Feature | Description | Release |
 |---------|-------------|---------|
-| **Loyalty Points** | Earn 2 points per USD spent. Redeem at checkout (100 pts = $1). | v1.1 |
+| **Loyalty Points** | Earn points per USD spent. Redeem for awards. | v1.1 |
 | **Student Discounts** | Verify student ID for automatic discounts across bookings. | v1.1 |
 | **Offline Maps** | Downloadable OpenStreetMap packs for rural Cambodia navigation. | v1.1 |
-| **Emergency SOS** | GPS-tracked SOS alerts with 5-second cancel countdown. Direct push + SMS to support team. | v1.2 |
+| **Emergency SOS** | GPS-tracked SOS alerts with cancel countdown. Push + SMS to support. | v1.2 |
 | **Location Sharing** | Share live location with family via unique tracking links. | v1.2 |
 | **Festival Calendar** | Cultural events with auto-generated discount codes. | v1.2 |
 | **Admin Dashboard** | Metrics, bookings, users, revenue charts for operations. | v2.0 |
@@ -76,36 +79,35 @@ The AI handles the entire loop: **discover → plan → book → pay** — all w
 
 ## Tech Stack
 
-This repo is a monorepo of two apps: a **Next.js web** client and a **NestJS API** that also hosts the Vibe Booking AI agent in-process (no separate Python service).
+This repo is a monorepo of three independently runnable services:
 
 ```
-Next.js web (3100)  ──REST /v1──►  NestJS API (3101)  ──OpenAI-compatible chat completions──►  LLM
-                                       │
-                          ┌────────────┼────────────┐
-                          ▼            ▼            ▼
-                    PostgreSQL      Redis        Cloudflare R2
-                  (catalog,       (sessions,    (seed images,
-                   bookings)      holds TTL)     optional)
+web (3002)  ──REST /v1──►  backend (3003)  ──X-Service-Key──►  vibe-booking (8000)
+                                     │
+                        ┌────────────┼────────────┐
+                        ▼            ▼            ▼
+                  PostgreSQL      Redis        MinIO
+                (catalog,       (sessions,    (seed images,
+                 bookings)      holds TTL)     media)
 ```
 
-| App | Directory | Port | Technology |
-|-----|-----------|------|------------|
-| Web | `apps/web` | 3100 | Next.js 16, React 19, TypeScript 5, Tailwind v4, Zustand, React Query, Stripe Elements |
-| API | `apps/api` | 3101 | NestJS 11, Prisma 6, TypeScript 5, Jest, OpenAI-compatible LLM (NVIDIA NIM by default) |
+| Service | Directory | Port | Technology |
+|---------|-----------|------|------------|
+| Web | `web/` | 3002 | Next.js 16, React 19, TypeScript 5, Tailwind v4, Zustand, React Query, next-intl, Leaflet, react-markdown |
+| API | `backend/` | 3003 | NestJS 11, Prisma 6, TypeScript 5, Jest, class-validator, Passport JWT |
+| AI Agent | `vibe-booking/` | 8000 | Python 3.12, FastAPI, NVIDIA gpt-oss-120b, Redis sessions, hand-rolled async tool loop |
 
-Shared infra: PostgreSQL, Redis, Cloudflare R2 (optional), Stripe (optional). Each optional service **degrades to HTTP 503** when unconfigured — the app always boots.
-
-> **Why 3100/3101?** Ports 3000/3001 are occupied by the older `frontend/`/`backend/`/`vibe-booking/` projects still in this tree. The `apps/` monorepo uses 3100/3101 so both can coexist on one machine.
+> Dev runs on ports 4007/4008/4009 via shell env overrides to avoid clashes with the configured defaults.
 
 ---
 
 ## Architecture Highlights
 
-- **Conversational booking loop** — the Vibe agent renders interactive trip/booking cards inline. The frontend owns all rendering; the API sends structured `content_payload`.
+- **Conversational booking loop** — the Vibe agent renders interactive trip/booking cards inline. The frontend owns all rendering; the API sends structured `content_payload`. AI responses render as Markdown.
+- **Custom trip composition** — the AI can compose and save a bespoke trip from hotel + guide + transport + extras, with server-side pricing.
 - **Grounding guardrails** — the agent only ever sees real catalogue ids returned by its read tools, and the only money-moving tool (`create_booking_hold`) is server-validated. The agent never writes to the DB directly.
-- **15-minute holds** with a Redis TTL; expired holds are released by a scheduled job.
-- **Tiered refunds** — 100% if cancelled ≥7 days out, 50% at 1–7 days, 0% inside 24h.
-- **Idempotent seeding** — re-runnable; `--upload-r2` migrates seed images to R2 and rewrites `PlaceImage.url` while preserving CC BY-SA attribution.
+- **15-minute holds** with a Redis TTL; expired holds are released automatically.
+- **Idempotent seeding** — re-runnable seed script populates all catalogue data.
 
 ---
 
@@ -118,126 +120,99 @@ Shared infra: PostgreSQL, Redis, Cloudflare R2 (optional), Stripe (optional). Ea
 | [`docs/platform/architecture/system-overview.md`](docs/platform/architecture/system-overview.md) | System architecture, auth flow, payment flow |
 | [`docs/modules/`](docs/modules/) | Per-feature API specs and architecture |
 | [`CLAUDE.md`](CLAUDE.md) | Development guide for Claude Code |
+| [`RAYU.md`](RAYU.md) | Development guide for RAYU |
+| [`AGENTS.md`](AGENTS.md) | Agent routing and cross-cutting conventions |
 
 ---
 
 ## Running it
 
-### One command — Docker
-
-The whole stack (Postgres, Redis, API, web) comes up with one command:
-
-```bash
-docker compose up --build
-```
-
-- The API applies pending Prisma migrations on every start, so the schema is ready immediately.
-- Web → http://localhost:3100, API → http://localhost:3101/v1.
-- Seed the catalogue once: `docker compose exec api npm run db:seed`
-  - With R2: `docker compose exec api npm run db:seed -- --upload-r2` (needs R2 env, see below).
-- Stripe / the LLM / R2 are left blank by default; their endpoints return 503 until you wire them (see below).
-
-> SSR caveat: inside the web container, server-side catalogue fetches use the browser URL and degrade to "no featured trips". Client-side fetching and the booking funnel are unaffected.
-
 ### Local dev (no Docker)
 
 ```bash
-# 1. Start Postgres + Redis (mapped to non-default ports to avoid clashes)
-docker compose up -d postgres redis
+# 1. Start Postgres + Redis
+cd backend && docker compose up -d postgres redis
 
-# 2. API
-cd apps/api
+# 2. Backend
+cd backend
 cp .env.example .env          # then edit secrets (JWT_ACCESS_SECRET etc.)
 npm install
 npx prisma migrate dev        # create + apply the schema
-npm run db:seed               # seed the catalogue
-npm run start:dev              # http://localhost:3101/v1
+npm run prisma:seed           # seed the catalogue
+npm run start:dev              # http://localhost:3003/v1
 
-# 3. Web (other terminal)
-cd apps/web
-cp .env.example .env.local
+# 3. AI Agent (other terminal)
+cd vibe-booking
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8000  # http://localhost:8000
+
+# 4. Web (other terminal)
+cd web
+cp .env.local.example .env.local
 npm install
-npm run dev                    # http://localhost:3100
+npm run dev                    # http://localhost:3002
 ```
+
+> **NVIDIA_API_KEY gotcha:** If you have `NVIDIA_API_KEY` exported in your shell, unset it before launching the agent — the shell export shadows the `.env` value and causes HTTP 403s on every chat turn.
 
 ### Environment variables
 
-Copy `apps/api/.env.example` → `apps/api/.env` and `apps/web/.env.example` → `apps/web/.env.local`, then fill in the secrets you need. Empty values are treated as "not configured" — the app boots either way.
+Copy `backend/.env.example` → `backend/.env` and `web/.env.local.example` → `web/.env.local`, then fill in the secrets you need.
 
-#### API (`apps/api/.env`)
+#### Backend (`backend/.env`)
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `NODE_ENV` | yes | `development` / `production` |
-| `PORT` | yes | `3101` |
-| `CORS_ORIGINS` | yes | Comma-separated browser origins (`http://localhost:3100`) |
-| `DATABASE_URL` | yes | Postgres URL. Local docker: `postgresql://derlg:derlg_dev_password@localhost:55433/derlg?schema=public` |
-| `REDIS_URL` | yes | `redis://localhost:56380` (local docker) |
+| `DATABASE_URL` | yes | Postgres URL (Supabase or local) |
+| `DIRECT_URL` | yes | Direct connection for migrations |
 | `JWT_ACCESS_SECRET` | yes | ≥32 chars. Generate: `openssl rand -base64 48` |
 | `JWT_REFRESH_SECRET` | yes | ≥32 chars. Generate separately |
-| `JWT_ACCESS_TTL` | yes | `15m` |
-| `REFRESH_TOKEN_TTL_DAYS` | yes | `30` |
-| `COOKIE_DOMAIN` | no | Leave empty for localhost |
-| `STRIPE_SECRET_KEY` | no | Test key from Stripe dashboard. Empty → payments return 503 |
-| `STRIPE_WEBHOOK_SECRET` | no | `whsec_…` from `stripe listen` (see below) |
-| `STRIPE_PUBLISHABLE_KEY` | no | Test publishable key |
-| `OPENAI_BASE_URL` | yes | `https://integrate.api.nvidia.com/v1` (swap provider freely) |
-| `OPENAI_API_KEY` | no | Provider key. Empty → Vibe returns 503 |
-| `OPENAI_MODEL` | yes | `meta/llama-3.1-8b-instruct` (fast). `meta/llama-3.1-70b-instruct` = better prose, slower |
-| `OPENAI_TIMEOUT_MS` | yes | `60000` |
-| `R2_ACCOUNT_ID` | no | Cloudflare R2. All four R2_* core vars needed together or 503 |
-| `R2_ACCESS_KEY_ID` | no | R2 access key |
-| `R2_SECRET_ACCESS_KEY` | no | R2 secret |
-| `R2_BUCKET` | no | R2 bucket name |
-| `R2_PUBLIC_BASE_URL` | no | Public R2 domain; when unset, reads use 1h presigned URLs |
+| `AI_SERVICE_KEY` | yes | ≥32 chars. Must match `vibe-booking/.env` |
+| `REDIS_URL` | yes | `redis://localhost:6379/0` |
+| `MINIO_ACCESS_KEY` | yes | MinIO credentials |
+| `MINIO_SECRET_KEY` | yes | MinIO credentials |
+| `STRIPE_SECRET_KEY` | no | Empty → payments return 503 |
+| `STRIPE_WEBHOOK_SECRET` | no | From `stripe listen` |
 
-#### Web (`apps/web/.env.local`)
+#### Web (`web/.env.local`)
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `NEXT_PUBLIC_API_URL` | yes | `http://localhost:3101/v1` (browser-facing API base) |
-| `NEXT_PUBLIC_SITE_URL` | yes | `http://localhost:3100` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | no | Test publishable key. Payment UI shows a notice until set |
-| `R2_PUBLIC_BASE_URL` | no | Set to allow the Next image optimizer to serve R2 images |
+| `NEXT_PUBLIC_API_URL` | yes | `http://localhost:3003` |
+| `NEXT_PUBLIC_AI_WS_URL` | yes | `ws://localhost:8000` |
+| `NEXT_PUBLIC_APP_URL` | yes | `http://localhost:3002` |
+| `AI_SERVICE_KEY` | yes | Must match `backend/.env` (for BFF routes) |
+| `JWT_ACCESS_SECRET` | yes | Must match `backend/.env` (for BFF token verification) |
 
-### Stripe — test cards end to end
+#### AI Agent (`vibe-booking/.env`)
 
-The card-payment path only runs with Stripe test keys and a forwarding webhook. From the Stripe dashboard, copy the **test** secret + publishable keys, then:
-
-```bash
-# 1. Put keys in env:
-#    apps/api/.env:        STRIPE_SECRET_KEY=sk_test_...   STRIPE_PUBLISHABLE_KEY=pk_test_...
-#    apps/web/.env.local:  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-
-# 2. Forward webhooks to the local API (run in its own terminal):
-stripe listen --forward-to localhost:3101/v1/payments/webhook
-#    It prints: > Ready! Your webhook signing secret is whsec_xxx
-#    Put that into apps/api/.env as STRIPE_WEBHOOK_SECRET=whsec_xxx
-
-# 3. Restart the API so it picks up STRIPE_WEBHOOK_SECRET.
-
-# 4. Pay in the checkout with the test card:
-#    4242 4242 4242 4242   any future date   any CVC
-#    The booking flips to CONFIRMED and a check-in code is issued.
-```
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `NVIDIA_API_KEY` | yes | NVIDIA NIM API key |
+| `MODEL_LLM` | no | Default: `openai/gpt-oss-120b` |
+| `BACKEND_URL` | yes | `http://localhost:3003` |
+| `AI_SERVICE_KEY` | yes | Must match `backend/.env` |
+| `REDIS_URL` | yes | `redis://localhost:6379/0` |
 
 ### Testing
 
 | Suite | Where | Command |
 |-------|-------|---------|
-| API unit | `apps/api` | `npm test` |
-| API e2e | `apps/api` | `npm run test:e2e` |
-| Web unit (Vitest) | `apps/web` | `npm test` |
-| Web typecheck | `apps/web` | `npm run typecheck` |
-| Web lint | `apps/web` | `npm run lint` |
-| Web production build | `apps/web` | `npm run build` |
-| Golden-path E2E (Playwright) | `apps/web` | `npm run e2e` (needs the stack up + Stripe/LLM as above) |
+| Backend unit | `backend/` | `npm test` |
+| Backend e2e | `backend/` | `npm run test:e2e` |
+| Web unit (Vitest) | `web/` | `npm run test` |
+| Web typecheck | `web/` | `npm run typecheck` |
+| Web lint | `web/` | `npm run lint` |
+| Web production build | `web/` | `npm run build` |
+| Web E2E (Playwright) | `web/` | `npm run e2e` |
+| AI Agent | `vibe-booking/` | `pytest` |
 
 ---
 
 ## Project Status
 
-**Phase:** MVP build of the `apps/` monorepo. The full booking loop (browse → customize → hold → checkout) and the AI concierge (compose → hold) are implemented and under test — see the test table above. Stripe live card runs, R2 image hosting, and Playwright golden paths are wired and ready; the items left are environment credentials (Stripe test keys, an LLM key) noted in "Running it".
+**Phase:** MVP. The full booking loop (browse → chat → book → pay) and the AI concierge (discover → compose → book) are implemented and running. Stripe card runs, MinIO image hosting, and Playwright golden paths are wired and ready.
 
 **MVP Goal:** Prove the core loop — *discover → chat → book → pay*.
 

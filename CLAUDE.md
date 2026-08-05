@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**DerLg** is a Cambodia travel booking platform with an AI-powered "Vibe Booking" feature — a conversational AI concierge that lets travelers discover, plan, and book trips through natural language chat. It is a full-stack application in early scaffolding: Next.js frontend, NestJS backend, and a planned Python AI agent service.
+**DerLg** is a Cambodia travel booking platform with an AI-powered "Vibe Booking" feature — a conversational AI concierge that lets travelers discover, plan, and book trips through natural language chat.
 
 **Target users:** International tourists, Chinese tourists (primary market), students, and safety-conscious travelers. **Languages:** English (EN), Chinese (ZH), Khmer (KM).
 
-**Current state:** Both frontend and backend are mostly default boilerplate from `create-next-app` and the NestJS CLI. Extensive planning docs live in `docs/` and `.kiro/specs/`, but implementation work has not yet begun in earnest.
+**Current state:** Implemented and running — Next.js frontend (`web/`), NestJS backend (`backend/`), and Python AI agent (`vibe-booking/`). All three services run locally and communicate via REST + WebSocket.
 
 ---
 
@@ -16,15 +16,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```
 derlg/
-├── frontend/          # Next.js 16 App Router (port 3000)
-├── backend/           # NestJS 11 API (port 3001)
-├── docs/              # PRD, architecture, feature specs
-│   ├── product/       # prd.md, feature-decisions.md
-│   ├── platform/      # system-overview.md, roadmaps, guides
-│   └── modules/       # Per-feature API specs (api.yaml)
-└── .kiro/             # Kiro workspace config
-    ├── steering/      # tech.md, structure.md, product.md
-    └── specs/         # Detailed implementation specs per workstream
+├── web/                 # Next.js 16 App Router (port 3002, dev on 4008)
+├── backend/             # NestJS 11 API (port 3003, dev on 4007)
+├── vibe-booking/        # Python FastAPI AI agent (port 8000, dev on 4009)
+├── data/                # Seed images and static data
+├── docs/                # PRD, architecture, feature specs
+│   ├── product/         # prd.md, feature-decisions.md
+│   ├── platform/        # system-overview.md, roadmaps, guides
+│   └── modules/         # Per-feature API specs (api.yaml)
+└── .kiro/               # Kiro workspace config
+    ├── steering/        # tech.md, structure.md, product.md
+    └── specs/           # Detailed implementation specs per workstream
 ```
 
 For detailed requirements and design decisions, see `docs/product/prd.md` and `docs/product/feature-decisions.md`. For module-level API contracts, see `docs/modules/<feature>/api.yaml`.
@@ -33,41 +35,53 @@ For detailed requirements and design decisions, see `docs/product/prd.md` and `d
 
 ## Technology Stack
 
-### Frontend (`frontend/`)
-- **Framework:** Next.js 16.2.6 with App Router
+### Frontend (`web/`)
+- **Framework:** Next.js 16.2.12 with App Router
 - **React:** 19.2.4
 - **Language:** TypeScript 5 (strict mode)
 - **Styling:** Tailwind CSS v4 with `@tailwindcss/postcss`
 - **Fonts:** Geist (via `next/font/google`)
 - **Path alias:** `@/*` maps to `./*`
+- **State/data:** Zustand, React Query, zod, react-hook-form
+- **i18n:** next-intl (`web/messages/{en,zh,km}.json`)
+- **Maps:** Leaflet + react-leaflet + OpenStreetMap
+- **Markdown:** react-markdown + remark-gfm (AI chat responses)
 
 ### Backend (`backend/`)
 - **Framework:** NestJS 11
 - **Language:** TypeScript 5.7.3
+- **ORM:** Prisma 6
 - **Testing:** Jest 30, ts-jest, Supertest
 - **Linting:** ESLint 9 with `typescript-eslint` recommended-type-checked
 - **Formatting:** Prettier 3 (`singleQuote: true`, `trailingComma: "all"`)
-- **TypeScript:** `nodenext` module resolution, `emitDecoratorMetadata`, `strictNullChecks: true`, `noImplicitAny: false`
+- **TypeScript:** `nodenext` module resolution, `emitDecoratorMetadata`, `strictNullChecks: true`
+- **Auth:** Passport JWT, bcrypt
+- **Validation:** class-validator, class-transformer (forbidNonWhitelisted: true)
 
-### Planned (not yet installed)
-- **Frontend:** shadcn/ui, Zustand, React Query, Leaflet.js, next-intl
-- **Backend:** Prisma ORM, class-validator, class-transformer, Passport, Stripe SDK
-- **Data:** PostgreSQL via Supabase, Redis (Upstash), Supabase Storage
-- **AI:** Python FastAPI + LangGraph + Claude Sonnet
-- **Payments:** Stripe + Bakong/ABA QR codes
+### AI Agent (`vibe-booking/`)
+- **Framework:** Python 3.12 + FastAPI
+- **LLM:** NVIDIA gpt-oss-120b (via OpenAI-compatible API)
+- **Pattern:** Hand-rolled async tool loop (not LangGraph) — see `vibe-booking/AGENT.md`
+- **Tools:** 15+ tools (search_trips, search_hotels, search_guides, search_transport, create_trip, create_booking_hold, generate_payment_qr, etc.)
+- **Session:** Redis-backed with 7-day TTL
+- **Testing:** pytest + pytest-asyncio
 
 ---
 
 ## Common Commands
 
-### Frontend (run from `frontend/`)
+### Frontend (run from `web/`)
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Start Next.js dev server on `http://localhost:3000` |
-| `npm run build` | Production build |
+| `npm run dev` | Start Next.js dev server |
+| `npm run build` | Production build (next build + Serwist PWA) |
 | `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
+| `npm run lint` / `npm run lint:fix` | ESLint |
+| `npm run format` | Prettier |
+| `npm run test` / `npm run test:watch` | Vitest |
+| `npm run test:coverage` | Vitest with coverage |
+| `npm run e2e` / `npm run e2e:ui` | Playwright E2E |
 
 ### Backend (run from `backend/`)
 
@@ -76,23 +90,25 @@ For detailed requirements and design decisions, see `docs/product/prd.md` and `d
 | `npm run start:dev` | NestJS with hot reload (`--watch`) |
 | `npm run build` | Compile TypeScript to `dist/` |
 | `npm run start:prod` | Run compiled app (`node dist/main`) |
-| `npm run start` | Standard NestJS start (no watch) |
-| `npm run test` | Run Jest unit tests (`*.spec.ts` in `src/`) |
-| `npm run test:watch` | Jest in watch mode |
-| `npm run test:cov` | Jest with coverage report to `coverage/` |
-| `npm run test:e2e` | Run E2E tests (`*.e2e-spec.ts` in `test/`) |
-| `npm run lint` | ESLint with auto-fix on `src/`, `apps/`, `libs/`, `test/` |
-| `npm run format` | Prettier write on `src/**/*.ts` and `test/**/*.ts` |
+| `npm run test` / `npm run test:watch` | Jest unit tests |
+| `npm run test:e2e` | E2E tests (`test/`) |
+| `npm run test:cov` | Jest with coverage |
+| `npm run lint` / `npm run format` | ESLint / Prettier |
+| `npx prisma migrate dev` | Create + apply migration |
+| `npx prisma generate` | Regenerate Prisma Client |
+| `npx prisma db push` | Push schema without migration |
+| `npm run prisma:seed` | Seed DB (`ts-node prisma/seeds/run.ts`) |
 
 **Run a single test file:** `npx jest src/path/to/file.spec.ts` or `npm test -- src/path/to/file.spec.ts`
 
-### Database (planned — Prisma)
+### AI Agent (run from `vibe-booking/`)
+
 | Command | Purpose |
 |---------|---------|
-| `npx prisma generate` | Generate Prisma Client |
-| `npx prisma migrate dev` | Create and apply migration |
-| `npx prisma studio` | Open Prisma Studio GUI |
-| `npx prisma db push` | Push schema without migration |
+| `uvicorn main:app --host 0.0.0.0 --port 8000 --reload` | Dev server (use `env -u NVIDIA_API_KEY` to avoid 403s) |
+| `pytest` | All tests |
+| `pytest tests/unit/` | Unit only |
+| `pytest --cov=agent --cov-report=html` | With coverage |
 
 ---
 
@@ -101,26 +117,27 @@ For detailed requirements and design decisions, see `docs/product/prd.md` and `d
 ```
 ┌──────────────┐     REST      ┌──────────────┐     Tools     ┌──────────────┐
 │  Next.js     │ ◄──────────► │   NestJS     │ ◄──────────► │ Python AI    │
-│  (Frontend)  │   (/v1/*)    │  (Backend)   │   (/v1/ai-tools/*) │  (LangGraph) │
-│  Port 3000   │              │  Port 3001   │              │              │
+│  (Frontend)  │   (/v1/*)    │  (Backend)   │   (/v1/ai-tools/*) │  (FastAPI)   │
+│  Port 3002   │              │  Port 3003   │              │  Port 8000   │
 └──────────────┘              └──────┬───────┘              └──────────────┘
                                      │
-                    ┌────────────────┼────────────────┐
-                    ▼                ▼                ▼
-              ┌──────────┐    ┌──────────┐    ┌──────────┐
-              │ Supabase │    │  Redis   │    │  Stripe  │
-              │   (PG)   │    │ (Cache)  │    │(Payments)│
-              └──────────┘    └──────────┘    └──────────┘
+                    ┌────────────────┼────────────────┬────────────────┐
+                    ▼                ▼                ▼                ▼
+              ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+              │ Supabase │    │  Redis   │    │  Stripe  │    │  MinIO   │
+              │   (PG)   │    │ (Cache)  │    │(Payments)│    │ (Images, │
+              └──────────┘    └──────────┘    └──────────┘    │  Media)  │
+                                                              └──────────┘
 ```
 
 ### Communication Patterns
 - **Frontend ↔ Backend:** REST JSON with `{ success, data, message, error }` envelope. Base prefix `/v1/`. Auth via Bearer JWT in `Authorization` header.
-- **Frontend ↔ AI Agent:** WebSocket for chat; structured message types (text, card, action, qr).
-- **AI Agent ↔ Backend:** REST tool endpoints with service key auth (`X-Service-Key` header).
+- **Frontend ↔ AI Agent:** WebSocket at `/ws/chat` for chat; structured message types (text, card, action, qr, custom_trip_card).
+- **AI Agent ↔ Backend:** REST tool endpoints with service key auth (`X-Service-Key` header). The AI agent never writes directly to the database.
 - **Backend → External:** Stripe API, Resend email, FCM push, ExchangeRate-API.
 
 ### Data Model
-Key entities (planned): `users`, `trips`, `places`, `hotels`/`hotel_rooms`, `transportation_vehicles`, `guides`, `bookings`, `payments`, `reviews`, `festivals`, `discount_codes`, `loyalty_transactions`, `emergency_alerts`, `student_verifications`, `notifications`, `ai_sessions`, `audit_logs`. All tables use UUID primary keys, `TIMESTAMPTZ`, `DECIMAL(10,2)` for money, `JSONB` for flexible structures.
+Key entities: `users`, `trips`, `places`, `hotels`/`hotel_rooms`, `transportation_vehicles`, `guides`, `bookings`/`booking_items`, `payments`, `reviews`, `festivals`, `discount_codes`, `loyalty_transactions`, `emergency_alerts`, `student_verifications`, `notifications`, `ai_sessions`, `audit_logs`. All tables use UUID primary keys, `TIMESTAMPTZ`, `DECIMAL(10,2)` for money, `JSONB` for flexible structures.
 
 ---
 
@@ -139,7 +156,6 @@ Key entities (planned): `users`, `trips`, `places`, `hotels`/`hotel_rooms`, `tra
 | NestJS controllers | feature.controller.ts | `auth.controller.ts` |
 | NestJS DTOs | feature.dto.ts | `create-user.dto.ts` |
 | Database tables | snake_case | `hotel_rooms` |
-| Zustand stores | feature.store.ts | `auth.store.ts` |
 
 ### Imports
 - **Frontend:** Use `@/` alias for absolute imports from project root. Use relative imports within the same feature.
@@ -152,40 +168,21 @@ Key entities (planned): `users`, `trips`, `places`, `hotels`/`hotel_rooms`, `tra
 
 ---
 
-## Planned Directory Structure
+## Dev Gotchas
 
-### Frontend (not yet created)
-- `app/(public)/` — marketing pages (SSR)
-- `app/(auth)/` — login, register, reset-password
-- `app/(app)/` — authenticated app shell (home, explore, booking, chat, my-trips, profile)
-- `components/ui/` — shadcn/ui base components
-- `components/shared/` — reusable cross-feature components
-- `lib/` — api client, WebSocket manager, i18n, offline helpers, currency utilities
-- `stores/` — Zustand stores (auth, booking, chat, language)
-
-### Backend (not yet created)
-Modules: `auth`, `users`, `trips`, `bookings`, `payments`, `transportation`, `hotels`, `guides`, `explore`, `festivals`, `emergency`, `student-discount`, `loyalty`, `notifications`, `currency`, `ai-tools`, plus `common/` (guards, interceptors, filters, decorators, pipes) and `config/`.
-
----
-
-## Testing
-
-### Backend
-- **Unit tests:** Colocated or alongside source files, named `*.spec.ts`. Jest config is inline in `package.json` (`rootDir: src`, `testRegex: .*\.spec\.ts$`, `coverageDirectory: ../coverage`).
-- **E2E tests:** Located in `test/`, named `*.e2e-spec.ts`. Uses separate `jest-e2e.json` config with `rootDir: "."`.
-- Run tests from the `backend/` directory.
-
-### Frontend
-- No testing framework is currently installed. The plan includes adding Jest or Vitest + React Testing Library.
+- **`web/next.config.ts` MinIO flags are intentional.** `dangerouslyAllowLocalIP` and `dangerouslyAllowSVG` are required because MinIO runs on `localhost:9000` in dev and serves seed placeholder SVGs with a `.jpg` extension. Do not "harden" these away without replacing the image source.
+- **Frontend build = `next build` + Serwist PWA.** `npm run build` runs both; use `npm run build:next` if you only need the Next.js build.
+- **Vibe-booking env precedence.** A shell-exported `NVIDIA_API_KEY` shadows the value in `vibe-booking/.env` and will cause HTTP 403s from NVIDIA NIM. Relaunch uvicorn with the conflicting env var unset (`env -u NVIDIA_API_KEY`). Run **without `--reload`** — the reloader hangs on slow in-flight LLM calls.
+- **Backend DB has pre-existing drift.** `prisma migrate dev` may not work cleanly; use `prisma db push` or `prisma migrate deploy` as needed.
 
 ---
 
 ## Security & Auth
 
 - Never hardcode API keys or secrets. Environment files (`.env`, `.env.local`, `.env.*.local`) are gitignored.
-- Required backend env vars (planned): `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `AI_SERVICE_KEY`, `REDIS_URL`.
+- Required backend env vars: `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `AI_SERVICE_KEY`, `REDIS_URL`.
 - JWT access tokens expire after 15 minutes; refresh tokens expire after 7 days and are stored in `httpOnly Secure SameSite=Strict` cookies.
-- Rate limiting planned: auth endpoints 5 requests / 5 min / IP; payment intent 3 requests / min / user.
+- Rate limiting: auth endpoints 5 requests / 5 min / IP; payment intent 3 requests / min / user.
 - The AI agent is not allowed to write directly to the database; it must call backend `/v1/ai-tools/*` endpoints with a service key (`X-Service-Key` header).
 - Supabase Row-Level Security (RLS) must be enabled on all tables.
 - Stripe webhooks must verify signatures.

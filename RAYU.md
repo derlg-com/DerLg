@@ -8,13 +8,15 @@ Three independently runnable services:
 
 | Service | Directory | Port | Tech |
 |---------|-----------|------|------|
-| Frontend | `frontend/` | 3000 | Next.js 16, React 19, Tailwind v4, TypeScript |
-| Backend | `backend/` | 3001 | NestJS 11, Prisma, TypeScript |
-| AI Agent | `vibe-booking/` | 8000 | Python 3.12, FastAPI, LangGraph, NVIDIA gpt-oss-120b |
+| Frontend | `web/` | 3002 | Next.js 16, React 19, Tailwind v4, TypeScript |
+| Backend | `backend/` | 3003 | NestJS 11, Prisma, TypeScript |
+| AI Agent | `vibe-booking/` | 8000 | Python 3.12, FastAPI, NVIDIA gpt-oss-120b |
+
+> Dev runs on ports 4007/4008/4009 via shell env overrides to avoid clashes with the configured defaults above.
 
 ## Common Commands
 
-### Frontend (`cd frontend`)
+### Frontend (`cd web`)
 ```bash
 npm run dev          # Dev server
 npm run build        # Production build (next build + Serwist PWA service worker)
@@ -58,26 +60,26 @@ pytest tests/unit/                            # Unit only
 pytest --cov=agent --cov-report=html          # With coverage
 ```
 
-## Infrastructure (Docker)
-
-### Backend dev dependencies (`cd backend`)
-```bash
-docker compose up -d   # Starts: postgres (5433), redis (6379)
-```
-
-### MinIO (object storage for images/media — dev only)
-MinIO is self-hosted in Docker. It is used by the backend for image and media uploads. Run it alongside the backend services. Access the MinIO console at `http://localhost:9001` (default dev credentials in `.env`).
+## Infrastructure
 
 ### PostgreSQL
-Primary database is **PostgreSQL via Supabase**. The `backend/docker-compose.yml` also spins up a local `postgres:16-alpine` on port **5433** as an alternative dev target. Connection is configured via `DATABASE_URL` and `DIRECT_URL` env vars in `backend/.env`.
+Primary database is **PostgreSQL via Supabase**, local dev on port **54322**. Connection is configured via `DATABASE_URL` and `DIRECT_URL` env vars in `backend/.env`.
 
 ### Redis
 Used by both the backend (sessions, rate limiting, booking holds with 15-min TTL) and the AI agent (session state, pub/sub for payment events). Dev: `redis:8.6-alpine` on port **6379** via `backend/docker-compose.yml`.
 
+### MinIO (object storage for images/media — dev only)
+Self-hosted in Docker. Used by the backend for image and media uploads. Access the MinIO console at `http://localhost:9001` (default dev credentials in `.env`).
+
+### Docker (`cd backend`)
+```bash
+docker compose up -d   # Starts: postgres (5433), redis (6379)
+```
+
 ## Architecture
 
 ```
-Next.js (3000) ──REST /v1/*──► NestJS (3001) ──X-Service-Key──► Python AI (8000)
+Next.js (3002) ──REST /v1/*──► NestJS (3003) ──X-Service-Key──► Python AI (8000)
                                      │
                ┌─────────────────────┼────────────────┐
                ▼                     ▼                ▼
@@ -85,7 +87,7 @@ Next.js (3000) ──REST /v1/*──► NestJS (3001) ──X-Service-Key──
 ```
 
 - **Frontend ↔ Backend:** REST with `{ success, data, message, error }` envelope. Bearer JWT in `Authorization` header.
-- **Frontend ↔ AI Agent:** WebSocket at `/ws/{session_id}`. Structured JSON message types (`agent_message`, `trip_cards`, `qr_payment`, etc.).
+- **Frontend ↔ AI Agent:** WebSocket at `/ws/chat`. Structured JSON message types (`agent_message`, `trip_cards`, `qr_payment`, `custom_trip_card`, etc.).
 - **AI Agent → Backend:** HTTP tool calls to `/v1/ai-tools/*` authenticated with `X-Service-Key` header. The AI agent **never writes to the DB directly**.
 - **Response format:** AI sends structured JSON `content_payload`; the frontend owns all rendering.
 
@@ -95,24 +97,21 @@ Next.js (3000) ──REST /v1/*──► NestJS (3001) ──X-Service-Key──
 `ai-tools` · `auth` · `bookings` · `guides` · `hotels` · `places` · `prisma` · `redis` · `search` · `transportation` · `trips` · `users`
 Cross-cutting code lives in `backend/src/common/` (`guards`, `interceptors`, `filters`, `decorators`, `dto`, `errors`, `cache`, `i18n`, `types`). Config validation in `backend/src/config/env.validation.ts`.
 
-### Frontend route groups (`frontend/app/`)
+### Frontend route groups (`web/app/`)
 - `(auth)/` — login, register, reset-password (no main nav)
 - `(app)/` — main app shell with bottom nav (home, explore, booking, my-trip, profile)
-- `vibe-booking/` — full-screen split-screen AI chat page
+- `vibe-booking/` — full-screen AI chat page
 - `~offline/` — offline fallback
 - `ui-kit/` — design-system showcase
 
 ### Frontend i18n
-next-intl translation files live in `frontend/messages/{en,zh,km}.json` (not `public/locales/`). Locale routing is in `frontend/middleware.ts`.
-
-### Frontend context
-`frontend/context/` holds `progress-tracker.md`, `roadmap.md`, `architecture.md`, `code-standards.md`, `ui-context.md`, `wcag-audit.md` — read these before substantial frontend work.
+next-intl translation files live in `web/messages/{en,zh,km}.json` (not `public/locales/`). Locale routing is in `web/middleware.ts`.
 
 ## Dev Gotchas
 
-- **`frontend/next.config.ts` MinIO flags are intentional.** `dangerouslyAllowLocalIP` and `dangerouslyAllowSVG` are required because MinIO runs on `localhost:9000` in dev and serves seed placeholder SVGs with a `.jpg` extension. Do not "harden" these away without replacing the image source.
+- **`web/next.config.ts` MinIO flags are intentional.** `dangerouslyAllowLocalIP` and `dangerouslyAllowSVG` are required because MinIO runs on `localhost:9000` in dev and serves seed placeholder SVGs with a `.jpg` extension. Do not "harden" these away without replacing the image source.
 - **Frontend build = `next build` + Serwist PWA.** `npm run build` runs both; use `npm run build:next` if you only need the Next.js build (e.g. when iterating on non-PWA code).
-- **Vibe-booking env precedence.** A shell-exported `NVIDIA_API_KEY` shadows the value in `vibe-booking/.env` and will cause HTTP 403s from NVIDIA NIM. If chat returns "Something went wrong" on every turn, relaunch uvicorn with the conflicting env var unset so pydantic-settings falls through to `.env`.
+- **Vibe-booking env precedence.** A shell-exported `NVIDIA_API_KEY` shadows the value in `vibe-booking/.env` and will cause HTTP 403s from NVIDIA NIM. If chat returns "Something went wrong" on every turn, relaunch uvicorn with the conflicting env var unset so pydantic-settings falls through to `.env`. Run uvicorn **without `--reload`** — the reloader hangs on slow in-flight LLM calls.
 
 ## Key Conventions
 
@@ -124,7 +123,7 @@ next-intl translation files live in `frontend/messages/{en,zh,km}.json` (not `pu
   - `context/guides/` — CONSTITUTION.md (module dependency rules), CODE-STANDARD.md, TECH-STACK.md, SUPABASE-WORKFLOW.md, MISSION.md
   - `context/specs/` — SCHEMA.md, API-CONTRACT.md, ERROR-REGISTRY.md, EVENT-CATALOG.md
   - `context/plans/` — ROADMAP.md, TEST-PLAN.md, SEED-SPEC.md
-- AI agent module docs in `vibe-booking/AGENT.md`; frontend docs in `frontend/AGENTS.md`
+- AI agent module docs in `vibe-booking/AGENT.md`; frontend docs in `web/AGENTS.md`
 
 ## Authoritative Spec Files
 
