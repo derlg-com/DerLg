@@ -42,9 +42,9 @@
 → **Read `@backend/AGENTS.md`** for detailed backend conventions, NestJS patterns, module structure, API standards, and Prisma/Supabase guidelines.
 
 → **Then read the spec directory:**
-- `backend/context/specs/` — SCHEMA.md, API-CONTRACT.md, ERROR-REGISTRY.md, EVENT-CATALOG.md
-- `backend/context/guides/` — CONSTITUTION.md, CODE-STANDARD.md, TECH-STACK.md
-- `backend/context/plans/` — ROADMAP.md, TEST-PLAN.md, SEED-SPEC.md
+- `backend/prisma/schema.prisma` — database schema
+- `backend/src/modules/` — implementation code (per-module README/docs)
+- `backend/context/` — specs and guides (if present)
 
 ### 2. Implementing the Frontend?
 → **Read `@web/AGENTS.md`** for detailed frontend conventions, Next.js App Router patterns, Tailwind/shadcn/ui rules, and component organization.
