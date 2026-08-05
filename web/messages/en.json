@@ -1,0 +1,1389 @@
+{
+  "profile": {
+    "noName": "Traveler",
+    "loyalty": {
+      "title": "Loyalty points",
+      "balanceLabel": "Available points",
+      "balanceError": "Couldn't load your points",
+      "balanceErrorDesc": "Please try again in a moment.",
+      "progressLabel": "Tier progress",
+      "maxTier": "Top tier",
+      "maxTierDesc": "You've reached the highest tier. Enjoy the perks!",
+      "pointsToNext": "{points} points to {tier}",
+      "history": {
+        "title": "Points history",
+        "empty": "No points activity yet",
+        "emptyDesc": "Earn points by completing bookings.",
+        "unavailable": "History unavailable",
+        "unavailableDesc": "We couldn't load your points history right now.",
+        "expires": "Expires {date}"
+      },
+      "redeem": {
+        "title": "Redeem points",
+        "rate": "{points} points = $1 off your next booking",
+        "worth": "Your points are worth {value}",
+        "applyHint": "Apply points at checkout on eligible bookings."
+      },
+      "tier": {
+        "bronze": "Bronze",
+        "silver": "Silver",
+        "gold": "Gold",
+        "platinum": "Platinum"
+      }
+    },
+    "student": "Student",
+    "logout": "Log out",
+    "menu": {
+      "edit": "Edit profile",
+      "preferences": "Preferences",
+      "wishlist": "Wishlist",
+      "legal": "Legal & privacy",
+      "admin": "Admin dashboard"
+    },
+    "edit": {
+      "title": "Edit profile",
+      "avatarUrl": "Avatar URL",
+      "email": "Email",
+      "name": "Name",
+      "phone": "Phone",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Profile updated",
+      "error": "Couldn't update profile",
+      "avatar": "Profile photo",
+      "emailHint": "Email can't be changed here."
+    },
+    "preferences": {
+      "title": "Preferences",
+      "language": "Language",
+      "currency": "Currency",
+      "autoCurrency": "Automatic (by language)",
+      "notifications": "Notifications",
+      "notif": {
+        "push": "Push notifications",
+        "email": "Email notifications",
+        "reminders": "Booking reminders"
+      }
+    },
+    "wishlist": {
+      "title": "Wishlist",
+      "empty": "Your wishlist is empty",
+      "emptyDesc": "Tap the heart on any trip, hotel, or guide to save it here."
+    },
+    "loyaltyBadge": "{points} points",
+    "adminBadge": "Admin",
+    "deleteAccount": {
+      "section": "Delete account",
+      "description": "Permanently delete your account and all associated data. This cannot be undone.",
+      "button": "Delete account",
+      "dialogTitle": "Delete your account?",
+      "dialogDescription": "This permanently removes your account and bookings. This action cannot be undone.",
+      "confirmLabel": "Type DELETE to confirm",
+      "confirmWord": "DELETE",
+      "cancel": "Cancel",
+      "confirm": "Yes, delete my account",
+      "deleting": "Deleting…",
+      "success": "Your account has been deleted",
+      "error": "Couldn't delete your account. Please try again."
+    }
+  },
+  "legal": {
+    "lastUpdated": "Last updated: 1 January 2026",
+    "terms": {
+      "title": "Terms of Service",
+      "sections": {
+        "acceptance": {
+          "heading": "Acceptance of terms",
+          "body": "By using DerLg to discover and book travel experiences in Cambodia, you agree to these Terms of Service. If you do not agree to them, please do not use the platform. This is placeholder content and does not constitute legal advice."
+        },
+        "bookings": {
+          "heading": "Bookings",
+          "body": "When you book a trip, hotel, transport, or guide through DerLg, you enter into an agreement with the provider of that service. We confirm availability and hold your selection for a limited time while you complete payment. Prices are shown in US dollars by default and may also be displayed in Khmer riel or Chinese yuan using indicative exchange rates."
+        },
+        "payments": {
+          "heading": "Payments",
+          "body": "Payments are processed by licensed providers. We accept international cards through Stripe and local QR payments through Bakong and ABA. DerLg never stores your full card details. A booking is confirmed only once payment has been completed successfully."
+        },
+        "cancellations": {
+          "heading": "Cancellations and refunds",
+          "body": "Our standard refund policy applies to most bookings: cancel at least 7 days before the start date for a 100% refund, between 1 and 7 days before for a 50% refund, and less than 24 hours before for no refund. Some providers may set their own terms, which are shown to you at the time of booking."
+        },
+        "conduct": {
+          "heading": "Your responsibilities",
+          "body": "You agree to provide accurate information, use the platform lawfully, and respect the providers, guides, and communities you interact with during your travels in Cambodia. You are responsible for ensuring you hold any visas, permits, or documents required for your trip."
+        },
+        "liability": {
+          "heading": "Limitation of liability",
+          "body": "DerLg connects travelers with independent service providers and is not responsible for the acts or omissions of those providers. To the extent permitted by law, our liability for any booking is limited to the amount you paid for that booking. This is placeholder content and does not constitute legal advice."
+        },
+        "changes": {
+          "heading": "Changes to these terms",
+          "body": "We may update these terms from time to time as the platform evolves. We will post the revised terms here and update the date shown above. Continuing to use DerLg after changes take effect means you accept the updated terms."
+        }
+      }
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "sections": {
+        "intro": {
+          "heading": "Introduction",
+          "body": "This Privacy Policy explains how DerLg collects, uses, and protects your personal information when you use our Cambodia travel booking platform. This is placeholder content and does not constitute legal advice."
+        },
+        "dataCollected": {
+          "heading": "Information we collect",
+          "body": "We collect the information you provide when you create a profile or make a booking, such as your name, email address, phone number, and travel preferences. We also collect technical data such as your device type, approximate location, and how you use the app."
+        },
+        "dataUse": {
+          "heading": "How we use your information",
+          "body": "We use your information to confirm and manage your bookings, process payments, provide customer support in English, Chinese, and Khmer, personalize recommendations, and keep the platform secure. We do not sell your personal information."
+        },
+        "dataSharing": {
+          "heading": "How we share your information",
+          "body": "We share only the information needed to fulfil your booking with the relevant providers, such as hotels, transport operators, and tour guides. We also share data with payment processors (Stripe, Bakong, and ABA) to complete transactions. We may disclose information where required by Cambodian law."
+        },
+        "dataRetention": {
+          "heading": "How long we keep your data",
+          "body": "We keep your personal information for as long as your account is active and as needed to provide our services, comply with legal obligations, resolve disputes, and enforce our agreements. You can ask us to delete your account at any time from your profile."
+        },
+        "rights": {
+          "heading": "Your rights",
+          "body": "You can access, correct, or delete your personal information through your profile settings or by contacting us. You can also choose which notifications you receive and manage your language and currency preferences at any time."
+        },
+        "contact": {
+          "heading": "Contact us",
+          "body": "If you have questions about this Privacy Policy or how we handle your data, please contact our support team through the app. We aim to respond in English, Chinese, or Khmer within a reasonable time."
+        }
+      }
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "sections": {
+        "intro": {
+          "heading": "Introduction",
+          "body": "This Cookie Policy explains how DerLg uses cookies and similar technologies on our travel booking platform. This is placeholder content and does not constitute legal advice."
+        },
+        "whatAreCookies": {
+          "heading": "What are cookies?",
+          "body": "Cookies are small text files stored on your device when you visit a website or use a web app. They help the platform remember your preferences and understand how the service is used."
+        },
+        "typesUsed": {
+          "heading": "Types of cookies we use",
+          "body": "We use two categories of cookies: essential cookies that are required for the platform to function, and analytics cookies that help us understand and improve how travelers use DerLg."
+        },
+        "essential": {
+          "heading": "Essential cookies",
+          "body": "These cookies keep you signed in, remember your selected language and currency, and protect your booking session. The platform cannot work properly without them, so they cannot be turned off."
+        },
+        "analytics": {
+          "heading": "Analytics cookies",
+          "body": "These cookies collect anonymous information about how the platform is used, such as which trips are popular and where travelers run into difficulties. We use this to improve the booking experience."
+        },
+        "managing": {
+          "heading": "Managing cookies",
+          "body": "You can control or delete cookies through your browser settings. Blocking essential cookies may prevent parts of DerLg, such as booking and payment, from working correctly."
+        }
+      }
+    }
+  },
+  "checkout": {
+    "hold": {
+      "remaining": "Hold: {time}",
+      "expired": "Hold expired"
+    },
+    "method": {
+      "title": "Payment method",
+      "card": "Credit / debit card",
+      "bakong_qr": "Bakong QR",
+      "aba_qr": "ABA QR"
+    },
+    "title": "Checkout",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "mockNotice": "Demo mode — payments are simulated. No card is charged.",
+    "card": {
+      "number": "Card number",
+      "expiry": "Expiry",
+      "cvc": "CVC",
+      "pay": "Pay now"
+    },
+    "qr": {
+      "scan": "Scan to pay with your banking app",
+      "paid": "I've paid"
+    },
+    "failed": "Payment failed. Please try again.",
+    "confirmation": {
+      "title": "Booking confirmed!",
+      "reference": "Reference",
+      "viewBooking": "View booking",
+      "bookAnother": "Book another",
+      "loading": "Loading your confirmation…",
+      "message": "Your booking is confirmed. A confirmation has been sent to your email.",
+      "completePayment": "Complete payment",
+      "downloadConfirmation": "Download confirmation",
+      "share": "Share booking",
+      "retry": "Try again",
+      "errorTitle": "Couldn't load your confirmation",
+      "errorDesc": "Something went wrong loading this booking. Please try again.",
+      "notFoundTitle": "Booking not found",
+      "notFoundDesc": "We couldn't find this booking. It may have expired or been removed.",
+      "pendingTitle": "Payment not completed yet",
+      "pendingDesc": "Your booking isn't confirmed yet. Complete payment to secure it."
+    },
+    "support": {
+      "title": "Contact & support",
+      "intro": "Need a hand? Our team is here to help with your booking, payment, or trip planning.",
+      "email": "Email",
+      "phone": "Phone",
+      "hours": "Service hours",
+      "hoursValue": "Daily, 8:00 AM – 9:00 PM (ICT)",
+      "changes": "To change or cancel this booking, contact our support team and we'll help you sort it out."
+    },
+    "nextSteps": {
+      "title": "Next steps",
+      "trip": {
+        "1": "Arrive at the meeting point 15 minutes early.",
+        "2": "Bring a valid ID and your booking reference.",
+        "3": "Check the weather and dress comfortably for the day."
+      },
+      "hotel": {
+        "1": "Check-in is usually from 2:00 PM; bring a valid ID.",
+        "2": "Have your booking reference ready at the front desk.",
+        "3": "Contact the property directly for early check-in requests."
+      },
+      "guide": {
+        "1": "Your guide will contact you before the tour.",
+        "2": "Confirm the meeting point and time with your guide.",
+        "3": "Share any special requests or accessibility needs in advance."
+      },
+      "transportation": {
+        "1": "Be ready at your pickup point a few minutes early.",
+        "2": "Keep your booking reference and phone handy.",
+        "3": "Confirm the destination with your driver before departure."
+      },
+      "generic": {
+        "1": "Keep your booking reference handy.",
+        "2": "Bring a valid photo ID.",
+        "3": "Contact support if you need to make changes."
+      }
+    },
+    "receipt": {
+      "title": "Payment receipt",
+      "reference": "Reference",
+      "method": "Payment method",
+      "date": "Date",
+      "items": "Items",
+      "total": "Total paid",
+      "download": "Download PDF",
+      "status": {
+        "succeeded": "Paid",
+        "refunded": "Refunded",
+        "pending": "Pending",
+        "failed": "Failed"
+      },
+      "provider": {
+        "stripe": "Card",
+        "bakong": "Bakong QR"
+      }
+    },
+    "review": {
+      "title": "Review your booking",
+      "holdNotice": "Your place is held while you pay. If the hold expires you can request a new one.",
+      "expiredTitle": "This hold has expired",
+      "expiredDesc": "Holds last 15 minutes. Nothing was charged — start again to check availability.",
+      "startOver": "Browse trips"
+    },
+    "demoDisabledTitle": "Payments are not enabled",
+    "demoDisabledDesc": "This server has payment confirmation switched off, so this booking cannot be paid here. Your hold is unaffected.",
+    "qrPending": "Waiting for your payment to clear…"
+  },
+  "bookings": {
+    "form": {
+      "title": "Complete your booking",
+      "perPerson": "/ person",
+      "perNight": "/ night",
+      "perDay": "/ day",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "adults": "Adults",
+      "children": "Children",
+      "pickup": "Pickup location",
+      "dropoff": "Drop-off location",
+      "specialRequests": "Special requests",
+      "specialRequestsPlaceholder": "Dietary needs, accessibility, interests…",
+      "submit": "Confirm & continue",
+      "holdNotice": "We'll hold your booking for 15 minutes while you complete payment.",
+      "selectRoomTitle": "Select a room",
+      "selectRoomDesc": "Choose a room from the hotel page to continue.",
+      "backToHotel": "Back to hotel",
+      "errorUnavailable": "Not available for the selected dates. Please try different dates.",
+      "errorInvalidDates": "Please check your dates and details.",
+      "errorGeneric": "Couldn't create your booking. Please try again.",
+      "notFoundTitle": "We couldn't find that",
+      "notFoundDesc": "The item you're trying to book doesn't exist or is no longer available.",
+      "back": "Go back",
+      "priceTitle": "Price summary",
+      "priceTravelers": "{count} travelers",
+      "priceLineDetail": "({quantity} × {unit})",
+      "priceSubtotal": "Subtotal",
+      "priceTotal": "Total",
+      "priceChildrenNote": "Children are charged at the full per-person price.",
+      "priceEstimateNote": "Prices are an estimate and confirmed at checkout.",
+      "signInTitle": "Sign in to book",
+      "signInDesc": "Bookings are saved to your account, so you need to be signed in to hold a place.",
+      "errorConflict": "Those dates were just taken. Please choose another date.",
+      "errorPast": "Please choose a date in the future."
+    },
+    "list": {
+      "title": "My Trips",
+      "tabs": {
+        "upcoming": "Upcoming",
+        "past": "Past",
+        "cancelled": "Cancelled"
+      },
+      "empty": {
+        "upcoming": "No upcoming trips yet.",
+        "past": "No past trips.",
+        "cancelled": "No cancelled bookings."
+      },
+      "explore": "Explore trips",
+      "errorTitle": "Couldn't load bookings",
+      "errorDesc": "Please try again.",
+      "retry": "Retry"
+    },
+    "status": {
+      "CONFIRMED": "Confirmed",
+      "PENDING_PAYMENT": "Pending payment",
+      "HOLD": "On hold",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "EXPIRED": "Expired",
+      "PAYMENT_FAILED": "Payment failed",
+      "NO_SHOW": "No show"
+    },
+    "detail": {
+      "notFound": "Booking not found",
+      "qrTitle": "Check-in QR",
+      "items": "Items",
+      "total": "Total",
+      "specialRequests": "Special requests",
+      "refunded": "Refunded",
+      "addToCalendar": "Add to calendar",
+      "icalError": "Couldn't download the calendar file",
+      "cancel": "Cancel booking",
+      "location": "Meeting point",
+      "reference": "Reference",
+      "bookedOn": "Booked on",
+      "dates": "Dates",
+      "payNow": "Pay now"
+    },
+    "cancel": {
+      "title": "Cancel this booking?",
+      "policy": "Refunds: 100% more than 7 days before departure, 50% from 4 to 7 days, and 0% within 3 days.",
+      "refundTier": "Refund tier: {percent}%",
+      "refundAmount": "Estimated refund",
+      "reasonPlaceholder": "Reason (optional)",
+      "keep": "Keep booking",
+      "confirm": "Cancel booking",
+      "success": "Booking cancelled",
+      "error": "Couldn't cancel booking"
+    },
+    "emergency": {
+      "button": "Emergency Alert",
+      "comingSoon": "Emergency alerts are coming soon."
+    }
+  },
+  "guides": {
+    "card": {
+      "verified": "Verified",
+      "perDay": "/ day"
+    },
+    "sort": {
+      "recommended": "Recommended",
+      "rating_desc": "Top rated",
+      "price_asc": "Price: low to high",
+      "price_desc": "Price: high to low"
+    },
+    "filters": {
+      "language": "Language",
+      "anyLanguage": "Any language",
+      "specialty": "Specialty",
+      "anySpecialty": "Any specialty",
+      "location": "Location",
+      "anyLocation": "Any location",
+      "gender": "Gender",
+      "anyGender": "Any gender",
+      "verifiedOnly": "Verified only",
+      "sort": "Sort"
+    },
+    "empty": {
+      "title": "No guides found",
+      "desc": "Try adjusting your filters.",
+      "clear": "Clear filters"
+    },
+    "error": {
+      "title": "Couldn't load guides",
+      "desc": "Please try again.",
+      "retry": "Retry"
+    },
+    "detail": {
+      "bio": "About",
+      "languages": "Languages",
+      "specialties": "Specialties",
+      "experienceYears": "{n} years of experience",
+      "certifications": "Certifications",
+      "availability": "Check availability",
+      "currency": "Display currency",
+      "notFound": "Guide not found"
+    },
+    "availability": {
+      "start": "Start date",
+      "end": "End date",
+      "check": "Check availability",
+      "available": "Available",
+      "unavailable": "Not available for these dates",
+      "error": "Couldn't check availability"
+    }
+  },
+  "transportation": {
+    "card": {
+      "seats": "{n} seats",
+      "perDay": "/ day"
+    },
+    "sort": {
+      "price_asc": "Price: low to high",
+      "price_desc": "Price: high to low",
+      "rating_desc": "Top rated"
+    },
+    "filters": {
+      "type": "Type",
+      "anyType": "Any type",
+      "capacity": "Capacity",
+      "anyCapacity": "Any capacity",
+      "seatsPlus": "{n}+ seats",
+      "maxPrice": "Max price",
+      "anyPrice": "Any price",
+      "under": "Under ${n}",
+      "sort": "Sort"
+    },
+    "empty": {
+      "title": "No vehicles found",
+      "desc": "Try adjusting your filters.",
+      "clear": "Clear filters"
+    },
+    "error": {
+      "title": "Couldn't load vehicles",
+      "desc": "Please try again.",
+      "retry": "Retry"
+    },
+    "detail": {
+      "currency": "Display currency",
+      "amenities": "Amenities",
+      "pricing": "Pricing",
+      "perKm": "Per km",
+      "availability": "Check availability",
+      "route": "Route",
+      "notFound": "Vehicle not found"
+    },
+    "availability": {
+      "start": "Start date",
+      "end": "End date",
+      "check": "Check availability",
+      "available": "Available",
+      "unavailable": "Not available for these dates",
+      "error": "Couldn't check availability"
+    }
+  },
+  "hotels": {
+    "card": {
+      "from": "From",
+      "perNight": "/ night"
+    },
+    "sort": {
+      "recommended": "Recommended",
+      "price_asc": "Price: low to high",
+      "price_desc": "Price: high to low",
+      "rating_desc": "Top rated"
+    },
+    "filters": {
+      "title": "Filters",
+      "sort": "Sort",
+      "location": "Location",
+      "anyLocation": "Any location",
+      "price": "Price per night",
+      "priceRanges": {
+        "any": "Any price",
+        "lt100": "Under $100",
+        "r100_300": "$100 – $300",
+        "gt300": "Over $300"
+      },
+      "star": "Star rating",
+      "anyStar": "Any rating",
+      "starPlus": "{n} stars & up",
+      "amenities": "Amenities",
+      "done": "Done"
+    },
+    "empty": {
+      "title": "No hotels found",
+      "desc": "Try adjusting your filters.",
+      "clear": "Clear filters"
+    },
+    "error": {
+      "title": "Couldn't load hotels",
+      "desc": "Please try again.",
+      "retry": "Retry"
+    },
+    "detail": {
+      "currency": "Display currency",
+      "amenities": "Amenities",
+      "policies": "Policies",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "rooms": "Rooms",
+      "noRooms": "No rooms available.",
+      "location": "Location",
+      "notFound": "Hotel not found"
+    },
+    "room": {
+      "maxGuests": "Up to {n} guests",
+      "book": "Book"
+    }
+  },
+  "search": {
+    "placeholder": "Search trips, places, hotels, guides",
+    "tabs": {
+      "all": "All",
+      "trip": "Trips",
+      "place": "Places",
+      "hotel": "Hotels",
+      "guide": "Guides"
+    },
+    "sections": {
+      "trips": "Trips",
+      "places": "Places",
+      "hotels": "Hotels",
+      "guides": "Guides"
+    },
+    "promptTitle": "Search DerLg",
+    "promptDesc": "Find trips, places, hotels, and guides across Cambodia.",
+    "noResults": "No results for '{query}'",
+    "noResultsDesc": "Try different keywords.",
+    "errorTitle": "Search failed",
+    "errorDesc": "Please try again."
+  },
+  "trips": {
+    "home": {
+      "featured": "Featured trips",
+      "categories": "Browse by category",
+      "exploreAll": "See all"
+    },
+    "categories": {
+      "all": "All",
+      "Temples": "Temples",
+      "Nature": "Nature",
+      "Culture": "Culture",
+      "Adventure": "Adventure",
+      "Food": "Food"
+    },
+    "card": {
+      "days": "days",
+      "perPerson": "/ person"
+    },
+    "list": {
+      "resultsCount": "{count} trips",
+      "sortLabel": "Sort",
+      "sort": {
+        "featured": "Featured",
+        "price_asc": "Price: low to high",
+        "price_desc": "Price: high to low",
+        "duration_asc": "Duration: shortest",
+        "rating_desc": "Top rated"
+      }
+    },
+    "empty": {
+      "title": "No trips found",
+      "desc": "Try adjusting your filters.",
+      "clear": "Clear filters"
+    },
+    "error": {
+      "title": "Couldn't load trips",
+      "desc": "Please check your connection and try again.",
+      "retry": "Retry"
+    },
+    "detail": {
+      "itinerary": "Itinerary",
+      "included": "What's included",
+      "excluded": "Not included",
+      "cancellation": "Cancellation policy",
+      "meetingPoint": "Meeting point",
+      "related": "You might also like",
+      "bookNow": "Book Now",
+      "from": "From",
+      "share": "Share",
+      "shareCopied": "Link copied to clipboard",
+      "day": "Day {n}",
+      "currency": "Display currency",
+      "notFound": "Trip not found",
+      "unavailable": "Unavailable",
+      "duration": "{n}h"
+    }
+  },
+  "account": {
+    "fields": {
+      "email": "Email",
+      "password": "Password",
+      "name": "Name (optional)",
+      "phone": "Phone (optional)",
+      "confirmPassword": "Confirm password"
+    },
+    "signIn": {
+      "title": "Welcome back",
+      "submit": "Sign in",
+      "forgot": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "cta": "Sign up"
+    },
+    "signUp": {
+      "title": "Create your account",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "cta": "Sign in"
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "desc": "Enter your email and we'll send you a reset link.",
+      "submit": "Send reset link",
+      "sent": "If that email exists, we've sent reset instructions. Check your inbox.",
+      "back": "Back to sign in"
+    },
+    "reset": {
+      "title": "Set a new password",
+      "submit": "Reset password",
+      "success": "Password updated. Please sign in.",
+      "invalidToken": "This reset link is invalid or has expired."
+    },
+    "errors": {
+      "invalidCredentials": "Invalid email or password.",
+      "emailExists": "That email is already registered.",
+      "rateLimited": "Too many attempts. Please try again later.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "logout": "Log out",
+    "passwordStrength": {
+      "label": "Password strength",
+      "empty": "Too short",
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
+    }
+  },
+  "shell": {
+    "nav": {
+      "home": "Home",
+      "explore": "Explore",
+      "bookings": "Bookings",
+      "chat": "Chat",
+      "profile": "Profile",
+      "trips": "Trips",
+      "hotels": "Hotels",
+      "guides": "Guides",
+      "transport": "Transport",
+      "festivals": "Festivals",
+      "loyalty": "Rewards",
+      "safety": "Safety",
+      "places": "Places"
+    },
+    "brand": "DerLg",
+    "search": "Search",
+    "back": "Back",
+    "offline": "You're offline. Some features may be unavailable.",
+    "comingSoon": "Coming soon",
+    "comingSoonDesc": "This section is on the way.",
+    "notFound": "Page not found",
+    "goHome": "Go home",
+    "navLandmark": "Main navigation",
+    "mobileNavLandmark": "Primary sections",
+    "skipToContent": "Skip to content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menu": "Menu",
+    "currency": "Currency",
+    "searchHint": "Search",
+    "searching": "Searching…",
+    "searchMinChars": "Type at least 2 characters",
+    "online": "Back online",
+    "signIn": "Sign in",
+    "errorTitle": "Something went wrong",
+    "errorDesc": "We hit an unexpected error. Try again, or head back home.",
+    "footer": {
+      "explore": "Explore",
+      "support": "Support",
+      "contact": "Contact us",
+      "rights": "© {year} DerLg. Built for travelers, built for Cambodia."
+    }
+  },
+  "tools": {
+    "running": "Working…",
+    "search_trips": "Searching trips…",
+    "search_hotels": "Searching hotels…",
+    "search_guides": "Finding guides…",
+    "search_transport": "Finding transport…",
+    "check_availability": "Checking availability…",
+    "create_booking_hold": "Holding your booking…",
+    "check_payment_status": "Checking payment…",
+    "estimate_budget": "Estimating budget…",
+    "get_weather": "Checking weather…",
+    "get_emergency_contacts": "Finding emergency contacts…",
+    "send_sos_alert": "Sending SOS alert…",
+    "generate_payment_qr": "Generating payment QR…",
+    "get_user_loyalty": "Checking loyalty points…"
+  },
+  "explore": {
+    "hero": {
+      "title": "Where to?",
+      "placeholder": "Places to go, things to do, hotels…",
+      "askAi": "Ask AI",
+      "search": "Search"
+    },
+    "categories": {
+      "title": "Find things to do by interest"
+    },
+    "shelves": {
+      "tripsTitle": "Popular trips",
+      "tripsSubtitle": "Curated Cambodia experiences travelers love",
+      "hotelsTitle": "Top-rated stays",
+      "hotelsSubtitle": "Hand-picked hotels and resorts",
+      "guidesTitle": "Verified local guides",
+      "guidesSubtitle": "Book a trusted guide who knows Cambodia"
+    },
+    "seeAll": "See all",
+    "tabs": {
+      "title": "Explore",
+      "tab": "Tab",
+      "places": "Places",
+      "festivals": "Festivals",
+      "maps": "Maps",
+      "placesPlaceholder": "Browse places to visit across Cambodia.",
+      "festivalsPlaceholder": "Discover festivals and events across Cambodia.",
+      "mapsPlaceholder": "View places and festivals on the map."
+    },
+    "search": {
+      "clear": "Clear search",
+      "placeholder": "Search"
+    },
+    "map": {
+      "title": "Map",
+      "description": "Explore places and festivals on the map.",
+      "showMyLocation": "Show my location",
+      "locationDenied": "We couldn't access your location. Please enable location access and try again.",
+      "locationsList": "Locations",
+      "offlineNote": "Showing saved locations. Connect to the internet for live results.",
+      "unavailable": "The map is unavailable right now.",
+      "youAreHere": "You are here",
+      "viewDetails": "View details",
+      "free": "Free",
+      "place": "Place",
+      "kind": {
+        "place": "Place",
+        "festival": "Festival"
+      },
+      "category": {
+        "temple": "Temple",
+        "museum": "Museum",
+        "nature": "Nature",
+        "market": "Market",
+        "beach": "Beach",
+        "mountain": "Mountain",
+        "landmark": "Landmark",
+        "unknown": "Place"
+      },
+      "listLabel": "Places list",
+      "mapLabel": "Map of Cambodia places",
+      "viewList": "List",
+      "viewMap": "Map",
+      "viewMode": "View mode",
+      "noCoordinates": "This place has no map location yet.",
+      "selectHint": "Select a place to see its details.",
+      "tips": "Visitor tips",
+      "dressCode": "Dress code",
+      "website": "Official website",
+      "related": "Nearby places"
+    },
+    "places": {
+      "free": "Free",
+      "entryFee": "entry",
+      "resultsCount": "{count} places",
+      "categories": {
+        "all": "All",
+        "temple": "Temples",
+        "museum": "Museums",
+        "nature": "Nature",
+        "market": "Markets",
+        "beach": "Beaches",
+        "mountain": "Mountains",
+        "unknown": "Place"
+      },
+      "filters": {
+        "categoryLabel": "Filter places by category",
+        "priceLabel": "Filter places by price",
+        "price": {
+          "all": "Any price",
+          "free": "Free",
+          "paid": "Paid"
+        }
+      },
+      "search": {
+        "placeholder": "Search places"
+      },
+      "empty": {
+        "title": "No places found",
+        "desc": "Try adjusting your filters or search.",
+        "clear": "Clear filters"
+      },
+      "error": {
+        "title": "Couldn't load places",
+        "desc": "Please try again.",
+        "retry": "Retry"
+      },
+      "modal": {
+        "free": "Free",
+        "entryFee": "entry",
+        "about": "About",
+        "address": "Address",
+        "openingHours": "Opening hours",
+        "dressCode": "Dress code",
+        "visitorTips": "Visitor tips",
+        "directions": "Get directions",
+        "website": "Visit website",
+        "place": "Place",
+        "notFound": "Place not found",
+        "category": {
+          "temple": "Temple",
+          "museum": "Museum",
+          "nature": "Nature",
+          "market": "Market",
+          "beach": "Beach",
+          "mountain": "Mountain",
+          "unknown": "Place"
+        },
+        "error": {
+          "title": "Couldn't load place",
+          "desc": "Please try again.",
+          "retry": "Retry"
+        }
+      }
+    },
+    "festivals": {
+      "resultsCount": "{count} festivals",
+      "search": {
+        "placeholder": "Search festivals"
+      },
+      "filters": {
+        "timeLabel": "Filter festivals by time",
+        "monthLabel": "Filter festivals by month",
+        "provinceLabel": "Filter festivals by location",
+        "time": {
+          "upcoming": "Upcoming",
+          "all": "All festivals"
+        },
+        "month": {
+          "1": "January",
+          "2": "February",
+          "3": "March",
+          "4": "April",
+          "5": "May",
+          "6": "June",
+          "7": "July",
+          "8": "August",
+          "9": "September",
+          "10": "October",
+          "11": "November",
+          "12": "December",
+          "all": "Any month"
+        },
+        "province": {
+          "all": "All locations"
+        }
+      },
+      "empty": {
+        "title": "No festivals found",
+        "desc": "Try adjusting your filters or search.",
+        "clear": "Clear filters"
+      },
+      "error": {
+        "title": "Couldn't load festivals",
+        "desc": "Please try again.",
+        "retry": "Retry"
+      }
+    }
+  },
+  "festivals": {
+    "detail": {
+      "about": "About",
+      "activities": "Activities",
+      "notFound": "Festival not found",
+      "relatedHotels": "Related hotels",
+      "relatedTrips": "Related trips",
+      "seeAll": "See all"
+    },
+    "error": {
+      "title": "Couldn't load festival",
+      "desc": "Please try again.",
+      "retry": "Retry"
+    }
+  },
+  "common": {
+    "send": "Send",
+    "thinking": "Thinking…",
+    "connecting": "Connecting…",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "share": "Share",
+    "download": "Download",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "tryAgain": "Try Again",
+    "reset": "Reset",
+    "thinkingProcess": "Thinking process",
+    "showOlder": "Show {count} older items",
+    "from": "from",
+    "topRated": "Top rated"
+  },
+  "auth": {
+    "title": "Log in to complete your booking",
+    "subtitle": "Your chat continues right here after you sign in.",
+    "email": "Email",
+    "password": "Password",
+    "login": "Log in",
+    "register": "Create account",
+    "needAccount": "Need an account? Sign up",
+    "haveAccount": "Have an account? Log in"
+  },
+  "share": {
+    "button": "Share chat",
+    "warning": "Anyone with this link can continue your chat and drive your booking. Share it only with people you trust. Continue?",
+    "copied": "Share link copied to clipboard.",
+    "copyManual": "Copy this link to share your chat:"
+  },
+  "chat": {
+    "title": "DerLg AI Concierge",
+    "pageTitle": "DerLg AI Travel Concierge",
+    "placeholder": "Tell me about your dream trip…",
+    "welcome": "Welcome to DerLg! I'm your Cambodia travel concierge. Tell me about your dream trip.",
+    "resume": "Welcome back! I remember our previous conversation.",
+    "welcomeTitle": "Try asking",
+    "suggestionsLabel": "Suggested follow-ups",
+    "feedbackPrompt": "Was this helpful?",
+    "feedbackYes": "Yes, helpful",
+    "feedbackNo": "Not helpful",
+    "feedbackThanks": "Thanks for your feedback!",
+    "askedWhileViewing": "Asked while viewing {page}",
+    "launcherOpen": "Ask the AI travel concierge",
+    "launcherClose": "Close concierge",
+    "launcherTitle": "AI Concierge",
+    "transcript": "Conversation",
+    "you": "You",
+    "assistant": "Concierge",
+    "inputLabel": "Message the concierge",
+    "newChat": "New conversation",
+    "reconnecting": "Reconnecting…",
+    "queued": "{count, plural, one {# message waiting to send} other {# messages waiting to send}}",
+    "offlineNotice": "You are offline. Messages will send when the connection returns.",
+    "blockedTitle": "Concierge unavailable",
+    "blockedOrigin": "This site is not allowed to reach the concierge service. Please contact support.",
+    "blockedSession": "Your session has expired. Please sign in again to continue.",
+    "requiresLoginTitle": "Sign in to book",
+    "requiresLoginDesc": "Booking needs an account. Your conversation is kept while you sign in.",
+    "streamingLabel": "Concierge is replying",
+    "emptyHint": "Ask anything about travelling in Cambodia — trips, hotels, guides, or transport.",
+    "toolsLabel": "Working on it",
+    "sendFailed": "Not connected yet — your message is queued.",
+    "blockUnavailable": "These results cannot be shown here yet."
+  },
+  "content": {
+    "trips": "Trips",
+    "hotels": "Hotels",
+    "transport": "Transport",
+    "itinerary": "Itinerary",
+    "weather": "Weather",
+    "budget": "Budget Estimate",
+    "comparison": "Comparison",
+    "gallery": "Gallery",
+    "bookNow": "Book Now",
+    "viewDetails": "View Details",
+    "checkAvailability": "Check availability",
+    "findMoreLikeThis": "Find more like this",
+    "perPerson": "/ person",
+    "perNight": "per night",
+    "rating": "Rating",
+    "duration": "Duration",
+    "resultsLabel": "Results from the concierge"
+  },
+  "booking": {
+    "summary": "Booking Summary",
+    "total": "Total",
+    "confirmBooking": "Confirm Booking",
+    "expiresIn": "Expires in {minutes}m {seconds}s",
+    "expired": "Hold expired",
+    "paymentMethod": "Payment Method",
+    "cardNumber": "Card Number",
+    "expiry": "Expiry",
+    "cvc": "CVC",
+    "scanQr": "Scan QR to pay",
+    "paymentSuccess": "Payment successful!",
+    "paymentFailed": "Payment failed",
+    "bookingConfirmed": "Booking Confirmed",
+    "reference": "Reference",
+    "addToCalendar": "Add to Calendar",
+    "downloadReceipt": "Download Receipt",
+    "stripeNotConfigured": "Card payments are unavailable right now. Please use QR payment instead.",
+    "sandboxTitle": "Sandbox payment",
+    "sandboxDesc": "Card payments are not connected yet, so nothing is charged. Confirming here marks the booking as paid for testing.",
+    "signInToPay": "Sign in to confirm payment",
+    "signInToPayDesc": "Payment can only be confirmed on a signed-in account, so it can be verified against your booking.",
+    "missingReference": "This payment has no booking reference, so it cannot be confirmed here. Please open it from your bookings.",
+    "travelDate": "Travel date",
+    "travellers": "{count, plural, one {# traveller} other {# travellers}}",
+    "cancellationPolicy": "Cancellation policy",
+    "holdExpiredDesc": "This hold has expired. Ask the concierge to check availability again.",
+    "qrExpiredDesc": "This payment code has expired. Ask the concierge for a new one.",
+    "paymentReference": "Payment reference",
+    "viewReceipt": "View receipt"
+  },
+  "hotel": {
+    "perNight": "night",
+    "viewDetails": "View Details"
+  },
+  "transport": {
+    "select": "Select"
+  },
+  "budget": {
+    "title": "Budget Estimate",
+    "accommodation": "Accommodation",
+    "food_drink": "Food & Drink",
+    "local_transport": "Local Transport",
+    "activities_tours": "Activities & Tours"
+  },
+  "compare": {
+    "title": "Compare Options",
+    "book": "Book"
+  },
+  "weather": {
+    "fiveDay": "5-Day Forecast"
+  },
+  "paymentStatus": {
+    "pending": "Pending",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "retry": "Retry Payment",
+    "cancelled": "Cancelled"
+  },
+  "brand": {
+    "headline": "Cambodia Travel, Reimagined",
+    "subline": "DerLg is Cambodia's AI-powered travel platform. No endless tabs, no decision fatigue — just tell our AI concierge what vibe you want, and it handles the rest.",
+    "tagline": "Built for travelers. Built for Cambodia. 🇰🇭"
+  },
+  "contact": {
+    "title": "Contact & Support",
+    "subtitle": "We're here to help with bookings, payments, and trip planning.",
+    "form": {
+      "title": "Send us a message",
+      "name": "Name",
+      "email": "Email",
+      "subject": "Subject",
+      "message": "Message",
+      "messagePlaceholder": "How can we help you?",
+      "attachmentLabel": "Attachment (optional, max {mb} MB)",
+      "addAttachment": "Add attachment",
+      "removeAttachment": "Remove attachment",
+      "submit": "Send message",
+      "success": "Message sent",
+      "successDesc": "Our team will get back to you by email.",
+      "error": "We couldn't send your message. Please try again or email us directly.",
+      "errors": {
+        "nameRequired": "Please enter your name",
+        "nameTooLong": "Name is too long",
+        "emailRequired": "Please enter your email",
+        "emailInvalid": "Please enter a valid email",
+        "subjectRequired": "Please enter a subject",
+        "subjectTooLong": "Subject is too long",
+        "messageTooShort": "Message must be at least 10 characters",
+        "messageTooLong": "Message is too long"
+      },
+      "attachment": {
+        "type": "Unsupported file type",
+        "size": "File is larger than 5 MB",
+        "empty": "Selected file is empty"
+      }
+    },
+    "liveChat": {
+      "title": "Live chat with our concierge",
+      "desc": "Chat with our AI travel concierge for real-time help with planning and booking.",
+      "cta": "Start live chat"
+    },
+    "support": {
+      "title": "Contact details",
+      "emailLabel": "Email",
+      "phoneLabel": "Phone",
+      "hoursTitle": "Business hours",
+      "hours": {
+        "weekdays": {
+          "label": "Mon–Fri",
+          "value": "8:00 AM – 8:00 PM (ICT)"
+        },
+        "weekends": {
+          "label": "Sat–Sun",
+          "value": "9:00 AM – 6:00 PM (ICT)"
+        },
+        "holidays": {
+          "label": "Public holidays",
+          "value": "10:00 AM – 4:00 PM (ICT)"
+        }
+      }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "booking": {
+        "q": "How do I book a trip?",
+        "a": "Browse trips, hotels, guides, or transportation, open an item, and use the booking button. You can also ask our AI concierge to book for you."
+      },
+      "payment": {
+        "q": "Which payment methods are supported?",
+        "a": "We accept international cards via Stripe and local QR payments (Bakong/ABA) for Cambodia."
+      },
+      "cancellation": {
+        "q": "How do I cancel a booking?",
+        "a": "Open the booking in My Trips and choose Cancel. The cancellation policy and any refund amount are shown before you confirm."
+      },
+      "refund": {
+        "q": "What is the refund policy?",
+        "a": "Refunds are 100% if cancelled 7+ days before start, 50% if 1–7 days before, and 0% within 24 hours."
+      },
+      "languages": {
+        "q": "Which languages do you support?",
+        "a": "The app and support are available in English, Chinese, and Khmer."
+      },
+      "emergency": {
+        "q": "How do I get emergency help during a trip?",
+        "a": "Bookings within 24 hours of start show an Emergency Alert button that shares your location with our support team."
+      }
+    }
+  },
+  "sync": {
+    "syncing": "Syncing…",
+    "synced": "Synced",
+    "pending": "{count} change waiting to sync",
+    "error": "{count} change failed to sync"
+  },
+  "install": {
+    "title": "Install DerLg",
+    "description": "Add DerLg to your home screen for faster access and offline use.",
+    "install": "Install app",
+    "notNow": "Not now",
+    "dismiss": "Dismiss",
+    "iosBefore": "Tap",
+    "iosShare": "Share, then",
+    "iosAdd": "Add to Home Screen"
+  },
+  "emergency": {
+    "types": {
+      "sos": "SOS",
+      "medical": "Medical",
+      "theft": "Theft",
+      "lost": "Lost"
+    },
+    "contacts": {
+      "heading": "Emergency contacts",
+      "police": "Police",
+      "fire": "Fire",
+      "ambulance": "Ambulance",
+      "touristPolice": "Tourist Police"
+    },
+    "modal": {
+      "title": "Emergency Alert",
+      "desc": "Send your location to our support team and reach local emergency services.",
+      "typeLabel": "What's happening?",
+      "locationLabel": "Your location",
+      "close": "Close",
+      "send": "Send alert"
+    },
+    "location": {
+      "locating": "Getting your location…",
+      "error": "Couldn't get your location.",
+      "denied": "Location access was denied. Enter your coordinates manually.",
+      "invalid": "Enter valid latitude and longitude.",
+      "latLabel": "Latitude",
+      "lngLabel": "Longitude",
+      "useManual": "Use this location",
+      "youAreHere": "You are here"
+    },
+    "countdown": {
+      "sendingIn": "Sending in {seconds}s… tap cancel to stop.",
+      "cancel": "Cancel"
+    },
+    "confirm": {
+      "title": "Alert sent",
+      "desc": "Your location has been shared with our support team. Call local emergency services if you need immediate help.",
+      "done": "Done"
+    },
+    "error": {
+      "title": "Couldn't send alert",
+      "desc": "We couldn't reach our support team. Please call local emergency services directly."
+    }
+  },
+  "map": {
+    "loading": "Loading map…",
+    "unavailable": "Map unavailable.",
+    "unavailableOffline": "Map unavailable offline.",
+    "unavailableNoKey": "Map unavailable.",
+    "distanceFromPhnomPenh": "{km} km from Phnom Penh",
+    "distanceFromYou": "{km} km from you",
+    "showDistanceFromMe": "Show distance from me"
+  },
+  "reviews": {
+    "title": "Reviews & ratings",
+    "sortLabel": "Sort by",
+    "filterLabel": "Filter",
+    "loadingMore": "Loading…",
+    "showMore": "Show more reviews",
+    "count": "{count} reviews",
+    "breakdownLabel": "Rating breakdown by stars",
+    "anonymous": "Anonymous",
+    "verified": "Verified booking",
+    "verifiedHint": "This review comes from a confirmed booking.",
+    "photoAlt": "Review photo",
+    "actions": {
+      "write": "Write a review",
+      "edit": "Edit review",
+      "delete": "Delete review",
+      "cancel": "Cancel",
+      "deleteTitle": "Delete review?",
+      "deleteConfirm": "This permanently removes your review. This can't be undone.",
+      "deleteSuccess": "Review deleted",
+      "deleteError": "Couldn't delete your review. Please try again."
+    },
+    "sort": {
+      "recent": "Most recent",
+      "rating_desc": "Highest rated"
+    },
+    "filter": {
+      "all": "All ratings",
+      "stars": "{n} stars"
+    },
+    "empty": {
+      "title": "No reviews yet",
+      "desc": "Be the first to share your experience."
+    },
+    "emptyFiltered": {
+      "title": "No matching reviews",
+      "desc": "Try a different rating filter."
+    },
+    "error": {
+      "title": "Couldn't load reviews",
+      "desc": "Something went wrong. Please try again.",
+      "retry": "Retry"
+    },
+    "form": {
+      "title": "Write a review",
+      "editTitle": "Edit your review",
+      "subtitle": "Share your experience to help other travelers.",
+      "ratingLabel": "Your rating",
+      "textLabel": "Your review",
+      "textPlaceholder": "Tell us about your experience…",
+      "charCount": "{remaining} characters left",
+      "photosLabel": "Photos (up to {max})",
+      "addPhotos": "Add photos",
+      "photoAlt": "Review photo",
+      "removePhoto": "Remove photo",
+      "photoLimitReached": "Photo limit reached",
+      "submit": "Submit review",
+      "saveEdit": "Save changes",
+      "cancel": "Cancel",
+      "success": "Review submitted",
+      "editSuccess": "Review updated",
+      "error": "Couldn't save your review. Please try again.",
+      "errors": {
+        "rating": "Select a rating from 1 to 5 stars.",
+        "textMin": "Review must be at least 10 characters.",
+        "textMax": "Review must be 1000 characters or fewer.",
+        "tooManyPhotos": "You can attach up to 5 photos.",
+        "noBooking": "A completed booking is required to write a review."
+      },
+      "upload": {
+        "type": "Unsupported image type.",
+        "size": "Image is too large (max 5 MB).",
+        "empty": "That file appears to be empty.",
+        "failed": "Couldn't upload the photo. Please try again."
+      }
+    }
+  },
+  "catalog": {
+    "filters": {
+      "title": "Filters",
+      "apply": "Show results",
+      "clear": "Clear all",
+      "active": "{count} active",
+      "open": "Filter results",
+      "priceRange": "Price range (USD)",
+      "priceMin": "Minimum",
+      "priceMax": "Maximum",
+      "duration": "Duration (days)",
+      "anyDuration": "Any length",
+      "category": "Category",
+      "stars": "Star rating",
+      "anyStars": "Any rating",
+      "starsValue": "{count} stars and up",
+      "language": "Language spoken",
+      "anyLanguage": "Any language",
+      "vehicleType": "Vehicle type",
+      "anyVehicle": "Any vehicle",
+      "placeCategory": "Place type",
+      "anyPlace": "All places"
+    },
+    "detail": {
+      "notFoundTitle": "Not found",
+      "notFoundDesc": "This listing may have been removed or is no longer available.",
+      "gallery": "Photos",
+      "overview": "Overview",
+      "related": "You might also like",
+      "bookNow": "Book now",
+      "checkAvailability": "Check availability",
+      "askConcierge": "Ask the concierge",
+      "day": "Day {number}",
+      "amenities": "Amenities",
+      "address": "Address",
+      "languages": "Languages",
+      "specialities": "Specialities",
+      "provinces": "Areas covered",
+      "capacity": "Capacity",
+      "pricing": "Pricing",
+      "entryFee": "Entry fee",
+      "free": "Free",
+      "openingHours": "Opening hours",
+      "nearbyTrips": "Trips nearby",
+      "share": "Copy link",
+      "shareCopied": "Link copied"
+    },
+    "availability": {
+      "from": "From",
+      "to": "To",
+      "checkIn": "Check in",
+      "checkOut": "Check out",
+      "available": "Available",
+      "unavailable": "Not available",
+      "selectDates": "Pick your dates to see availability and prices.",
+      "checking": "Checking…",
+      "rooms": "Rooms",
+      "noRooms": "No rooms available for those dates",
+      "selectRoom": "Select",
+      "selected": "Selected",
+      "sleeps": "Sleeps {count}"
+    }
+  }
+}

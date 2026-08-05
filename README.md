@@ -76,40 +76,36 @@ The AI handles the entire loop: **discover → plan → book → pay** — all w
 
 ## Tech Stack
 
+This repo is a monorepo of two apps: a **Next.js web** client and a **NestJS API** that also hosts the Vibe Booking AI agent in-process (no separate Python service).
+
 ```
-Frontend (Next.js)  ←REST→  Backend (NestJS)  ←Tools→  AI Agent (Python/FastAPI)
-    Port 3000                  Port 3001                    LangGraph + Claude
-         │                         │
-         └──────────┬──────────────┘
-                    ▼
-            ┌───────────────┐
-            │  Supabase PG  │  ← Primary Database
-            │  Redis        │  ← Cache, Sessions, Pub/Sub
-            │  Stripe       │  ← Payments
-            └───────────────┘
+Next.js web (3100)  ──REST /v1──►  NestJS API (3101)  ──OpenAI-compatible chat completions──►  LLM
+                                       │
+                          ┌────────────┼────────────┐
+                          ▼            ▼            ▼
+                    PostgreSQL      Redis        Cloudflare R2
+                  (catalog,       (sessions,    (seed images,
+                   bookings)      holds TTL)     optional)
 ```
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | Next.js 16, React 19, TypeScript 5, Tailwind CSS v4, Geist fonts |
-| **Backend** | NestJS 11, TypeScript 5.7, Prisma ORM, Jest |
-| **AI Agent** | Python 3.11, FastAPI, LangGraph, Claude Sonnet |
-| **Database** | PostgreSQL via Supabase |
-| **Cache** | Redis (Upstash in prod) |
-| **Payments** | Stripe + Bakong/ABA QR |
-| **Email** | Resend |
-| **Push** | Firebase Cloud Messaging |
-| **Maps** | Leaflet.js + OpenStreetMap |
+| App | Directory | Port | Technology |
+|-----|-----------|------|------------|
+| Web | `apps/web` | 3100 | Next.js 16, React 19, TypeScript 5, Tailwind v4, Zustand, React Query, Stripe Elements |
+| API | `apps/api` | 3101 | NestJS 11, Prisma 6, TypeScript 5, Jest, OpenAI-compatible LLM (NVIDIA NIM by default) |
+
+Shared infra: PostgreSQL, Redis, Cloudflare R2 (optional), Stripe (optional). Each optional service **degrades to HTTP 503** when unconfigured — the app always boots.
+
+> **Why 3100/3101?** Ports 3000/3001 are occupied by the older `frontend/`/`backend/`/`vibe-booking/` projects still in this tree. The `apps/` monorepo uses 3100/3101 so both can coexist on one machine.
 
 ---
 
 ## Architecture Highlights
 
-- **Conversational Booking Loop** — AI agent renders interactive cards (trips, hotels, QR codes) directly in chat. Users confirm bookings without leaving the conversation.
-- **Service-Key Isolation** — AI agent cannot write to the database directly. All mutations go through backend `/v1/ai-tools/*` endpoints authenticated with `X-Service-Key`.
-- **Resilient Messaging** — Exponential backoff reconnection + offline message queue for Cambodian mobile networks.
-- **Tiered Refunds** — 100% refund if cancelled >=7 days, 50% if 1-7 days, 0% if <24 hours.
-- **Currency Flexibility** — USD (default), KHR, CNY with hourly rate caching.
+- **Conversational booking loop** — the Vibe agent renders interactive trip/booking cards inline. The frontend owns all rendering; the API sends structured `content_payload`.
+- **Grounding guardrails** — the agent only ever sees real catalogue ids returned by its read tools, and the only money-moving tool (`create_booking_hold`) is server-validated. The agent never writes to the DB directly.
+- **15-minute holds** with a Redis TTL; expired holds are released by a scheduled job.
+- **Tiered refunds** — 100% if cancelled ≥7 days out, 50% at 1–7 days, 0% inside 24h.
+- **Idempotent seeding** — re-runnable; `--upload-r2` migrates seed images to R2 and rewrites `PlaceImage.url` while preserving CC BY-SA attribution.
 
 ---
 
@@ -125,25 +121,123 @@ Frontend (Next.js)  ←REST→  Backend (NestJS)  ←Tools→  AI Agent (Python/
 
 ---
 
-## Getting Started
+## Running it
+
+### One command — Docker
+
+The whole stack (Postgres, Redis, API, web) comes up with one command:
 
 ```bash
-# Install dependencies
-cd frontend && npm install
-cd ../backend && npm install
-
-# Run frontend dev server (port 3000)
-cd frontend && npm run dev
-
-# Run backend dev server (port 3001)
-cd backend && npm run start:dev
+docker compose up --build
 ```
+
+- The API applies pending Prisma migrations on every start, so the schema is ready immediately.
+- Web → http://localhost:3100, API → http://localhost:3101/v1.
+- Seed the catalogue once: `docker compose exec api npm run db:seed`
+  - With R2: `docker compose exec api npm run db:seed -- --upload-r2` (needs R2 env, see below).
+- Stripe / the LLM / R2 are left blank by default; their endpoints return 503 until you wire them (see below).
+
+> SSR caveat: inside the web container, server-side catalogue fetches use the browser URL and degrade to "no featured trips". Client-side fetching and the booking funnel are unaffected.
+
+### Local dev (no Docker)
+
+```bash
+# 1. Start Postgres + Redis (mapped to non-default ports to avoid clashes)
+docker compose up -d postgres redis
+
+# 2. API
+cd apps/api
+cp .env.example .env          # then edit secrets (JWT_ACCESS_SECRET etc.)
+npm install
+npx prisma migrate dev        # create + apply the schema
+npm run db:seed               # seed the catalogue
+npm run start:dev              # http://localhost:3101/v1
+
+# 3. Web (other terminal)
+cd apps/web
+cp .env.example .env.local
+npm install
+npm run dev                    # http://localhost:3100
+```
+
+### Environment variables
+
+Copy `apps/api/.env.example` → `apps/api/.env` and `apps/web/.env.example` → `apps/web/.env.local`, then fill in the secrets you need. Empty values are treated as "not configured" — the app boots either way.
+
+#### API (`apps/api/.env`)
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `NODE_ENV` | yes | `development` / `production` |
+| `PORT` | yes | `3101` |
+| `CORS_ORIGINS` | yes | Comma-separated browser origins (`http://localhost:3100`) |
+| `DATABASE_URL` | yes | Postgres URL. Local docker: `postgresql://derlg:derlg_dev_password@localhost:55433/derlg?schema=public` |
+| `REDIS_URL` | yes | `redis://localhost:56380` (local docker) |
+| `JWT_ACCESS_SECRET` | yes | ≥32 chars. Generate: `openssl rand -base64 48` |
+| `JWT_REFRESH_SECRET` | yes | ≥32 chars. Generate separately |
+| `JWT_ACCESS_TTL` | yes | `15m` |
+| `REFRESH_TOKEN_TTL_DAYS` | yes | `30` |
+| `COOKIE_DOMAIN` | no | Leave empty for localhost |
+| `STRIPE_SECRET_KEY` | no | Test key from Stripe dashboard. Empty → payments return 503 |
+| `STRIPE_WEBHOOK_SECRET` | no | `whsec_…` from `stripe listen` (see below) |
+| `STRIPE_PUBLISHABLE_KEY` | no | Test publishable key |
+| `OPENAI_BASE_URL` | yes | `https://integrate.api.nvidia.com/v1` (swap provider freely) |
+| `OPENAI_API_KEY` | no | Provider key. Empty → Vibe returns 503 |
+| `OPENAI_MODEL` | yes | `meta/llama-3.1-8b-instruct` (fast). `meta/llama-3.1-70b-instruct` = better prose, slower |
+| `OPENAI_TIMEOUT_MS` | yes | `60000` |
+| `R2_ACCOUNT_ID` | no | Cloudflare R2. All four R2_* core vars needed together or 503 |
+| `R2_ACCESS_KEY_ID` | no | R2 access key |
+| `R2_SECRET_ACCESS_KEY` | no | R2 secret |
+| `R2_BUCKET` | no | R2 bucket name |
+| `R2_PUBLIC_BASE_URL` | no | Public R2 domain; when unset, reads use 1h presigned URLs |
+
+#### Web (`apps/web/.env.local`)
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `NEXT_PUBLIC_API_URL` | yes | `http://localhost:3101/v1` (browser-facing API base) |
+| `NEXT_PUBLIC_SITE_URL` | yes | `http://localhost:3100` |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | no | Test publishable key. Payment UI shows a notice until set |
+| `R2_PUBLIC_BASE_URL` | no | Set to allow the Next image optimizer to serve R2 images |
+
+### Stripe — test cards end to end
+
+The card-payment path only runs with Stripe test keys and a forwarding webhook. From the Stripe dashboard, copy the **test** secret + publishable keys, then:
+
+```bash
+# 1. Put keys in env:
+#    apps/api/.env:        STRIPE_SECRET_KEY=sk_test_...   STRIPE_PUBLISHABLE_KEY=pk_test_...
+#    apps/web/.env.local:  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# 2. Forward webhooks to the local API (run in its own terminal):
+stripe listen --forward-to localhost:3101/v1/payments/webhook
+#    It prints: > Ready! Your webhook signing secret is whsec_xxx
+#    Put that into apps/api/.env as STRIPE_WEBHOOK_SECRET=whsec_xxx
+
+# 3. Restart the API so it picks up STRIPE_WEBHOOK_SECRET.
+
+# 4. Pay in the checkout with the test card:
+#    4242 4242 4242 4242   any future date   any CVC
+#    The booking flips to CONFIRMED and a check-in code is issued.
+```
+
+### Testing
+
+| Suite | Where | Command |
+|-------|-------|---------|
+| API unit | `apps/api` | `npm test` |
+| API e2e | `apps/api` | `npm run test:e2e` |
+| Web unit (Vitest) | `apps/web` | `npm test` |
+| Web typecheck | `apps/web` | `npm run typecheck` |
+| Web lint | `apps/web` | `npm run lint` |
+| Web production build | `apps/web` | `npm run build` |
+| Golden-path E2E (Playwright) | `apps/web` | `npm run e2e` (needs the stack up + Stripe/LLM as above) |
 
 ---
 
 ## Project Status
 
-**Phase:** Early scaffolding. Boilerplate is up. Implementation is underway.
+**Phase:** MVP build of the `apps/` monorepo. The full booking loop (browse → customize → hold → checkout) and the AI concierge (compose → hold) are implemented and under test — see the test table above. Stripe live card runs, R2 image hosting, and Playwright golden paths are wired and ready; the items left are environment credentials (Stripe test keys, an LLM key) noted in "Running it".
 
 **MVP Goal:** Prove the core loop — *discover → chat → book → pay*.
 

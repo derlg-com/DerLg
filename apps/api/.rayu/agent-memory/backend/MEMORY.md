@@ -1,0 +1,1 @@
+- [api cwd resets to apps/web](cwd_resets_to_web.md) — shell cwd is apps/web despite env saying apps/api; always `cd /home/rayu/DerLg/apps/api &&` for api npm scripts.

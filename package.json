@@ -1,0 +1,30 @@
+{
+  "name": "derlg",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DerLg — Cambodia travel booking with AI Vibe Booking (SSE) and full manual package customization",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:api dev:web",
+    "dev:api": "npm run start:dev --workspace @derlg/api",
+    "dev:web": "npm run dev --workspace @derlg/web",
+    "build": "npm run build --workspace @derlg/api && npm run build --workspace @derlg/web",
+    "test": "npm run test --workspace @derlg/api && npm run test --workspace @derlg/web",
+    "lint": "npm run lint --workspace @derlg/api && npm run lint --workspace @derlg/web",
+    "db:up": "docker compose up -d postgres redis",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate --workspace @derlg/api",
+    "db:seed": "npm run db:seed --workspace @derlg/api",
+    "db:studio": "npm run db:studio --workspace @derlg/api"
+  },
+  "devDependencies": {
+    "npm-run-all": "4.1.5",
+    "prettier": "3.9.6"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

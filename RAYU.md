@@ -17,9 +17,15 @@ Three independently runnable services:
 ### Frontend (`cd frontend`)
 ```bash
 npm run dev          # Dev server
-npm run build        # Production build
+npm run build        # Production build (next build + Serwist PWA service worker)
 npm run lint         # ESLint
+npm run lint:fix     # ESLint with --fix
+npm run format       # Prettier write
 npm run test         # Vitest (run once)
+npm run test:watch   # Vitest in watch mode
+npm run test:coverage# Vitest with coverage
+npm run e2e          # Playwright E2E tests
+npm run e2e:ui       # Playwright interactive UI mode
 ```
 
 ### Backend (`cd backend`)
@@ -32,9 +38,13 @@ npm run test:cov     # Jest with coverage
 npm run lint         # ESLint with auto-fix
 npm run format       # Prettier
 npx jest src/path/to/file.spec.ts   # Single test file
+npm run test -- src/path/to/file.spec.ts  # Same, via npm script
 npx prisma migrate dev              # Apply DB migrations
 npx prisma generate                 # Regenerate Prisma client
 npx prisma studio                   # DB GUI
+npm run prisma:seed                 # Seed DB (ts-node prisma/seeds/run.ts)
+npm run prisma:migrate:reset        # Reset DB + re-run all migrations
+npm run prisma:migrate:deploy        # Apply pending migrations (prod-style)
 ```
 
 ### AI Agent (`cd vibe-booking`)
@@ -79,13 +89,41 @@ Next.js (3000) ──REST /v1/*──► NestJS (3001) ──X-Service-Key──
 - **AI Agent → Backend:** HTTP tool calls to `/v1/ai-tools/*` authenticated with `X-Service-Key` header. The AI agent **never writes to the DB directly**.
 - **Response format:** AI sends structured JSON `content_payload`; the frontend owns all rendering.
 
+## Where Things Live
+
+### Backend modules (`backend/src/modules/`)
+`ai-tools` · `auth` · `bookings` · `guides` · `hotels` · `places` · `prisma` · `redis` · `search` · `transportation` · `trips` · `users`
+Cross-cutting code lives in `backend/src/common/` (`guards`, `interceptors`, `filters`, `decorators`, `dto`, `errors`, `cache`, `i18n`, `types`). Config validation in `backend/src/config/env.validation.ts`.
+
+### Frontend route groups (`frontend/app/`)
+- `(auth)/` — login, register, reset-password (no main nav)
+- `(app)/` — main app shell with bottom nav (home, explore, booking, my-trip, profile)
+- `vibe-booking/` — full-screen split-screen AI chat page
+- `~offline/` — offline fallback
+- `ui-kit/` — design-system showcase
+
+### Frontend i18n
+next-intl translation files live in `frontend/messages/{en,zh,km}.json` (not `public/locales/`). Locale routing is in `frontend/middleware.ts`.
+
+### Frontend context
+`frontend/context/` holds `progress-tracker.md`, `roadmap.md`, `architecture.md`, `code-standards.md`, `ui-context.md`, `wcag-audit.md` — read these before substantial frontend work.
+
+## Dev Gotchas
+
+- **`frontend/next.config.ts` MinIO flags are intentional.** `dangerouslyAllowLocalIP` and `dangerouslyAllowSVG` are required because MinIO runs on `localhost:9000` in dev and serves seed placeholder SVGs with a `.jpg` extension. Do not "harden" these away without replacing the image source.
+- **Frontend build = `next build` + Serwist PWA.** `npm run build` runs both; use `npm run build:next` if you only need the Next.js build (e.g. when iterating on non-PWA code).
+- **Vibe-booking env precedence.** A shell-exported `NVIDIA_API_KEY` shadows the value in `vibe-booking/.env` and will cause HTTP 403s from NVIDIA NIM. If chat returns "Something went wrong" on every turn, relaunch uvicorn with the conflicting env var unset so pydantic-settings falls through to `.env`.
+
 ## Key Conventions
 
 - API prefix: `/v1/` (backend), `/v1/ai-tools/*` (AI service endpoints)
 - Naming: React components `PascalCase`, utilities `kebab-case`, variables/functions `camelCase`, constants `UPPER_SNAKE_CASE`, DB tables `snake_case`
 - Frontend imports use `@/` alias; backend uses relative imports within a module
 - Never hardcode secrets — all credentials via env vars; `.env` files are gitignored
-- Backend spec files live in `backend/context/` (SCHEMA.md, API-CONTRACT.md, etc.) — read before modifying endpoints or schema
+- Backend spec files live in `backend/context/` — read before modifying endpoints or schema:
+  - `context/guides/` — CONSTITUTION.md (module dependency rules), CODE-STANDARD.md, TECH-STACK.md, SUPABASE-WORKFLOW.md, MISSION.md
+  - `context/specs/` — SCHEMA.md, API-CONTRACT.md, ERROR-REGISTRY.md, EVENT-CATALOG.md
+  - `context/plans/` — ROADMAP.md, TEST-PLAN.md, SEED-SPEC.md
 - AI agent module docs in `vibe-booking/AGENT.md`; frontend docs in `frontend/AGENTS.md`
 
 ## Authoritative Spec Files
@@ -95,7 +133,8 @@ Next.js (3000) ──REST /v1/*──► NestJS (3001) ──X-Service-Key──
 | DB schema (Prisma) | `backend/context/specs/SCHEMA.md` + `backend/prisma/schema.prisma` |
 | All ~80 API endpoints | `backend/context/specs/API-CONTRACT.md` |
 | Error codes | `backend/context/specs/ERROR-REGISTRY.md` |
-| Backend implementation roadmap | `backend/context/plans/ROADMAP.md` |
+| Backend implementation roadmap | `backend/context/plans/ROADMAP.md` + `IMPLEMENTATION-ROADMAP.md` |
+| Backend code rules & patterns | `backend/context/guides/CONSTITUTION.md`, `CODE-STANDARD.md` |
 | AI agent architecture | `vibe-booking/AGENT.md` |
 | Frontend specs | `.kiro/specs/frontend-nextjs-implementation/` |
 | Vibe Booking AI specs | `.kiro/specs/vibe-booking/` |

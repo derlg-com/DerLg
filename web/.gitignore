@@ -1,0 +1,33 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# next
+.next
+out
+build
+next-env.d.ts
+
+# testing
+coverage
+playwright-report
+test-results
+blob-report
+.playwright
+
+# env — never commit real secrets
+.env
+.env.local
+.env*.local
+
+# misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+.vercel
+
+# generated service worker
+public/sw.js
+public/sw.js.map
+public/swe-worker*.js

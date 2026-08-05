@@ -1,0 +1,1 @@
+API Error: 429 {"type":"error","error":{"type":"rate_limit_error","message":"you (MR_Dev) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add extra usage: https://ollama.com/settings (ref: f4664cfc-16e9-4866-8116-6ee8132306de)"},"request_id":"req_8f88d1b14dd4b1c6671abe60"}
