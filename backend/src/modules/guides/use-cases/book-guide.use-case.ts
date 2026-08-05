@@ -37,7 +37,7 @@ export class BookGuideUseCase {
       where: { id: guideId },
       include: {
         languages: true,
-        specialities: true,
+        specialties: true,
       },
     });
     if (!guide) {
@@ -83,7 +83,7 @@ export class BookGuideUseCase {
               name: guideUser?.fullName ?? 'Tour Guide',
               coverImageUrl: guide.avatarUrl ?? null,
               languages: guide.languages.map((l) => l.language),
-              specialities: guide.specialities.map((s) => s.speciality),
+              specialties: guide.specialties.map((s) => s.specialty),
               province: guide.province,
               isVerified: guide.isVerified,
               pricePerDayUsd: guide.pricePerDayUsd.toNumber(),

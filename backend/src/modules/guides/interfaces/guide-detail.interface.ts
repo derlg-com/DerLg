@@ -1,3 +1,5 @@
+import type { GuidePackage } from './guide-summary.interface';
+
 export interface GuideDetail {
   id: string;
   bio: string | null;
@@ -7,6 +9,7 @@ export interface GuideDetail {
   province: string;
   provinces: string[];
   languages: string[];
-  specialities: string[];
+  specialties: string[];
   isVerified: boolean;
+  packages: GuidePackage[];
 }

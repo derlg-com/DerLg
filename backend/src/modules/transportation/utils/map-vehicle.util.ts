@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import type { VehicleTier, VehicleSubtype } from '@prisma/client';
 import type { VehicleSummary } from '../interfaces/vehicle-summary.interface';
 import type { VehicleDetail } from '../interfaces/vehicle-detail.interface';
 
@@ -8,6 +9,8 @@ export type VehicleRow = {
   name: string;
   licensePlate: string | null;
   capacity: number;
+  tier: VehicleTier | null;
+  subtype: VehicleSubtype | null;
   priceUsd: Prisma.Decimal | number;
   pricingModel: string;
   province: string;
@@ -24,6 +27,8 @@ export function mapVehicleSummary(row: VehicleRow): VehicleSummary {
     vehicleType: row.vehicleType,
     name: row.name,
     capacity: row.capacity,
+    tier: row.tier,
+    subtype: row.subtype,
     priceUsd: toNum(row.priceUsd),
     pricingModel: row.pricingModel,
     province: row.province,
@@ -38,6 +43,8 @@ export function mapVehicleDetail(row: VehicleRow): VehicleDetail {
     name: row.name,
     licensePlate: row.licensePlate,
     capacity: row.capacity,
+    tier: row.tier,
+    subtype: row.subtype,
     priceUsd: toNum(row.priceUsd),
     pricingModel: row.pricingModel,
     province: row.province,

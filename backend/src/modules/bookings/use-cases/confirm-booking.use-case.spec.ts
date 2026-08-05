@@ -71,7 +71,11 @@ describe('ConfirmBookingUseCase', () => {
     prisma = {
       booking: { findFirst: jest.fn().mockResolvedValue(bookingFactory()) },
       _tx: tx,
-      $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
+      $transaction: jest
+        .fn()
+        .mockImplementation(async (cb: (t: unknown) => Promise<unknown>) =>
+          cb(tx),
+        ),
     };
     config = { get: jest.fn().mockReturnValue(true) };
     release = { release: jest.fn().mockResolvedValue(undefined) };
@@ -116,9 +120,9 @@ describe('ConfirmBookingUseCase', () => {
 
   it('rejects when DEMO_PAYMENTS is disabled', async () => {
     config.get.mockReturnValue(false);
-    await expect(
-      useCase.execute(user, 'booking-1', {}),
-    ).rejects.toThrow(ForbiddenException);
+    await expect(useCase.execute(user, 'booking-1', {})).rejects.toThrow(
+      ForbiddenException,
+    );
     expect(prisma.booking.findFirst).not.toHaveBeenCalled();
   });
 

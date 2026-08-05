@@ -234,6 +234,40 @@ ALL_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_trip",
+            "description": "Compose and save a custom trip (P6b). Call when the user wants a bespoke itinerary built from specific components — e.g. 'build me a 3-day Siem Reap trip with a boutique hotel and a VIP van'. First search the components (search_hotels / search_guides / search_transport), then call this with the chosen ids. The backend prices everything server-side (per-day rates x duration) and returns a bookable trip card. Extras are optional add-ons (max $500/unit).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Short trip title, e.g. '3-day Siem Reap custom'" },
+                    "description": {"type": "string", "description": "One-paragraph trip summary (optional)"},
+                    "duration_days": {"type": "integer", "description": "Trip length in days"},
+                    "start_date": {"type": "string", "description": "YYYY-MM-DD (optional)"},
+                    "hotel_room_id": {"type": "string", "description": "Chosen hotel room id from search_hotels"},
+                    "guide_id": {"type": "string", "description": "Chosen guide id from search_guides"},
+                    "vehicle_id": {"type": "string", "description": "Chosen vehicle id from search_transport"},
+                    "extras": {
+                        "type": "array",
+                        "description": "Optional add-ons (max $500/unit)",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "description": {"type": "string"},
+                                "unit_price_usd": {"type": "number"},
+                                "quantity": {"type": "integer"},
+                            },
+                            "required": ["name", "unit_price_usd", "quantity"],
+                        },
+                    },
+                },
+                "required": ["title", "duration_days"],
+            },
+        },
+    },
 ]
 
 # Maps tool name → (HTTP method, backend path) — must match ai-tools.controller.ts exactly
@@ -254,4 +288,5 @@ TOOL_DISPATCH: dict[str, tuple[str, str]] = {
     # Path-templated GETs to the public detail endpoints ({..} filled from input).
     "get_trip_detail":        ("GET",  "trips/{trip_id}"),
     "get_hotel_detail":       ("GET",  "hotels/{hotel_id}"),
+    "create_trip":            ("POST", "ai-tools/trips"),
 }

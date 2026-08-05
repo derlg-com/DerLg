@@ -35,7 +35,7 @@ describe('BookGuideUseCase', () => {
     avatarUrl: null,
     pricePerDayUsd: over.pricePerDayUsd ?? D('80'),
     languages: [{ language: 'en' }, { language: 'zh' }],
-    specialities: [{ speciality: 'Angkor Wat historian' }],
+    specialties: [{ specialty: 'culture_history' }],
   });
 
   const baseDto = {
@@ -47,7 +47,9 @@ describe('BookGuideUseCase', () => {
     prisma = {
       guide: { findFirst: jest.fn() },
       booking: { findFirst: jest.fn() },
-      user: { findUnique: jest.fn().mockResolvedValue({ fullName: 'Sok Dara' }) },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ fullName: 'Sok Dara' }),
+      },
     };
     commitBooking = {
       execute: jest
@@ -124,7 +126,7 @@ describe('BookGuideUseCase', () => {
     }
   });
 
-  it('snapshot captures languages, specialities, province, and verification', async () => {
+  it('snapshot captures languages, specialties, province, and verification', async () => {
     prisma.guide.findFirst.mockResolvedValue(guideFactory());
 
     await useCase.execute(user, 'guide-1', baseDto);
@@ -133,7 +135,7 @@ describe('BookGuideUseCase', () => {
     expect(input.items[0].snapshot).toMatchObject({
       guideId: 'guide-1',
       languages: ['en', 'zh'],
-      specialities: ['Angkor Wat historian'],
+      specialties: ['culture_history'],
       province: 'Siem Reap',
       isVerified: true,
       pricePerDayUsd: 80,

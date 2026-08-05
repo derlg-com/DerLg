@@ -19,6 +19,17 @@ MAX_TOKENS = 2048
 # Mutations/reads whose user_id must come from the verified session, never the model.
 _USER_SCOPED_TOOLS = ("create_booking_hold", "send_sos_alert", "get_user_loyalty")
 
+# SAFETY NET — Cambodia national emergency numbers. A user reporting an emergency
+# must ALWAYS receive these actionable numbers, even if the backend is
+# unreachable (circuit open, timeout, 500). Mirrors the values backend
+# `getEmergencyContacts` returns so the experience is identical online/offline.
+CAMBODIA_EMERGENCY_CONTACTS: list[dict] = [
+    {"name": "Police", "number": "117"},
+    {"name": "Ambulance", "number": "119"},
+    {"name": "Fire", "number": "118"},
+    {"name": "Tourist Police", "number": "012 942 484"},
+]
+
 # Matches raw tool-call JSON the model may leak as visible text instead of a
 # real tool call, e.g. {"name": "search_trips", "parameters": {...}}.
 _TOOL_CALL_JSON = re.compile(
@@ -82,7 +93,25 @@ _TOOL_INTENT = {
     "send_sos_alert": "Sending an SOS alert",
     "generate_payment_qr": "Generating a payment QR",
     "get_user_loyalty": "Checking loyalty points",
+    "create_trip": "Composing your custom trip",
 }
+
+
+def _friendly_cause(exc: BaseException | None) -> str:
+    """One user-safe sentence describing why the agent loop gave up (P6a).
+
+    Never leaks exception internals to the user; maps common failure classes
+    (timeouts, HTTP errors) to plain language and falls back to a generic line.
+    """
+    if exc is None:
+        return "Please try again."
+    name = type(exc).__name__.lower()
+    msg = str(exc).lower()
+    if "timeout" in name or "timed out" in msg or "timeout" in msg:
+        return "The service took too long to respond. Please try again."
+    if "http" in name or "httpstatus" in name or "http" in msg or "status" in name or "response" in msg:
+        return "The service returned an error. Please try again."
+    return "Something went wrong on our end. Please try again."
 
 
 def _format_tool_intent(name: str, inp: dict) -> str:
@@ -211,6 +240,38 @@ def _norm_hotel_detail(h: dict) -> dict:
         "amenities": h.get("amenities") or None,
         "lat": h.get("latitude"),
         "lng": h.get("longitude"),
+    })
+
+
+def _norm_custom_trip(t: dict) -> dict:
+    """Backend POST /v1/ai-tools/trips response (snake_case) → frontend
+    custom_trip_card payload (camelCase). Items/extras keep only the fields the
+    frontend card renders; `description`/`start_date` pass through when present."""
+    return _strip_none({
+        "id": t.get("id", ""),
+        "title": t.get("title", ""),
+        "description": t.get("description"),
+        "durationDays": t.get("duration_days") or t.get("durationDays", 0),
+        "totalUsd": t.get("total_usd") or t.get("totalUsd") or 0,
+        "items": [
+            _strip_none({
+                "type": it.get("type", ""),
+                "name": it.get("name", ""),
+                "unitPriceUsd": it.get("unit_price_usd") or it.get("unitPriceUsd") or 0,
+                "quantity": it.get("quantity", 1),
+            })
+            for it in (t.get("items") or [])
+        ] or None,
+        "extras": [
+            _strip_none({
+                "name": e.get("name", ""),
+                "description": e.get("description"),
+                "unitPriceUsd": e.get("unit_price_usd") or e.get("unitPriceUsd") or 0,
+                "quantity": e.get("quantity", 1),
+            })
+            for e in (t.get("extras") or [])
+        ] or None,
+        "startDate": t.get("start_date") or t.get("startDate"),
     })
 
 
@@ -439,6 +500,10 @@ def build_content_payloads(
             if isinstance(raw, dict) and raw.get("id"):
                 payloads.append({"type": "hotel_detail", "data": _norm_hotel_detail(raw), "actions": [], "metadata": {}})
 
+        elif tool_name == "create_trip":
+            if isinstance(raw, dict) and raw.get("id"):
+                payloads.append({"type": "custom_trip_card", "data": _norm_custom_trip(raw), "actions": [], "metadata": {}})
+
     # Results header ("Results for '<query>'") on the card-list blocks.
     if query:
         title = f'Results for "{query}"'
@@ -465,7 +530,102 @@ def _build_content_payload(
     return payloads[0] if payloads else None
 
 
+async def _resolve_emergency_contacts(
+    location: str, session: ConversationState
+) -> tuple[list[dict], bool]:
+    """Best-effort emergency-contacts resolution with a guaranteed fallback.
+
+    Tries a live `get_emergency_contacts` lookup for the given location, but ANY
+    failure (circuit open, timeout, empty result, unexpected error) falls back to
+    the hardcoded ``CAMBODIA_EMERGENCY_CONTACTS`` so a user in distress always
+    receives actionable numbers. Returns ``(contacts, is_live)``.
+    """
+    if location:
+        try:
+            backend = get_backend_client()
+            result = await backend.request(
+                "GET",
+                "ai-tools/emergency-contacts",
+                language=session.preferred_language.lower(),
+                params={"location": location},
+            )
+            if result.get("success"):
+                data = result.get("data") or {}
+                contacts = data.get("contacts")
+                if isinstance(contacts, list) and contacts:
+                    return contacts, True
+        except Exception as exc:  # defensive: never let a lookup error hide numbers
+            logger.warning("emergency_contacts_lookup_failed", error=str(exc))
+    return list(CAMBODIA_EMERGENCY_CONTACTS), False
+
+
+async def _handle_sos_alert(inp: dict, session: ConversationState) -> dict:
+    """Resilient SOS handler enforcing the safety invariant: a user reporting an
+    emergency ALWAYS receives actionable Cambodia emergency numbers and never a
+    hard failure — regardless of auth status OR backend availability.
+
+    - Guests are NEVER POSTed to ``ai-tools/sos``: ``session.user_id`` is not a
+      real ``users`` row, so the write would FK-fail (HTTP 500) and yield nothing.
+    - Authenticated users get a best-effort backend write (notifies the support
+      team). Whether it succeeds or fails, the emergency numbers are still
+      returned; ``alert_logged`` reports whether the write actually landed.
+    """
+    location = inp.get("location") or ""
+    user_message = inp.get("message") or ""
+    contacts, _is_live = await _resolve_emergency_contacts(location, session)
+    alert_logged = False
+
+    if session.is_authenticated:
+        try:
+            backend = get_backend_client()
+            # Server-side inject the verified session user id; never trust a
+            # model-supplied user_id for this mutation (Issue 10).
+            payload = {
+                "user_id": session.user_id,
+                "location": location,
+                "message": user_message,
+            }
+            result = await backend.request(
+                "POST",
+                "ai-tools/sos",
+                language=session.preferred_language.lower(),
+                json=payload,
+            )
+            alert_logged = bool(result.get("success"))
+        except Exception as exc:  # best-effort: a failed write must NOT hide numbers
+            logger.warning("sos_alert_write_failed", error=str(exc))
+            alert_logged = False
+
+    if alert_logged:
+        message = (
+            "Emergency support has been alerted. If you are in danger, call these "
+            "Cambodia emergency numbers right now."
+        )
+    else:
+        message = (
+            "If you are in danger, call these Cambodia emergency numbers right now. "
+            "(We couldn't auto-notify our support team, but these numbers are live "
+            "and reachable immediately.)"
+        )
+
+    return {
+        "success": True,
+        "data": {
+            "contacts": contacts,
+            "message": message,
+            "alert_logged": alert_logged,
+            "location": location,
+        },
+    }
+
+
 async def _execute_tool(name: str, inp: dict, session: ConversationState) -> dict:
+    # SOS is safety-critical: it must ALWAYS return actionable emergency numbers
+    # and NEVER a hard failure, regardless of auth status or backend availability.
+    # The backend SOS write (notifying support) is a best-effort enhancement only.
+    if name == "send_sos_alert":
+        return await _handle_sos_alert(inp, session)
+
     dispatch = TOOL_DISPATCH.get(name)
     if not dispatch:
         return {"success": False, "error": f"Unknown tool: {name}"}
@@ -494,11 +654,16 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
     messages = session.messages[-MAX_MESSAGES:]
     all_tool_results: list[tuple[str, dict]] = []
     search_destination: str | None = None
+    last_error: BaseException | None = None
 
     for _ in range(MAX_TOOL_LOOPS):
-        response = await client.create_message(
-            system=system, messages=messages, tools=ALL_TOOLS, max_tokens=MAX_TOKENS,
-        )
+        try:
+            response = await client.create_message(
+                system=system, messages=messages, tools=ALL_TOOLS, max_tokens=MAX_TOKENS,
+            )
+        except Exception as exc:  # model unreachable/timeout → surface cause
+            last_error = exc
+            break
 
         if response.stop_reason == "end_turn":
             text = next((b.text for b in response.content if b.type == "text"), "")
@@ -530,7 +695,11 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
             })
         session.messages.append(assistant_msg)
 
-        results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+        try:
+            results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+        except Exception as exc:  # tool layer failure (defensive; requests are caught)
+            last_error = exc
+            break
         for tc, result in zip(tool_calls, results):
             all_tool_results.append((tc.name, result))
 
@@ -543,7 +712,7 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
             })
         messages = session.messages[-MAX_MESSAGES:]
 
-    return "I'm having trouble processing your request. Please try again.", None
+    return f"I'm having trouble processing your request. {_friendly_cause(last_error)}", None
 
 
 async def run_agent_streaming(
@@ -558,6 +727,7 @@ async def run_agent_streaming(
     all_tool_results: list[tuple[str, dict]] = []
     search_destination: str | None = None
     search_label: str | None = None
+    last_error: BaseException | None = None
 
     for _ in range(MAX_TOOL_LOOPS):
         streamed = False
@@ -585,9 +755,13 @@ async def run_agent_streaming(
                 accumulated_text = ""
 
         if response is None:
-            response = await client.create_message(
-                system=system, messages=messages, tools=ALL_TOOLS, max_tokens=MAX_TOKENS,
-            )
+            try:
+                response = await client.create_message(
+                    system=system, messages=messages, tools=ALL_TOOLS, max_tokens=MAX_TOKENS,
+                )
+            except Exception as exc:  # model unreachable/timeout → surface cause
+                last_error = exc
+                break
 
         if response.stop_reason == "end_turn":
             text = next((b.text for b in response.content if b.type == "text"), "")
@@ -598,11 +772,21 @@ async def run_agent_streaming(
             session.messages.append({"role": "assistant", "content": full_text})
             payloads = build_content_payloads(all_tool_results, search_destination, query=search_label)
             # Follow-up chips + per-card blurbs run concurrently (same client) so
-            # the post-answer enrichment adds ~one round-trip, not two.
-            suggestions, payloads = await asyncio.gather(
-                generate_suggestions(session, full_text, client=client, payloads=payloads),
-                attach_card_blurbs(session, payloads, client=client),
-            )
+            # the post-answer enrichment adds ~one round-trip, not two. With a
+            # slow reasoning model (gpt-oss-120b, 60-90s/call) that round-trip
+            # would delay `final` for minutes — bound it so the answer always
+            # lands promptly; chips/blurbs degrade gracefully when skipped.
+            try:
+                suggestions, payloads = await asyncio.wait_for(
+                    asyncio.gather(
+                        generate_suggestions(session, full_text, client=client, payloads=payloads),
+                        attach_card_blurbs(session, payloads, client=client),
+                    ),
+                    timeout=25.0,
+                )
+            except Exception:
+                suggestions = []
+                logger.warning("enrichment_skipped_timeout")
             yield {
                 "type": "final",
                 "text": full_text,
@@ -671,7 +855,11 @@ async def run_agent_streaming(
         for tc in tool_calls:
             yield {"type": "agent_tool_status", "tool_use_id": tc.id, "name": tc.name, "status": "running"}
 
-        results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+        try:
+            results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+        except Exception as exc:  # tool layer failure (defensive; requests are caught)
+            last_error = exc
+            break
 
         for tc, result in zip(tool_calls, results):
             status = "completed" if result.get("success") else "failed"
@@ -687,4 +875,5 @@ async def run_agent_streaming(
             })
         messages = session.messages[-MAX_MESSAGES:]
 
-    yield {"type": "final", "text": "I'm having trouble processing your request. Please try again.", "content_payload": None, "content_payloads": [], "suggestions": [], "requires_payment": None}
+    fallback_text = f"I'm having trouble processing your request. {_friendly_cause(last_error)}"
+    yield {"type": "final", "text": fallback_text, "content_payload": None, "content_payloads": [], "suggestions": [], "requires_payment": None}

@@ -12,6 +12,22 @@ function snapshotString(snapshot: unknown, key: string): string | null {
   return null;
 }
 
+/**
+ * Derive a human-readable location label from the primary item snapshot.
+ * Each resource type stores location context under a different key
+ * (transport → pickupLocation, trip → meetingPoint, guide → province);
+ * returns the first non-empty match, or null when none is available
+ * (e.g. hotel snapshots carry no address yet).
+ */
+function bookingLocation(snapshot: unknown): string | null {
+  return (
+    snapshotString(snapshot, 'pickupLocation') ??
+    snapshotString(snapshot, 'meetingPoint') ??
+    snapshotString(snapshot, 'province') ??
+    null
+  );
+}
+
 /** Frontend booking `type` ('trip'|'hotel'|'guide'|'transportation'). */
 function bookingResourceType(row: BookingWithItems): string {
   if (row.singleResourceKind) return row.singleResourceKind;
@@ -31,9 +47,9 @@ function bookingResourceType(row: BookingWithItems): string {
 /**
  * Maps a Prisma Booking row (with items) to the public Booking DTO consumed by
  * the frontend (`types/api.ts`). Derived presentation fields (`name`,
- * `coverImageUrl`, `specialRequests`) come from the primary item snapshot;
- * `status` is UPPERCASED to match the frontend `BookingStatus` enum. Internal
- * fields are retained for back-compat with existing callers/events.
+ * `coverImageUrl`, `location`, `specialRequests`) come from the primary item
+ * snapshot; `status` is UPPERCASED to match the frontend `BookingStatus` enum.
+ * Internal fields are retained for back-compat with existing callers/events.
  */
 export function mapBooking(row: BookingWithItems) {
   const primarySnapshot = row.items[0]?.snapshot ?? null;
@@ -49,6 +65,7 @@ export function mapBooking(row: BookingWithItems) {
     type: bookingResourceType(row),
     name: snapshotString(primarySnapshot, 'name') ?? '',
     coverImageUrl: snapshotString(primarySnapshot, 'coverImageUrl'),
+    location: bookingLocation(primarySnapshot),
     startDate: row.startDate.toISOString().slice(0, 10),
     endDate: row.endDate?.toISOString().slice(0, 10) ?? null,
     status: row.status.toUpperCase(),

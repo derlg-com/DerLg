@@ -204,16 +204,16 @@ async function main(): Promise<void> {
   await prisma.guide.createMany({
     data: guideIds.map((id, i) => ({ id, userId: guideUserIds[i], bio: `Experienced Cambodian tour guide #${i}.`, avatarUrl: '', images: [], pricePerDayUsd: money(25, 90), isVerified: Math.random() < 0.7, province: pick(PROVINCES).name, provinces: [pick(PROVINCES).name, pick(PROVINCES).name], isActive: true })),
   });
-  const SPEC = ['Angkor Wat historian', 'Street food expert', 'Nature trekking', 'Photography guide', 'Khmer mythology', 'Village homestays', 'Archaeology specialist', 'Sunrise tours'];
+  const SPEC = ['culture_history', 'food_tours', 'nature_trekking', 'photography', 'family_friendly', 'business', 'luxury', 'adventure'] as const;
   await prisma.guideLanguage.createMany({
     data: guideIds.flatMap((guideId) => [...new Set([pick(LANGS), pick(LANGS)])].map((language) => ({ guideId, language }))),
     skipDuplicates: true,
   });
-  await prisma.guideSpeciality.createMany({
-    data: guideIds.flatMap((guideId) => [...new Set([pick(SPEC), pick(SPEC)])].map((speciality) => ({ guideId, speciality }))),
+  await prisma.guideSpecialty.createMany({
+    data: guideIds.flatMap((guideId) => [...new Set([pick(SPEC), pick(SPEC)])].map((specialty) => ({ guideId, specialty }))),
     skipDuplicates: true,
   });
-  console.log(`  ✅ guides: ${N}  +  guide_languages & guide_specialities (~${N}+ each)`);
+  console.log(`  ✅ guides: ${N}  +  guide_languages & guide_specialties (~${N}+ each)`);
 
   // ---- 10. TRIPS + translations + itinerary items + their translations ------
   const tripIds = ids(N);

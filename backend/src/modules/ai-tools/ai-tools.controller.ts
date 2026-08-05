@@ -27,6 +27,7 @@ import {
   EstimateBudgetDto,
   GetPlacesDto,
   GetFestivalsDto,
+  CreateCustomTripDto,
 } from './ai-tools.dto';
 
 @Public()
@@ -59,6 +60,12 @@ export class AiToolsController {
   @Get('availability')
   async checkAvailability(@Query() dto: CheckAvailabilityDto) {
     return { success: true, data: await this.service.checkAvailability(dto) };
+  }
+
+  @Post('trips')
+  @HttpCode(HttpStatus.CREATED)
+  async createCustomTrip(@Body() dto: CreateCustomTripDto) {
+    return { success: true, data: await this.service.createCustomTrip(dto) };
   }
 
   @Post('bookings')

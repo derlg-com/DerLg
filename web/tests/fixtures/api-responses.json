@@ -1,0 +1,493 @@
+{
+  "trips-list": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "860b4d50-0d09-441a-95ba-4a4146ff3aa6",
+            "name": "Southern Beach Escape",
+            "coverImageUrl": "http://localhost:9000/derlg-storage/trips/beach-escape.jpg",
+            "durationDays": 4,
+            "priceUsd": 399,
+            "category": "nature",
+            "location": null,
+            "ratingAverage": null,
+            "ratingCount": 0
+          },
+          {
+            "id": "bc45a258-e070-446e-a0b0-74998d08b2e8",
+            "name": "Cambodian Culinary Journey",
+            "coverImageUrl": "http://localhost:9000/derlg-storage/trips/culinary-journey.jpg",
+            "durationDays": 3,
+            "priceUsd": 249,
+            "category": "food",
+            "location": null,
+            "ratingAverage": null,
+            "ratingCount": 0
+          },
+          {
+            "id": "0989b31f-5eed-44c3-8aa9-42773f02a1a9",
+            "name": "Northern Cambodia Adventure",
+            "coverImageUrl": "http://localhost:9000/derlg-storage/trips/adventure-north.jpg",
+            "durationDays": 4,
+            "priceUsd": 449,
+            "category": "adventure",
+            "location": null,
+            "ratingAverage": null,
+            "ratingCount": 0
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "limit": 3,
+        "totalPages": 2
+      }
+    }
+  },
+  "trip-detail": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "id": "860b4d50-0d09-441a-95ba-4a4146ff3aa6",
+        "name": "Southern Beach Escape",
+        "coverImageUrl": "http://localhost:9000/derlg-storage/trips/beach-escape.jpg",
+        "durationDays": 4,
+        "priceUsd": 399,
+        "category": "nature",
+        "location": null,
+        "ratingAverage": null,
+        "ratingCount": 0,
+        "description": "Unwind on Cambodia's most beautiful beaches, explore charming colonial towns, and savor fresh seafood. The perfect tropical getaway.",
+        "galleryImageUrls": [
+          "http://localhost:9000/derlg-storage/trips/beach-escape.jpg"
+        ],
+        "itineraryDays": [
+          {
+            "dayNumber": 1,
+            "title": "Sihanoukville & Otres Beach",
+            "description": "Arrive in Sihanoukville. Transfer to Otres Beach for sunset cocktails and beachfront dinner."
+          },
+          {
+            "dayNumber": 2,
+            "title": "Island Hopping",
+            "description": "Boat tour to Koh Rong and Koh Rong Samloem. Snorkeling, beach barbecue, and swimming in bioluminescent plankton at night."
+          },
+          {
+            "dayNumber": 3,
+            "title": "Kep & Kampot",
+            "description": "Transfer to Kep for fresh crab lunch at the famous crab market. Afternoon visit to Kampot pepper plantations and Bokor Mountain."
+          },
+          {
+            "dayNumber": 4,
+            "title": "Relaxation & Departure",
+            "description": "Morning yoga on the beach. Free time for spa treatments or kayaking. Afternoon transfer to airport."
+          }
+        ],
+        "includedItems": [
+          "Beachfront resort 3 nights",
+          "All breakfasts",
+          "Island hopping boat trip",
+          "Kampot pepper plantation tour",
+          "Tuk-tuk transfers",
+          "Snorkeling gear"
+        ],
+        "excludedItems": [
+          "Flights to Sihanoukville",
+          "Lunch and dinner",
+          "Travel insurance",
+          "Spa treatments"
+        ],
+        "meetingPoint": null,
+        "cancellationPolicy": "Full refund up to 7 days before. 50% refund 3-6 days prior.",
+        "maxGuests": 12
+      }
+    }
+  },
+  "trip-related": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": []
+    }
+  },
+  "hotels-list": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "b88dc061-6e07-4fd7-9de6-259b9ed7a860",
+            "name": "Shinta Mani Angkor",
+            "address": "Junction of Oum Khun and 14th Street, Siem Reap",
+            "starRating": 4,
+            "coverImage": "http://localhost:9000/derlg-storage/hotels/shinta-mani.jpg",
+            "latitude": 13.3555,
+            "longitude": 103.855
+          },
+          {
+            "id": "c4affc56-3611-42a4-976a-f398d2dc25f8",
+            "name": "Belmond La Residence d'Angkor",
+            "address": "River Road, Siem Reap",
+            "starRating": 4,
+            "coverImage": "http://localhost:9000/derlg-storage/hotels/belmond-la-residence.jpg",
+            "latitude": 13.3528,
+            "longitude": 103.8578
+          },
+          {
+            "id": "48293785-a91f-42ea-b59b-6a77658579fc",
+            "name": "Raffles Hotel Le Royal",
+            "address": "92 Rukhak Vithei Daun Penh, Phnom Penh",
+            "starRating": 5,
+            "coverImage": "http://localhost:9000/derlg-storage/hotels/raffles-grand.jpg",
+            "latitude": 11.5691,
+            "longitude": 104.9308
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "limit": 3,
+        "totalPages": 2
+      }
+    }
+  },
+  "hotel-detail": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "id": "b88dc061-6e07-4fd7-9de6-259b9ed7a860",
+        "name": "Shinta Mani Angkor",
+        "address": "Junction of Oum Khun and 14th Street, Siem Reap",
+        "description": "A design-forward boutique hotel with a social mission. Every stay supports local community projects through the Shinta Mani Community.",
+        "starRating": 4,
+        "images": [
+          "http://localhost:9000/derlg-storage/hotels/shinta-mani.jpg"
+        ],
+        "amenities": [
+          "WiFi",
+          "Pool",
+          "Spa",
+          "Social Enterprise",
+          "Rooftop Bar",
+          "Art Gallery"
+        ],
+        "latitude": 13.3555,
+        "longitude": 103.855,
+        "priceFromUsd": 130
+      }
+    }
+  },
+  "guides-list": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "0ca01cbb-531e-48f6-a5d7-85f20eab0b80",
+            "avatarUrl": "http://localhost:9000/derlg-storage/guides/guide-4.jpg",
+            "pricePerDayUsd": 35,
+            "province": "Kampot",
+            "provinces": [
+              "Kampot",
+              "Kep",
+              "Takeo"
+            ],
+            "languages": [
+              "en",
+              "km"
+            ],
+            "specialities": [
+              "Nature trekking",
+              "Pepper plantation tours",
+              "Village homestays"
+            ],
+            "isVerified": true
+          },
+          {
+            "id": "3898c0ee-7b81-4b2f-b579-1a7889244db9",
+            "avatarUrl": "http://localhost:9000/derlg-storage/guides/guide-3.jpg",
+            "pricePerDayUsd": 40,
+            "province": "Phnom Penh",
+            "provinces": [
+              "Phnom Penh",
+              "Kandal"
+            ],
+            "languages": [
+              "en",
+              "zh",
+              "km"
+            ],
+            "specialities": [
+              "Street food expert",
+              "Cultural storyteller",
+              "Market tours"
+            ],
+            "isVerified": true
+          },
+          {
+            "id": "d55c100f-ff42-4406-99a8-0e97a283d8bc",
+            "avatarUrl": "http://localhost:9000/derlg-storage/guides/guide-2.jpg",
+            "pricePerDayUsd": 55,
+            "province": "Siem Reap",
+            "provinces": [
+              "Siem Reap",
+              "Preah Vihear",
+              "Kampong Thom"
+            ],
+            "languages": [
+              "en",
+              "zh",
+              "km"
+            ],
+            "specialities": [
+              "Archaeology specialist",
+              "Hidden temples",
+              "Sunrise photography"
+            ],
+            "isVerified": true
+          }
+        ],
+        "total": 4,
+        "page": 1,
+        "limit": 3,
+        "totalPages": 2
+      }
+    }
+  },
+  "guide-detail": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "id": "0ca01cbb-531e-48f6-a5d7-85f20eab0b80",
+        "bio": "Channary grew up in a farming family in Kampot and knows the countryside intimately. She specializes in nature tours, pepper plantation visits, and authentic village experiences that support local communities.",
+        "avatarUrl": "http://localhost:9000/derlg-storage/guides/guide-4.jpg",
+        "images": [
+          "http://localhost:9000/derlg-storage/guides/guide-4.jpg"
+        ],
+        "pricePerDayUsd": 35,
+        "province": "Kampot",
+        "provinces": [
+          "Kampot",
+          "Kep",
+          "Takeo"
+        ],
+        "languages": [
+          "en",
+          "km"
+        ],
+        "specialities": [
+          "Nature trekking",
+          "Pepper plantation tours",
+          "Village homestays"
+        ],
+        "isVerified": true
+      }
+    }
+  },
+  "vehicles-list": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "a42a77b7-c0df-4ed7-9917-1479663d3727",
+            "vehicleType": "bus",
+            "name": "Mekong Deluxe Coach",
+            "capacity": 35,
+            "priceUsd": 6,
+            "pricingModel": "per_km",
+            "province": "Phnom Penh",
+            "coverImage": "http://localhost:9000/derlg-storage/transport/bus.jpg"
+          },
+          {
+            "id": "87a37317-9d72-40d1-8180-567173173a5f",
+            "vehicleType": "bus",
+            "name": "Cambodia Express Bus",
+            "capacity": 40,
+            "priceUsd": 5,
+            "pricingModel": "per_km",
+            "province": "Siem Reap",
+            "coverImage": "http://localhost:9000/derlg-storage/transport/bus.jpg"
+          },
+          {
+            "id": "1d927f50-78f8-4235-9e23-1473e73c77fd",
+            "vehicleType": "van",
+            "name": "Sihanoukville Beach Van",
+            "capacity": 14,
+            "priceUsd": 85,
+            "pricingModel": "per_day",
+            "province": "Preah Sihanouk",
+            "coverImage": "http://localhost:9000/derlg-storage/transport/van.jpg"
+          }
+        ],
+        "total": 8,
+        "page": 1,
+        "limit": 3,
+        "totalPages": 3
+      }
+    }
+  },
+  "vehicle-detail": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "id": "a42a77b7-c0df-4ed7-9917-1479663d3727",
+        "vehicleType": "bus",
+        "name": "Mekong Deluxe Coach",
+        "licensePlate": "2MN-9012",
+        "capacity": 35,
+        "priceUsd": 6,
+        "pricingModel": "per_km",
+        "province": "Phnom Penh",
+        "images": [
+          "http://localhost:9000/derlg-storage/transport/bus.jpg"
+        ]
+      }
+    }
+  },
+  "places-list": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "6c0a9729-29fb-459c-ab32-25b4487dcc21",
+            "name": "Yeak Lom Crater Lake",
+            "category": "nature",
+            "latitude": 13.7333,
+            "longitude": 106.9833,
+            "entryFeeUsd": 0,
+            "coverImage": "http://localhost:9000/derlg-storage/places/ratanakiri-nature.jpg"
+          },
+          {
+            "id": "bb03ebe4-1b64-4060-9b7b-c903028126fd",
+            "name": "Bokor Mountain",
+            "category": "mountain",
+            "latitude": 10.6167,
+            "longitude": 104.05,
+            "entryFeeUsd": 2,
+            "coverImage": "http://localhost:9000/derlg-storage/places/bokor-mountain.jpg"
+          },
+          {
+            "id": "9522a32d-d66c-4880-be98-9dd1f09fcae7",
+            "name": "National Museum of Cambodia",
+            "category": "museum",
+            "latitude": 11.5686,
+            "longitude": 104.9281,
+            "entryFeeUsd": 10,
+            "coverImage": "http://localhost:9000/derlg-storage/places/national-museum.jpg"
+          }
+        ],
+        "total": 10,
+        "page": 1,
+        "limit": 3,
+        "totalPages": 4
+      }
+    }
+  },
+  "place-detail": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "id": "6c0a9729-29fb-459c-ab32-25b4487dcc21",
+        "name": "Yeak Lom Crater Lake",
+        "description": "A perfectly circular volcanic lake surrounded by dense forest in Ratanakiri province. This sacred Tampuan ethnic minority site offers swimming and jungle trekking.",
+        "category": "nature",
+        "latitude": 13.7333,
+        "longitude": 106.9833,
+        "entryFeeUsd": 0,
+        "openingHours": "Open 24 hours",
+        "dressCode": "Outdoor gear",
+        "website": null,
+        "visitorTips": "Hire a local Tampuan guide. Visit early morning for birdwatching. The water is incredibly clear.",
+        "address": "Ratanakiri Province",
+        "images": [
+          "http://localhost:9000/derlg-storage/places/ratanakiri-nature.jpg"
+        ]
+      }
+    }
+  },
+  "search": {
+    "status": 200,
+    "json": {
+      "success": true,
+      "data": {
+        "items": [
+          {
+            "id": "a0e01b15-b92c-40b3-9ca8-a9f6c26f9591",
+            "kind": "trip",
+            "title": "Angkor Classic Discovery",
+            "image": "http://localhost:9000/derlg-storage/trips/angkor-classic.jpg",
+            "category": "temples",
+            "basePriceUsd": 299
+          },
+          {
+            "id": "291e75c9-0444-4f6e-bef4-a3c28230ca75",
+            "kind": "place",
+            "title": "Angkor Wat",
+            "image": "http://localhost:9000/derlg-storage/places/angkor-wat.jpg",
+            "category": "temple"
+          },
+          {
+            "id": "b88dc061-6e07-4fd7-9de6-259b9ed7a860",
+            "kind": "hotel",
+            "title": "Shinta Mani Angkor",
+            "image": "http://localhost:9000/derlg-storage/hotels/shinta-mani.jpg",
+            "starRating": 4
+          },
+          {
+            "id": "c4affc56-3611-42a4-976a-f398d2dc25f8",
+            "kind": "hotel",
+            "title": "Belmond La Residence d'Angkor",
+            "image": "http://localhost:9000/derlg-storage/hotels/belmond-la-residence.jpg",
+            "starRating": 4
+          },
+          {
+            "id": "83a1916f-d20e-4033-b71c-92f9d73a9101",
+            "kind": "guide",
+            "title": "",
+            "image": "http://localhost:9000/derlg-storage/guides/guide-1.jpg",
+            "province": "Siem Reap",
+            "pricePerDayUsd": 45
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "limit": 20,
+        "totalPages": 1
+      }
+    }
+  },
+  "error-not-found": {
+    "status": 404,
+    "json": {
+      "success": false,
+      "error": {
+        "code": "TRP_NOT_FOUND",
+        "message": "Trip not found"
+      }
+    }
+  },
+  "error-validation": {
+    "status": 400,
+    "json": {
+      "success": false,
+      "error": {
+        "code": "INTERNAL_ERROR",
+        "message": [
+          "property bogusParam should not exist"
+        ]
+      }
+    }
+  }
+}

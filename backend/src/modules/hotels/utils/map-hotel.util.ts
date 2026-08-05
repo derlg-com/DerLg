@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import type { HotelType } from '@prisma/client';
 import type { Lang } from '../../../common/i18n';
 import type { HotelSummary } from '../interfaces/hotel-summary.interface';
 import type { HotelDetail } from '../interfaces/hotel-detail.interface';
@@ -12,6 +13,7 @@ type HotelTranslationRow = {
 
 export type HotelSummaryRow = {
   id: string;
+  type: HotelType | null;
   starRating: number | null;
   images: string[];
   latitude: Prisma.Decimal | number;
@@ -49,6 +51,7 @@ export function mapHotelSummary(
     id: row.id,
     name: t?.name ?? '',
     address: t?.address ?? null,
+    type: row.type,
     starRating: row.starRating,
     coverImage: row.images[0] ?? null,
     latitude: toNum(row.latitude),
@@ -64,6 +67,7 @@ export function mapHotelDetail(row: HotelDetailRow, lang: Lang): HotelDetail {
     name: t?.name ?? '',
     address: t?.address ?? null,
     description: t?.description ?? null,
+    type: row.type,
     starRating: row.starRating,
     images: row.images,
     amenities: row.amenities,
