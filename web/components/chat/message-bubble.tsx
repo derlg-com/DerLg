@@ -2,11 +2,44 @@
 
 import { useTranslations } from 'next-intl'
 import * as React from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 import { ReasoningPanel } from '@/components/chat/reasoning-panel'
 import { Button } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import type { AgentTurn, UserTurn } from '@/lib/vibe/transcript'
+
+/**
+ * Renders agent Markdown with the design system's tokens.
+ *
+ * react-markdown escapes raw HTML by default (no XSS from model output), and
+ * remark-gfm adds tables, strikethrough and autolinks. The `.md-prose` class
+ * (defined in globals.css) sizes and colours every element from CSS variables,
+ * so the output reads like a first-class part of the UI, not a raw HTML dump.
+ */
+function MarkdownText({ children }: { children: string | null | undefined }) {
+  if (!children) return null
+  return (
+    <div className="md-prose">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ node: _node, ...props }) => (
+            <a
+              {...props}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--accent)] underline underline-offset-2 hover:text-[var(--accent-hover)]"
+            />
+          ),
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+    </div>
+  )
+}
 
 /**
  * A user's message.
@@ -61,8 +94,8 @@ export function AgentBubble({
       ) : null}
 
       {turn.text ? (
-        <div className="max-w-[85%] rounded-[var(--radius-lg)] rounded-bl-sm border border-[var(--border-subtle)] bg-[var(--surface)] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-[var(--text-primary)]">
-          {turn.text}
+        <div className="max-w-[85%] rounded-[var(--radius-lg)] rounded-bl-sm border border-[var(--border-subtle)] bg-[var(--surface)] px-3.5 py-2.5 text-[var(--text-primary)]">
+          <MarkdownText>{turn.text}</MarkdownText>
         </div>
       ) : null}
 
@@ -99,7 +132,7 @@ export function StreamingBubble({ text, reasoning }: { text: string; reasoning: 
       ) : null}
 
       <div
-        className="max-w-[85%] rounded-[var(--radius-lg)] rounded-bl-sm border border-[var(--border-subtle)] bg-[var(--surface)] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap text-[var(--text-primary)]"
+        className="max-w-[85%] rounded-[var(--radius-lg)] rounded-bl-sm border border-[var(--border-subtle)] bg-[var(--surface)] px-3.5 py-2.5 text-[var(--text-primary)]"
         /*
          * The reply streams token by token. 'polite' with atomic=false means a
          * screen reader reads the additions rather than restarting the whole
@@ -109,7 +142,7 @@ export function StreamingBubble({ text, reasoning }: { text: string; reasoning: 
         aria-atomic="false"
         aria-label={t('streamingLabel')}
       >
-        {hasContent ? text : <TypingDots label={tCommon('thinking')} />}
+        {hasContent ? <MarkdownText>{text}</MarkdownText> : <TypingDots label={tCommon('thinking')} />}
       </div>
     </li>
   )
