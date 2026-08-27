@@ -9,3 +9,5 @@ export { RefreshTokenUseCase } from './refresh-token.use-case';
 export { SendResetEmailUseCase } from './send-reset-email.use-case';
 export { GoogleAuthUseCase } from './google-auth.use-case';
 export { GoogleCallbackUseCase } from './google-callback.use-case';
+export { GetMeUseCase } from './get-me.use-case';
+export type { MeResponse } from './get-me.use-case';

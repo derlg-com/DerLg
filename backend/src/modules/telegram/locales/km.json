@@ -1,0 +1,20 @@
+{
+  "welcome": "សូមស្វាគមន៍មកកាន់ DerLg Driver Bot! ប្រើ /register ដើម្បីភ្ជាប់គណនីរបស់អ្នក។",
+  "register_success": "ការចុះឈ្មោះជោគជ័យ! ឥឡូវនេះអ្នកអាចធ្វើបច្ចុប្បន្នភាពស្ថានភាពរបស់អ្នក។",
+  "register_failed": "ការចុះឈ្មោះបរាជ័យ។ សូមពិនិត្យមើលលេខសម្គាល់អ្នកបើកបរ និង PIN របស់អ្នក។",
+  "status_updated": "ស្ថានភាពត្រូវបានធ្វើបច្ចុប្បន្នទៅ {status}។",
+  "status_offline_blocked": "មិនអាចបិទបានទេនៅពេលដែលអ្នកមានការបញ្ជាក់សកម្ម។",
+  "assignment_new": "ការបញ្ជាក់ថ្មី! ការកក់: {bookingReference}។ ឆ្លើយ /accept ឬ /reject។",
+  "assignment_accepted": "ការបញ្ជាក់ត្រូវបានទទួលយក។",
+  "assignment_rejected": "ការបញ្ជាក់ត្រូវបានបដិសេធ។",
+  "assignment_started": "ដំណើរការចាប់ផ្តើម។ ការធ្វើដំណើរសុវត្ថិភាព!",
+  "assignment_completed": "ដំណើរការបានបញ្ចប់។ សូមអរគុណ!",
+  "assignment_expired": "ការបញ្ជាក់ផុតកំណត់ (គ្មានការឆ្លើយតបក្នុងរយៈពេល 5 នាទី)។",
+  "location_updated": "ទីតាំងត្រូវបានធ្វើបច្ចុប្បន្ន។",
+  "emergency_sent": "ការជូនដំណឹងសង្គ្រោះបន្ទាន់ត្រូវបានផ្ញើទៅកាន់ការិយាល័យ។",
+  "support_ticket_created": "សំបុត្រគាំទ្រលេខ #{ticketId} ត្រូវបានបង្កើត។",
+  "no_active_assignments": "គ្មានការបញ្ជាក់សកម្មទេ។",
+  "earnings_today": "ចំណូលថ្ងៃនេះ: ${amount}",
+  "earnings_week": "ចំណូលសប្តាហ៍នេះ: ${amount}",
+  "broadcast_received": "Broadcast: {message}"
+}

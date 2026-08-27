@@ -14,6 +14,9 @@ import { GuidesModule } from './modules/guides/guides.module';
 import { TransportationModule } from './modules/transportation/transportation.module';
 import { SearchModule } from './modules/search/search.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { TelegramModule } from './modules/telegram/telegram.module';
+import { StorageModule } from './modules/storage/storage.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -39,6 +42,11 @@ import { ConfigService } from '@nestjs/config';
     TransportationModule,
     SearchModule,
     BookingsModule,
+    // Admin panel, Telegram driver bot and object storage, merged in from the
+    // former standalone derlg-system-admin service.
+    StorageModule,
+    TelegramModule,
+    AdminModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

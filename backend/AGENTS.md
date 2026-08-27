@@ -23,6 +23,7 @@ All implementation is under `src/modules/`:
 
 | Module | Purpose | Key Files |
 |--------|---------|-----------|
+| `admin` | `/v1/admin/*` admin panel API — 17 controllers, 17 services | `admin.module.ts`, `controllers/`, `services/`, `interceptors/audit.interceptor.ts`, `websocket/admin.gateway.ts` |
 | `ai-tools` | `/v1/ai-tools/*` endpoints for the AI agent | `ai-tools.controller.ts`, `ai-tools.service.ts`, `ai-tools.dto.ts` |
 | `auth` | JWT access + refresh, Telegram OAuth | `auth.controller.ts`, `auth.service.ts` |
 | `bookings` | Booking creation, confirmation, cancellation, holds | `bookings.controller.ts`, `use-cases/`, `dto/` |
@@ -32,6 +33,8 @@ All implementation is under `src/modules/`:
 | `prisma` | Prisma service + client | `prisma.service.ts` |
 | `redis` | Redis connection, cache, rate limiting | `redis.service.ts` |
 | `search` | Global search across all catalogues | `search.controller.ts`, `global-search.use-case.ts` |
+| `storage` | MinIO presigned URLs for admin media | `minio.service.ts`, `storage.controller.ts` |
+| `telegram` | `/v1/telegram/*` driver bot: webhook, commands, BullMQ queues | `telegram.controller.ts`, `telegram.service.ts`, `handlers/`, `jobs/` |
 | `transportation` | Vehicle catalogue | `transportation.controller.ts`, `list-vehicles.use-case.ts` |
 | `trips` | Trip packages (incl. custom trips) | `trips.controller.ts`, `list-trips.use-case.ts` |
 | `users` | User profiles, loyalty points | `users.controller.ts`, `users.service.ts` |
@@ -40,10 +43,10 @@ Cross-cutting code lives in `src/common/`:
 
 | Directory | Purpose |
 |-----------|---------|
-| `guards/` | JWT guard, service-key guard, current-user guard |
+| `guards/` | JWT guard, roles guard, admin-role guard, service-key guard, throttler guard |
 | `interceptors/` | Logging interceptor |
 | `filters/` | Prisma filter, all-exceptions filter |
-| `decorators/` | Public decorator, current-user decorator |
+| `decorators/` | Public, current-user, roles, admin-roles, current-admin |
 | `dto/` | List query DTO, base DTOs |
 | `errors/` | Error codes, custom exceptions |
 | `cache/` | Cached service base, cache keys |
@@ -54,7 +57,8 @@ Cross-cutting code lives in `src/common/`:
 
 ## API Conventions
 
-- Prefix: `/v1/` (user-facing), `/v1/ai-tools/*` (AI agent, X-Service-Key auth)
+- Prefix: `/v1/` (user-facing), `/v1/ai-tools/*` (AI agent, X-Service-Key auth), `/v1/admin/*` (admin panel, JWT + admin role), `/v1/telegram/*` (driver bot, webhook secret / PIN)
+- **Do not write `v1/` inside `@Controller()`** — `main.ts` calls `setGlobalPrefix('v1')`. Doing both gives `/v1/v1/...`, which silently 404s.
 - Envelope: `{ success, data, message, error }`
 - Auth: Bearer JWT in `Authorization` header; service-to-service via `X-Service-Key`
 - `forbidNonWhitelisted: true` — every new query param **must** be declared in the DTO or requests return 400
@@ -67,7 +71,10 @@ Cross-cutting code lives in `src/common/`:
 - Schema: `prisma/schema.prisma`
 - Dev: local Supabase on port 54322
 - VPS (Coolify): point `DATABASE_URL` at Coolify-managed Postgres
-- Migrations: `npx prisma migrate deploy` (use `db push` if `migrate dev` fails — DB has pre-existing drift)
+- Migrations: write the SQL by hand, then `npx prisma migrate deploy`.
+  Generate a candidate with:
+  `npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script`
+  and review it before applying. Prefer `migrate deploy` over `migrate dev`.
 - Seed: `npm run prisma:seed` (idempotent, dependency-ordered)
 
 ---
@@ -75,7 +82,9 @@ Cross-cutting code lives in `src/common/`:
 ## Dev Gotchas
 
 - **NVIDIA_API_KEY shadowing** (affects AI agent, not backend directly): unset before launching the agent
-- **Pre-existing DB drift**: `prisma migrate dev` won't work cleanly; use `migrate deploy` or `db push`
+- **DB drift**: as of the admin-panel merge (2026-08-19) there is **none** — replaying all migrations into a shadow database produced SQL byte-identical to a diff against the live database. The earlier warning here predates `20260805090000_baseline_sync`, which fixed it. Still prefer `migrate deploy` and reviewed SQL.
+- **Guards are global**: `JwtAuthGuard`, `RolesGuard` and `AdminRoleGuard` are registered as `APP_GUARD` in `common.module.ts`. Do not add `@UseGuards(JwtAuthGuard)` to controllers. Use `@Public()` to opt out, `@Roles()` for the JWT claim, `@AdminRoles()` for the `admin_users` grant. **A route with no `@AdminRoles()` is not admin-protected** — the guard passes it through.
+- **Compiled entrypoint is `dist/src/main.js`**, not `dist/main.js`, because `debug_e2e.ts` at the project root shifts the TypeScript rootDir. `package.json`'s `start:prod` script still has the old path and fails with MODULE_NOT_FOUND.
 - **forbidNonWhitelisted**: every new query param must be in the DTO
 
 ---
@@ -87,3 +96,4 @@ Cross-cutting code lives in `src/common/`:
 | `RAYU.md` | RAYU project-wide conventions |
 | `AGENTS.md` | Agent routing (root level) |
 | `CLAUDE.md` | Claude Code project-wide conventions |
+| `docs/admin-merge/` | Admin-panel merge: baseline, port inventory, deliberate behaviour changes |

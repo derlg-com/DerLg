@@ -21,6 +21,7 @@ import {
   RefreshTokenUseCase,
   GoogleAuthUseCase,
   GoogleCallbackUseCase,
+  GetMeUseCase,
 } from './use-cases';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -32,7 +33,7 @@ import {
 } from './dto';
 import type { JwtPayload } from './strategies/jwt.strategy';
 
-const REFRESH_COOKIE = 'refresh_token';
+const REFRESH_COOKIE = 'derlg_refresh';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
@@ -52,7 +53,20 @@ export class AuthController {
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly googleAuthUseCase: GoogleAuthUseCase,
     private readonly googleCallbackUseCase: GoogleCallbackUseCase,
+    private readonly getMeUseCase: GetMeUseCase,
   ) {}
+
+  /**
+   * Current user, including the admin grant when one exists.
+   *
+   * The admin panel calls this immediately after login to decide which
+   * navigation to render, so it must resolve `admin_users` in the same request.
+   */
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  me(@CurrentUser() user: JwtPayload) {
+    return this.getMeUseCase.execute(user.sub);
+  }
 
   @Public()
   @Post('register')
@@ -101,6 +115,7 @@ export class AuthController {
     res.cookie(REFRESH_COOKIE, result.refreshToken, COOKIE_OPTIONS);
     return {
       accessToken: result.accessToken,
+      user: result.user,
     };
   }
 

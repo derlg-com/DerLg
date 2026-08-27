@@ -1,0 +1,20 @@
+{
+  "welcome": "Welcome to DerLg Driver Bot! Use /register to link your account.",
+  "register_success": "Registration successful! You can now update your status.",
+  "register_failed": "Registration failed. Please check your driver ID and PIN.",
+  "status_updated": "Status updated to {status}.",
+  "status_offline_blocked": "Cannot go offline while you have active assignments.",
+  "assignment_new": "New assignment! Booking: {bookingReference}. Reply /accept or /reject.",
+  "assignment_accepted": "Assignment accepted.",
+  "assignment_rejected": "Assignment rejected.",
+  "assignment_started": "Trip started. Safe travels!",
+  "assignment_completed": "Trip completed. Thank you!",
+  "assignment_expired": "Assignment expired (no response within 5 minutes).",
+  "location_updated": "Location updated.",
+  "emergency_sent": "Emergency alert sent to dispatch.",
+  "support_ticket_created": "Support ticket #{ticketId} created.",
+  "no_active_assignments": "No active assignments.",
+  "earnings_today": "Today's earnings: ${amount}",
+  "earnings_week": "This week's earnings: ${amount}",
+  "broadcast_received": "Broadcast: {message}"
+}

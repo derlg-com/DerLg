@@ -1,0 +1,20 @@
+{
+  "welcome": "欢迎使用 DerLg 司机机器人！使用 /register 关联您的账户。",
+  "register_success": "注册成功！您现在可以更新您的状态。",
+  "register_failed": "注册失败。请检查您的司机ID和PIN码。",
+  "status_updated": "状态已更新为 {status}。",
+  "status_offline_blocked": "有活跃任务时无法下线。",
+  "assignment_new": "新任务！预订：{bookingReference}。回复 /accept 或 /reject。",
+  "assignment_accepted": "任务已接受。",
+  "assignment_rejected": "任务已拒绝。",
+  "assignment_started": "行程开始。一路平安！",
+  "assignment_completed": "行程完成。谢谢！",
+  "assignment_expired": "任务已过期（5分钟内无响应）。",
+  "location_updated": "位置已更新。",
+  "emergency_sent": "紧急警报已发送至调度中心。",
+  "support_ticket_created": "支持工单 #{ticketId} 已创建。",
+  "no_active_assignments": "没有活跃任务。",
+  "earnings_today": "今日收入：${amount}",
+  "earnings_week": "本周收入：${amount}",
+  "broadcast_received": "广播：{message}"
+}

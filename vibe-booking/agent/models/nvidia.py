@@ -54,6 +54,7 @@ class NvidiaClient(ModelClient):
             "model": self._model,
             "messages": [{"role": "system", "content": system}, *self._convert_messages(messages)],
             "tools": self._convert_tools(tools),
+            "tool_choice": "auto",
             "max_tokens": max_tokens,
         }
         for attempt in range(_MAX_ATTEMPTS):
@@ -150,7 +151,11 @@ class NvidiaClient(ModelClient):
         choice = choices[0]
         message = choice["message"]
         finish_reason = choice.get("finish_reason", "stop")
-        stop_reason = "tool_use" if finish_reason == "tool_calls" else "end_turn"
+        tool_calls_raw = message.get("tool_calls", [])
+        # Fix: some NVIDIA NIM endpoints emit tool_calls but report
+        # finish_reason as "stop" instead of "tool_calls". Always check for
+        # accumulated tool calls so they aren't silently dropped.
+        stop_reason = "tool_use" if (finish_reason == "tool_calls" or tool_calls_raw) else "end_turn"
 
         blocks: list[ContentBlock] = []
         # Some reasoning models return content in reasoning_content when content is null
@@ -178,6 +183,7 @@ class NvidiaClient(ModelClient):
             "model": self._model,
             "messages": [{"role": "system", "content": system}, *self._convert_messages(messages)],
             "tools": self._convert_tools(tools),
+            "tool_choice": "auto",
             "max_tokens": max_tokens,
             "stream": True,
         }
@@ -233,7 +239,10 @@ class NvidiaClient(ModelClient):
                         accumulated_tool_calls[idx]["arguments"] += fn["arguments"]
 
         # Build final ModelResponse
-        stop_reason = "tool_use" if finish_reason == "tool_calls" else "end_turn"
+        # Fix: some NVIDIA NIM endpoints emit tool_calls but report
+        # finish_reason as "stop" instead of "tool_calls". Always check for
+        # accumulated tool calls so they aren't silently dropped.
+        stop_reason = "tool_use" if (finish_reason == "tool_calls" or accumulated_tool_calls) else "end_turn"
         blocks: list[ContentBlock] = []
         if accumulated_text:
             blocks.append(ContentBlock(type="text", text=accumulated_text))

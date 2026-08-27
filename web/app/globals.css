@@ -10,6 +10,11 @@
  *  - Motion is feedback only: 150-250ms ease-out, disabled under reduced-motion.
  */
 
+/* Tailwind v4: make `dark:` utilities follow the .dark class (our stored
+ * user preference), not prefers-color-scheme (the v4 default). Without this,
+ * any added `dark:` utility would silently diverge from our var(--…) system. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Neutral scale (zinc) */
   --color-neutral-0: oklch(100% 0 0);
@@ -25,18 +30,18 @@
   --color-neutral-900: oklch(21% 0.006 286);
   --color-neutral-950: oklch(14.1% 0.005 286);
 
-  /* Single accent — saturated vermilion, evokes Cambodian sandstone/saffron
-     without the muddy travel-brand palette. Used for primary action only. */
-  --color-accent-50: oklch(96.5% 0.021 25);
-  --color-accent-100: oklch(92.8% 0.045 25);
-  --color-accent-200: oklch(86% 0.09 25);
-  --color-accent-300: oklch(78% 0.135 25);
-  --color-accent-400: oklch(70% 0.175 25);
-  --color-accent-500: oklch(62% 0.203 25);
-  --color-accent-600: oklch(55% 0.196 25);
-  --color-accent-700: oklch(46% 0.166 25);
-  --color-accent-800: oklch(38% 0.134 25);
-  --color-accent-900: oklch(31% 0.104 25);
+  /* Single accent — Mekong teal, evokes Cambodia's rivers and jade-green
+     landscapes. Reserved for primary action + active state only. */
+  --color-accent-50: oklch(97% 0.015 185);
+  --color-accent-100: oklch(93.5% 0.035 185);
+  --color-accent-200: oklch(87% 0.065 185);
+  --color-accent-300: oklch(79% 0.095 185);
+  --color-accent-400: oklch(71% 0.12 185);
+  --color-accent-500: oklch(62% 0.14 185);
+  --color-accent-600: oklch(53% 0.145 185);
+  --color-accent-700: oklch(45% 0.13 185);
+  --color-accent-800: oklch(38% 0.105 185);
+  --color-accent-900: oklch(32% 0.08 185);
 
   /* Status colors */
   --color-success-500: oklch(60% 0.15 155);
@@ -98,6 +103,12 @@
 
   --focus-ring: var(--color-accent-500);
 
+  /* Danger action pair — theme-aware solid danger button. The text token flips
+     per theme so contrast holds on the lighter dark-mode danger background. */
+  --danger: var(--color-danger-600);
+  --danger-hover: var(--color-danger-500);
+  --danger-text: var(--color-neutral-0);
+
   /*
    * Tone pairs for badges and inline status. Each background/foreground pair is
    * verified against WCAG AA 4.5:1 by the axe sweep in e2e/design-system.spec.ts,
@@ -106,12 +117,16 @@
    */
   --tone-success-bg: color-mix(in oklch, var(--color-success-500) 13%, white);
   --tone-success-text: oklch(38% 0.1 155);
+  --tone-success-border: color-mix(in oklch, var(--color-success-500) 40%, white);
   --tone-warning-bg: color-mix(in oklch, var(--color-warning-500) 16%, white);
   --tone-warning-text: oklch(38% 0.08 75);
+  --tone-warning-border: color-mix(in oklch, var(--color-warning-500) 40%, white);
   --tone-danger-bg: color-mix(in oklch, var(--color-danger-500) 12%, white);
   --tone-danger-text: oklch(40% 0.16 20);
+  --tone-danger-border: color-mix(in oklch, var(--color-danger-500) 40%, white);
   --tone-info-bg: color-mix(in oklch, var(--color-info-500) 13%, white);
   --tone-info-text: oklch(40% 0.14 250);
+  --tone-info-border: color-mix(in oklch, var(--color-info-500) 40%, white);
 
   color-scheme: light;
 }
@@ -134,23 +149,33 @@
 
   --accent: var(--color-accent-500);
   --accent-hover: var(--color-accent-400);
-  --accent-subtle: oklch(26% 0.06 25);
-  --accent-subtle-text: oklch(86% 0.09 25);
+  --accent-subtle: oklch(24% 0.05 185);
+  --accent-subtle-text: oklch(87% 0.08 185);
   --accent-text: var(--color-neutral-950);
 
   --text-danger: oklch(78% 0.14 20);
 
   --focus-ring: var(--color-accent-400);
 
+  /* Dark mode: lighter danger background needs white text for contrast
+     (near-black text on danger-500 red falls below 4.5:1). */
+  --danger: var(--color-danger-500);
+  --danger-hover: var(--color-danger-400);
+  --danger-text: var(--color-neutral-0);
+
   /* Dark mode inverts each pair: a dark tinted plate with light text on it. */
   --tone-success-bg: color-mix(in oklch, var(--color-success-500) 22%, var(--color-neutral-950));
   --tone-success-text: oklch(86% 0.13 155);
+  --tone-success-border: color-mix(in oklch, var(--color-success-500) 40%, var(--color-neutral-950));
   --tone-warning-bg: color-mix(in oklch, var(--color-warning-500) 20%, var(--color-neutral-950));
   --tone-warning-text: oklch(88% 0.13 75);
+  --tone-warning-border: color-mix(in oklch, var(--color-warning-500) 40%, var(--color-neutral-950));
   --tone-danger-bg: color-mix(in oklch, var(--color-danger-500) 22%, var(--color-neutral-950));
   --tone-danger-text: oklch(85% 0.1 20);
+  --tone-danger-border: color-mix(in oklch, var(--color-danger-500) 40%, var(--color-neutral-950));
   --tone-info-bg: color-mix(in oklch, var(--color-info-500) 22%, var(--color-neutral-950));
   --tone-info-text: oklch(86% 0.1 250);
+  --tone-info-border: color-mix(in oklch, var(--color-info-500) 40%, var(--color-neutral-950));
 
   color-scheme: dark;
 }
@@ -389,4 +414,43 @@
   .md-prose del {
     color: var(--text-tertiary);
   }
+}
+
+/*
+ * Leaflet dark-mode overrides.
+ *
+ * The imported leaflet.css + markercluster CSS are light-only. In dark mode we
+ * invert the tile pane (zero external dependency) and recolour the chrome so the
+ * map isn't a blinding bright rectangle inside a dark UI.
+ */
+.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) saturate(0.6);
+}
+
+.dark .leaflet-container {
+  background: var(--canvas);
+}
+
+.dark .leaflet-control-attribution,
+.dark .leaflet-control-zoom a {
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+}
+
+.dark .leaflet-control-attribution a {
+  color: var(--accent);
+}
+
+/* Marker clusters: recolour the light-green default circles. */
+.dark .marker-cluster-small,
+.dark .marker-cluster-medium,
+.dark .marker-cluster-large {
+  background-color: color-mix(in oklch, var(--accent) 30%, transparent);
+}
+
+.dark .marker-cluster-small div,
+.dark .marker-cluster-medium div,
+.dark .marker-cluster-large div {
+  background-color: var(--accent);
+  color: var(--accent-text);
 }

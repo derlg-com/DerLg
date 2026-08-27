@@ -20,6 +20,7 @@ export class LoginUseCase {
   async execute(dto: LoginDto): Promise<AuthResponse> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
+      include: { adminProfile: { select: { isActive: true } } },
     });
 
     if (!user || !user.passwordHash) {
@@ -41,6 +42,15 @@ export class LoginUseCase {
       throw new ForbiddenException({
         code: ErrorCode.AUTH_ACCOUNT_SUSPENDED,
         message: 'Your account has been suspended',
+      });
+    }
+
+    // A revoked admin grant must block sign-in outright rather than yielding a
+    // token that every admin route would then reject.
+    if (user.adminProfile && !user.adminProfile.isActive) {
+      throw new ForbiddenException({
+        code: ErrorCode.AUTH_ACCOUNT_SUSPENDED,
+        message: 'Your admin account has been deactivated',
       });
     }
 

@@ -64,7 +64,7 @@ export function ErrorState({
     <div
       role="alert"
       className={cn(
-        'flex flex-col items-center justify-center gap-3 rounded-lg border border-[var(--color-danger-500)]/30 bg-[color-mix(in_oklch,var(--color-danger-500)_6%,transparent)] px-6 py-10 text-center',
+        'flex flex-col items-center justify-center gap-3 rounded-lg border border-[var(--tone-danger-bg)] bg-[var(--tone-danger-bg)] px-6 py-10 text-center',
         className,
       )}
     >

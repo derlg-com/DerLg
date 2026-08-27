@@ -34,6 +34,38 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+
+  // ---------------------------------------------------------------------------
+  // MinIO — object storage for admin media (self-hosted Docker, not a cloud SaaS)
+  // ---------------------------------------------------------------------------
+  MINIO_ENDPOINT: z.string().default('localhost'),
+  MINIO_PORT: z.coerce.number().default(9000),
+  MINIO_USE_SSL: z.enum(['true', 'false']).default('false'),
+  MINIO_ACCESS_KEY: z.string().default(''),
+  MINIO_SECRET_KEY: z.string().default(''),
+  MINIO_BUCKET: z.string().default('derlg-storage'),
+
+  // ---------------------------------------------------------------------------
+  // Telegram driver bot
+  // ---------------------------------------------------------------------------
+  // Feature-flagged off by default so a missing token cannot stop the public API
+  // from booting. When false, the bot endpoints report themselves disabled.
+  TELEGRAM_BOT_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+  TELEGRAM_BOT_TOKEN: z.string().default(''),
+  TELEGRAM_WEBHOOK_URL: z.string().default(''),
+  // Verified against Telegram's X-Telegram-Bot-Api-Secret-Token header.
+  TELEGRAM_SECRET_TOKEN: z.string().default(''),
+  TELEGRAM_LOCATION_TRACKING_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+  TELEGRAM_BROADCAST_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 export type Env = z.infer<typeof envSchema>;

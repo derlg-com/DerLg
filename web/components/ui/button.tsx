@@ -31,7 +31,7 @@ const buttonVariants = cva(
         ghost:
           'border-transparent bg-transparent text-[var(--text-primary)] hover:bg-[var(--surface-hover)]',
         danger:
-          'border-transparent bg-[var(--color-danger-600)] text-white hover:bg-[var(--color-danger-500)]',
+          'border-transparent bg-[var(--danger)] text-[var(--danger-text)] hover:bg-[var(--danger-hover)]',
         link: 'border-transparent bg-transparent text-[var(--accent)] underline-offset-4 hover:underline',
       },
       size: {

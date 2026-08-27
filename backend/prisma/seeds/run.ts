@@ -31,6 +31,11 @@ async function main(): Promise<void> {
   // 3. Promo / config data
   await require('./10-discount-codes')(prisma);
 
+  // 4. Admin panel & fleet operations (F110–F118)
+  await require('./12-admin-users')(prisma);
+  await require('./13-drivers-vehicles')(prisma);
+  await require('./14-booking-fixtures')(prisma);
+
   console.log('\n✅ Seed complete.\n');
 }
 

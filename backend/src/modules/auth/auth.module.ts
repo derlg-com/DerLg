@@ -17,6 +17,7 @@ import {
   SendResetEmailUseCase,
   GoogleAuthUseCase,
   GoogleCallbackUseCase,
+  GetMeUseCase,
 } from './use-cases';
 
 @Module({
@@ -40,6 +41,7 @@ import {
     SendResetEmailUseCase,
     GoogleAuthUseCase,
     GoogleCallbackUseCase,
+    GetMeUseCase,
   ],
 })
 export class AuthModule {}

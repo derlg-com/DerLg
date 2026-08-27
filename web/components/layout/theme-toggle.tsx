@@ -22,9 +22,10 @@ export function ThemeToggle({ className }: { className?: string }) {
   const hydrated = useHydrated()
 
   // The stored preference is unknown during SSR; rendering a guess would show the
-  // wrong segment selected for a frame. Reserve the space instead.
+  // wrong segment selected for a frame. Reserve the space instead. The real
+  // control is content-width with a fixed height, so we match that.
   if (!hydrated) {
-    return <div aria-hidden="true" className="h-11 w-[13.5rem] sm:h-9" />
+    return <div aria-hidden="true" className="h-10 w-[15rem] pointer-coarse:h-11" />
   }
 
   return (

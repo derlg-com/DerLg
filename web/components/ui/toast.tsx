@@ -26,19 +26,19 @@ const DEFAULT_DURATION_MS = 5000
 
 const toneConfig: Record<ToastTone, { icon: React.ReactNode; className: string }> = {
   success: {
-    icon: <CheckCircle2 aria-hidden="true" className="size-4 text-[var(--color-success-600)]" />,
-    className: 'border-[var(--color-success-500)]/40',
+    icon: <CheckCircle2 aria-hidden="true" className="size-4 text-[var(--tone-success-text)]" />,
+    className: 'border-[var(--tone-success-border)]',
   },
   error: {
-    icon: <XCircle aria-hidden="true" className="size-4 text-[var(--color-danger-600)]" />,
-    className: 'border-[var(--color-danger-500)]/40',
+    icon: <XCircle aria-hidden="true" className="size-4 text-[var(--tone-danger-text)]" />,
+    className: 'border-[var(--tone-danger-border)]',
   },
   warning: {
-    icon: <AlertTriangle aria-hidden="true" className="size-4 text-[var(--color-warning-600)]" />,
-    className: 'border-[var(--color-warning-500)]/40',
+    icon: <AlertTriangle aria-hidden="true" className="size-4 text-[var(--tone-warning-text)]" />,
+    className: 'border-[var(--tone-warning-border)]',
   },
   info: {
-    icon: <Info aria-hidden="true" className="size-4 text-[var(--color-info-500)]" />,
+    icon: <Info aria-hidden="true" className="size-4 text-[var(--tone-info-text)]" />,
     className: 'border-[var(--border-default)]',
   },
 }

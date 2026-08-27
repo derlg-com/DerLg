@@ -34,7 +34,8 @@ const KIND_COLOUR: Record<MapMarker['kind'], string> = {
  *
  * Leaflet's default icon loads images from a CDN path that breaks under a
  * bundler, so a `divIcon` is used instead — it also lets the pin inherit the
- * theme tokens.
+ * theme tokens. The border uses --surface so it stays visible on both light
+ * and dark map tiles.
  */
 function pinIcon(kind: MapMarker['kind']): L.DivIcon {
   return L.divIcon({
@@ -42,7 +43,7 @@ function pinIcon(kind: MapMarker['kind']): L.DivIcon {
     html: `<span style="
       display:block;width:1rem;height:1rem;border-radius:9999px;
       background:${KIND_COLOUR[kind]};
-      border:2px solid white;box-shadow:0 1px 4px rgb(0 0 0 / 0.4);
+      border:2px solid var(--surface);box-shadow:0 1px 4px rgb(0 0 0 / 0.4);
     "></span>`,
     iconSize: [16, 16],
     iconAnchor: [8, 8],

@@ -327,6 +327,7 @@ function SettledBooking({ booking }: { booking: Booking }) {
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">
             {tBookings('detail.qrTitle')}
           </h2>
+          {/* White quiet zone is required for reliable QR scanning. */}
           <div className="size-40 overflow-hidden rounded-[var(--radius-md)] bg-white p-2">
             {/* Runtime URL from the API, so a plain <img> rather than next/image. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}

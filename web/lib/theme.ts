@@ -19,8 +19,13 @@ function isPreference(value: unknown): value is ThemePreference {
 
 function read(): ThemePreference {
   if (typeof localStorage === 'undefined') return 'system'
-  const stored = localStorage.getItem(THEME_STORAGE_KEY)
-  return isPreference(stored) ? stored : 'system'
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY)
+    return isPreference(stored) ? stored : 'system'
+  } catch {
+    // localStorage can throw in private mode or sandboxed iframes.
+    return 'system'
+  }
 }
 
 // Cached so getSnapshot returns a stable value between writes; returning a fresh
@@ -45,7 +50,13 @@ export function resolveTheme(preference: ThemePreference): 'light' | 'dark' {
 
 export function applyTheme(preference: ThemePreference): void {
   if (typeof document === 'undefined') return
-  document.documentElement.classList.toggle('dark', resolveTheme(preference) === 'dark')
+  const isDark = resolveTheme(preference) === 'dark'
+  document.documentElement.classList.toggle('dark', isDark)
+  // Keep the browser chrome/status-bar colour in sync with the effective theme,
+  // not the OS preference (which the static meta[media] approach can't track).
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', isDark ? '#09090b' : '#ffffff')
 }
 
 function emit(): void {
@@ -54,8 +65,12 @@ function emit(): void {
 
 export function setTheme(preference: ThemePreference): void {
   snapshot = preference
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(THEME_STORAGE_KEY, preference)
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(THEME_STORAGE_KEY, preference)
+    }
+  } catch {
+    // localStorage can throw in private mode or sandboxed iframes.
   }
   applyTheme(preference)
   emit()

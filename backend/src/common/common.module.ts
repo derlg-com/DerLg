@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { AdminRoleGuard } from './guards/admin-role.guard';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
 import { CachedService } from './cache/cached.service';
 import { RedisModule } from '../modules/redis/redis.module';
+import { PrismaModule } from '../modules/prisma/prisma.module';
 
 export * from './i18n';
 
@@ -13,7 +15,7 @@ export * from './i18n';
  * Import once in AppModule.
  */
 @Module({
-  imports: [RedisModule],
+  imports: [RedisModule, PrismaModule],
   providers: [
     CachedService,
     {
@@ -23,6 +25,12 @@ export * from './i18n';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    // Third layer: only acts on routes carrying @AdminRoles(); everything else
+    // passes straight through.
+    {
+      provide: APP_GUARD,
+      useClass: AdminRoleGuard,
     },
     {
       provide: APP_INTERCEPTOR,
