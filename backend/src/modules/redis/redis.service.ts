@@ -47,6 +47,41 @@ export class RedisService implements OnModuleDestroy {
     return this.client.keys(pattern);
   }
 
+  /**
+   * Deletes every key matching a glob pattern, returning how many were removed.
+   *
+   * Uses SCAN rather than KEYS: `KEYS` walks the entire keyspace in one blocking
+   * call, which stalls every other client on a shared Redis. SCAN yields in
+   * cursor-sized batches instead, so a catalogue invalidation cannot pause live
+   * booking traffic.
+   *
+   * Deletes are batched per scan chunk — one round trip per chunk rather than one
+   * per key.
+   */
+  async delByPattern(pattern: string, batchSize = 200): Promise<number> {
+    let deleted = 0;
+    let pending: string[] = [];
+
+    const stream = this.client.scanStream({
+      match: pattern,
+      count: batchSize,
+    });
+
+    for await (const chunk of stream as AsyncIterable<string[]>) {
+      pending.push(...chunk);
+      if (pending.length >= batchSize) {
+        deleted += await this.client.del(...pending);
+        pending = [];
+      }
+    }
+
+    if (pending.length > 0) {
+      deleted += await this.client.del(...pending);
+    }
+
+    return deleted;
+  }
+
   getClient(): Redis {
     return this.client;
   }

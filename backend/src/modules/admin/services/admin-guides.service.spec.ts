@@ -166,9 +166,9 @@ describe('AdminGuidesService', () => {
 
       await expect(
         service.createGuide({
-          user_id: 'nobody',
+          userId: 'nobody',
           province: 'Siem Reap',
-          price_per_day_usd: 45,
+          pricePerDayUsd: 45,
         }),
       ).rejects.toThrow(NotFoundException);
     });
@@ -179,9 +179,9 @@ describe('AdminGuidesService', () => {
 
       await expect(
         service.createGuide({
-          user_id: 'u-1',
+          userId: 'u-1',
           province: 'Siem Reap',
-          price_per_day_usd: 45,
+          pricePerDayUsd: 45,
         }),
       ).rejects.toThrow(/already exists/);
     });
@@ -215,9 +215,9 @@ describe('AdminGuidesService', () => {
       );
 
       await service.createGuide({
-        user_id: 'u-1',
+        userId: 'u-1',
         province: 'Siem Reap',
-        price_per_day_usd: 45,
+        pricePerDayUsd: 45,
         languages: [SupportedLanguage.en],
         specialties: [Specialty.culture_history],
       });

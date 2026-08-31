@@ -4,6 +4,7 @@ import {
   Post,
   Patch,
   Param,
+  ParseUUIDPipe,
   Body,
   UseInterceptors,
 } from '@nestjs/common';
@@ -13,7 +14,10 @@ import { AdminRoles } from '../../../common/decorators/admin-roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AdminUsersService } from '../services/admin-users.service';
 import { AdminRole } from '@prisma/client';
-import { CreateAdminUserDto } from '../dto/create-admin-user.dto';
+import {
+  CreateAdminUserDto,
+  ResetAdminPasswordDto,
+} from '../dto/create-admin-user.dto';
 import { UpdateAdminUserDto } from '../dto/update-admin-user.dto';
 
 @Controller('admin/users')
@@ -29,6 +33,16 @@ export class AdminUsersController {
     return {
       success: true,
       data: result,
+      message: 'ok',
+      error: null,
+    };
+  }
+
+  @Get(':id')
+  async getAdminUserById(@Param('id', ParseUUIDPipe) id: string) {
+    return {
+      success: true,
+      data: await this.service.getAdminUserById(id),
       message: 'ok',
       error: null,
     };
@@ -50,13 +64,52 @@ export class AdminUsersController {
         action: 'CREATE_ADMIN_USER',
         email: result.email,
         adminRole: result.adminRole,
+        // Never log the password itself, only whether one was set.
+        passwordSet: result.canSignIn,
       },
     });
 
     return {
       success: true,
       data: result,
-      message: 'Admin user created successfully',
+      message: result.canSignIn
+        ? 'Admin user created successfully'
+        : 'Admin user created but left INACTIVE: no password was supplied, so this ' +
+          'account cannot sign in. Use POST /admin/users/:id/reset-password to set one.',
+      error: null,
+    };
+  }
+
+  /**
+   * Sets a password and reactivates the grant.
+   *
+   * Also the remedy for an account created without a password, which is otherwise
+   * unusable.
+   */
+  @Post(':id/reset-password')
+  async resetAdminPassword(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ResetAdminPasswordDto,
+    @CurrentUser('sub') userId?: string,
+  ) {
+    const result = await this.service.resetAdminPassword(id, dto.password);
+
+    await this.service.createAuditLog({
+      userId,
+      eventType: 'security_event',
+      entityType: 'ADMIN_USER',
+      entityId: id,
+      metadata: {
+        action: 'RESET_ADMIN_PASSWORD',
+        targetUserId: result.userId,
+        clearedSessionKeys: result.clearedSessionKeys,
+      },
+    });
+
+    return {
+      success: true,
+      data: result,
+      message: `Password reset; ${result.clearedSessionKeys} active session(s) terminated`,
       error: null,
     };
   }

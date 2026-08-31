@@ -120,6 +120,15 @@ const ToolStatusSchema = z.looseObject({
 const AgentMessageSchema = z.looseObject({
   type: z.literal('agent_message'),
   text: z.string(),
+  /**
+   * Server-minted id for this reply.
+   *
+   * Optional because older agent builds omit it. When present the client must
+   * prefer it over its own locally generated id, because it is the only handle
+   * the agent can resolve back to a stored turn — a `feedback` frame naming a
+   * client-invented id has nowhere to land and is dropped.
+   */
+  message_id: z.string().optional(),
   /** Singular form kept for backward compatibility with older agent builds. */
   content_payload: ContentBlockSchema.optional(),
   content_payloads: z.array(ContentBlockSchema).optional(),

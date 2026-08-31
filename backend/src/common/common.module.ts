@@ -5,6 +5,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { AdminRoleGuard } from './guards/admin-role.guard';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
 import { CachedService } from './cache/cached.service';
+import { CacheInvalidationService } from './cache/cache-invalidation.service';
 import { RedisModule } from '../modules/redis/redis.module';
 import { PrismaModule } from '../modules/prisma/prisma.module';
 
@@ -18,6 +19,7 @@ export * from './i18n';
   imports: [RedisModule, PrismaModule],
   providers: [
     CachedService,
+    CacheInvalidationService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
@@ -37,6 +39,6 @@ export * from './i18n';
       useClass: TransformInterceptor,
     },
   ],
-  exports: [CachedService],
+  exports: [CachedService, CacheInvalidationService],
 })
 export class CommonModule {}

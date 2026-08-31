@@ -148,10 +148,24 @@ describe('GoogleCallbackUseCase', () => {
   });
 
   it('should throw BadRequestException when Google token exchange fails', async () => {
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: 'invalid_grant' }), {
-        status: 400,
-      }),
+    /*
+     * `mockImplementation`, not `mockResolvedValueOnce`.
+     *
+     * This test calls `execute` twice — once for the rejection assertion and
+     * again to inspect the error code — but only the first call was mocked, so
+     * the second fell through to the real `fetch` and attempted a live request to
+     * Google. That made the test both slow and load-dependent: it passed when the
+     * real call happened to fail in a similar shape and failed under full-suite
+     * timing, where the thrown error had no `.response`.
+     *
+     * A factory rather than a fixed value because a `Response` body can only be
+     * consumed once, so both calls need their own.
+     */
+    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ error: 'invalid_grant' }), {
+          status: 400,
+        }),
     );
 
     await expect(useCase.execute('bad-code')).rejects.toThrow(

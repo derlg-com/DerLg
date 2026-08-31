@@ -378,8 +378,11 @@ async function main(): Promise<void> {
   });
   await prisma.aIChatMessage.createMany({
     data: sessionIds.flatMap((sessionId) => [
-      { sessionId, role: 'user', content: 'I want a 3-day temple tour near Siem Reap.', messageType: 'text', metadata: { intent: 'discover' } },
-      { sessionId, role: 'assistant', content: 'Great! I found 3 packages that match your vibe.', messageType: 'trip_card', metadata: { count: 3 } },
+      // `seq` is the per-session turn ordinal enforced by the
+      // [sessionId, seq] unique index — it makes the agent's batched archive
+      // flush idempotent, so it must be explicit here too.
+      { sessionId, seq: 0, role: 'user', content: 'I want a 3-day temple tour near Siem Reap.', messageType: 'text', metadata: { intent: 'discover' } },
+      { sessionId, seq: 1, role: 'assistant', content: 'Great! I found 3 packages that match your vibe.', messageType: 'trip_card', metadata: { count: 3 } },
     ]),
   });
   console.log(`  ✅ ai_chat_sessions: ${N}  +  ai_chat_messages: ${N * 2}`);

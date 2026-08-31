@@ -167,7 +167,15 @@ function applyFrame(state: TranscriptState, frame: InboundFrame): TranscriptStat
     }
 
     case 'agent_message': {
-      const id = `a${state.nextId}`
+      /*
+       * Prefer the agent's own id when it sends one.
+       *
+       * `feedback` frames are addressed by this id, and the agent can only map it
+       * back to a stored turn if it minted it. The locally generated `a{n}`
+       * fallback keeps older agent builds working, but a vote against it cannot
+       * be persisted — so the server id wins whenever it is present.
+       */
+      const id = frame.message_id ?? `a${state.nextId}`
       /*
        * The final `text` is authoritative — the streamed chunks are a preview of
        * the same reply, so appending both would duplicate it.

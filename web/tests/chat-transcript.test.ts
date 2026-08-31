@@ -233,3 +233,92 @@ describe('transcript: notice typing', () => {
     expect(['error', 'login', 'payment']).toContain(notice.tone)
   })
 })
+
+
+describe('transcript: server-minted message ids', () => {
+  /*
+   * Feedback is addressed by the turn id. The agent can only resolve that id back
+   * to a stored row if it minted the id itself, so when `message_id` is present it
+   * must win over the locally generated `a{n}`.
+   *
+   * The fallback still matters: older agent builds send no id, and a vote against
+   * a client-invented id round-trips but cannot be persisted — which is better
+   * than the UI breaking.
+   */
+  it('uses the agent id as the turn id when the frame carries one', () => {
+    const state = reduce(
+      frames(HELLO, {
+        type: 'agent_message',
+        message_id: 'srv-abc-123',
+        text: 'Here are 3 temple tours.',
+      }),
+    )
+
+    const reply = state.turns.at(-1) as AgentTurn
+    expect(reply.id).toBe('srv-abc-123')
+  })
+
+  it('falls back to a locally minted id when the frame omits one', () => {
+    const state = reduce(
+      frames(HELLO, { type: 'agent_message', text: 'Here are 3 temple tours.' }),
+    )
+
+    const reply = state.turns.at(-1) as AgentTurn
+    // Deterministic and monotonic, so older agents keep working.
+    expect(reply.id).toMatch(/^a\d+$/)
+  })
+
+  it('keeps ids unique across a mix of server-minted and fallback replies', () => {
+    const state = reduce(
+      frames(
+        HELLO,
+        { type: 'agent_message', message_id: 'srv-1', text: 'first' },
+        { type: 'agent_message', text: 'second' },
+        { type: 'agent_message', message_id: 'srv-2', text: 'third' },
+      ),
+    )
+
+    const ids = state.turns.map((turn) => turn.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('advances nextId even when the server id is used, so later fallbacks do not collide', () => {
+    const withServerId = reduce(
+      frames(HELLO, { type: 'agent_message', message_id: 'srv-1', text: 'first' }),
+    )
+    const then = transcriptReducer(withServerId, {
+      type: 'frame',
+      frame: frame({ type: 'agent_message', text: 'second' }),
+    })
+
+    const ids = then.turns.map((turn) => turn.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('marks feedback against a server-minted id', () => {
+    const state = reduce(
+      frames(HELLO, {
+        type: 'agent_message',
+        message_id: 'srv-abc-123',
+        text: 'Here are 3 temple tours.',
+      }),
+    )
+
+    const updated = transcriptReducer(state, {
+      type: 'feedback',
+      id: 'srv-abc-123',
+      helpful: false,
+    })
+
+    expect((updated.turns.at(-1) as AgentTurn).feedback).toBe('down')
+  })
+
+  it('accepts a frame with message_id through the schema', () => {
+    // The schema must not reject the new field, or the whole reply is dropped.
+    const parsed = parseInboundFrame(
+      JSON.stringify({ type: 'agent_message', message_id: 'srv-1', text: 'hi' }),
+    )
+
+    expect(parsed).not.toBeNull()
+  })
+})

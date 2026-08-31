@@ -13,6 +13,7 @@ import { AdminMaintenanceController } from './controllers/admin-maintenance.cont
 import { AdminAssignmentsController } from './controllers/admin-assignments.controller';
 import { AdminBookingsController } from './controllers/admin-bookings.controller';
 import { AdminHotelsController } from './controllers/admin-hotels.controller';
+import { AdminTripsController } from './controllers/admin-trips.controller';
 import { AdminGuidesController } from './controllers/admin-guides.controller';
 import { AdminEmergencyController } from './controllers/admin-emergency.controller';
 import {
@@ -38,6 +39,7 @@ import { AdminMaintenanceService } from './services/admin-maintenance.service';
 import { AdminAssignmentsService } from './services/admin-assignments.service';
 import { AdminBookingsService } from './services/admin-bookings.service';
 import { AdminHotelsService } from './services/admin-hotels.service';
+import { AdminTripsService } from './services/admin-trips.service';
 import { AdminGuidesService } from './services/admin-guides.service';
 import { AdminEmergencyService } from './services/admin-emergency.service';
 import { AdminCustomersService } from './services/admin-customers.service';
@@ -50,6 +52,11 @@ import { AdminAIMonitoringService } from './services/admin-ai-monitoring.service
 import { AdminTelegramService } from './services/admin-telegram.service';
 
 // Cross-cutting
+// Provided locally rather than by importing CommonModule: CommonModule registers
+// the global guards and imports PrismaModule, and pulling it in here would create
+// a cycle. CacheInvalidationService is stateless and only needs RedisService,
+// which this module already has via RedisModule.
+import { CacheInvalidationService } from '../../common/cache/cache-invalidation.service';
 import { AuditInterceptor } from './interceptors/audit.interceptor';
 import { AdminGateway } from './websocket/admin.gateway';
 import { AdminEventsService } from './websocket/admin-events.service';
@@ -73,6 +80,7 @@ import { AdminEventsService } from './websocket/admin-events.service';
     AdminAssignmentsController,
     AdminBookingsController,
     AdminHotelsController,
+    AdminTripsController,
     AdminGuidesController,
     AdminEmergencyController,
     AdminCustomersController,
@@ -94,6 +102,7 @@ import { AdminEventsService } from './websocket/admin-events.service';
     AdminAssignmentsService,
     AdminBookingsService,
     AdminHotelsService,
+    AdminTripsService,
     AdminGuidesService,
     AdminEmergencyService,
     AdminCustomersService,
@@ -104,6 +113,7 @@ import { AdminEventsService } from './websocket/admin-events.service';
     AdminExportService,
     AdminAIMonitoringService,
     AdminTelegramService,
+    CacheInvalidationService,
     AuditInterceptor,
     AdminGateway,
     AdminEventsService,

@@ -23,8 +23,8 @@ All implementation is under `src/modules/`:
 
 | Module | Purpose | Key Files |
 |--------|---------|-----------|
-| `admin` | `/v1/admin/*` admin panel API — 17 controllers, 17 services | `admin.module.ts`, `controllers/`, `services/`, `interceptors/audit.interceptor.ts`, `websocket/admin.gateway.ts` |
-| `ai-tools` | `/v1/ai-tools/*` endpoints for the AI agent | `ai-tools.controller.ts`, `ai-tools.service.ts`, `ai-tools.dto.ts` |
+| `admin` | `/v1/admin/*` admin panel API — 18 controllers, 18 services. Includes trip-package CRUD (`admin-trips.*`) and customer status/role management | `admin.module.ts`, `controllers/`, `services/`, `interceptors/audit.interceptor.ts`, `websocket/admin.gateway.ts` |
+| `ai-tools` | `/v1/ai-tools/*` endpoints for the AI agent, including the chat-transcript archive (`chat-sessions*`) | `ai-tools.controller.ts`, `ai-tools.service.ts`, `ai-tools.dto.ts` |
 | `auth` | JWT access + refresh, Telegram OAuth | `auth.controller.ts`, `auth.service.ts` |
 | `bookings` | Booking creation, confirmation, cancellation, holds | `bookings.controller.ts`, `use-cases/`, `dto/` |
 | `guides` | Tour guide catalogue | `guides.controller.ts`, `list-guides.use-case.ts`, `utils/` |
@@ -36,7 +36,7 @@ All implementation is under `src/modules/`:
 | `storage` | MinIO presigned URLs for admin media | `minio.service.ts`, `storage.controller.ts` |
 | `telegram` | `/v1/telegram/*` driver bot: webhook, commands, BullMQ queues | `telegram.controller.ts`, `telegram.service.ts`, `handlers/`, `jobs/` |
 | `transportation` | Vehicle catalogue | `transportation.controller.ts`, `list-vehicles.use-case.ts` |
-| `trips` | Trip packages (incl. custom trips) | `trips.controller.ts`, `list-trips.use-case.ts` |
+| `trips` | Trip packages (incl. custom trips). Public read-only; admin CRUD lives in `admin` | `trips.controller.ts`, `list-trips.use-case.ts` |
 | `users` | User profiles, loyalty points | `users.controller.ts`, `users.service.ts` |
 
 Cross-cutting code lives in `src/common/`:
@@ -86,6 +86,21 @@ Cross-cutting code lives in `src/common/`:
 - **Guards are global**: `JwtAuthGuard`, `RolesGuard` and `AdminRoleGuard` are registered as `APP_GUARD` in `common.module.ts`. Do not add `@UseGuards(JwtAuthGuard)` to controllers. Use `@Public()` to opt out, `@Roles()` for the JWT claim, `@AdminRoles()` for the `admin_users` grant. **A route with no `@AdminRoles()` is not admin-protected** — the guard passes it through.
 - **Compiled entrypoint is `dist/src/main.js`**, not `dist/main.js`, because `debug_e2e.ts` at the project root shifts the TypeScript rootDir. `package.json`'s `start:prod` script still has the old path and fails with MODULE_NOT_FOUND.
 - **forbidNonWhitelisted**: every new query param must be in the DTO
+- **`@CurrentUser('sub')` returns a claim, not the payload.** The decorator honours
+  its argument; passing none yields the whole `JwtPayload`. It used to ignore the
+  argument entirely, so all 41 call sites silently received an object where a
+  string was annotated — which made every explicit `createAuditLog` fail Prisma
+  validation inside a swallowing try/catch.
+- **Refresh tokens live only in Redis** at `session:{userId}:{tokenId}`. The
+  `refresh_tokens` table is never written to, so `refreshToken.updateMany` matches
+  nothing. To revoke a session you must delete the Redis keys — see
+  `RedisService.delByPattern`.
+- **Paginated admin handlers must return the service result directly** so
+  `TransformInterceptor` wraps it as `{ success, data: { data, meta } }`. Building
+  an envelope by hand puts `meta` outside `data`, and the admin panel's axios
+  interceptor (which replaces the body with `body.data`) then drops pagination.
+- **`SEED_ADMIN_PASSWORD` is often present-but-empty.** Use a length check, not
+  `??`, when falling back to the dev default — an empty string is not nullish.
 
 ---
 

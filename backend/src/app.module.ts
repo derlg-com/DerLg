@@ -49,6 +49,12 @@ import { ConfigService } from '@nestjs/config';
     AdminModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
+      // Global so every module resolves the same signing configuration. Without
+      // this, `AdminGateway` — which injects JwtService to authenticate the
+      // socket handshake — fails dependency resolution and the whole
+      // application refuses to bootstrap with
+      // "Nest can't resolve dependencies of the AdminGateway".
+      global: true,
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

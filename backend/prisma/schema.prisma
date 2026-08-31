@@ -1199,9 +1199,18 @@ model Favorite {
 // =============================================================================
 
 model AIChatSession {
-  id     String  @id @default(uuid()) @db.Uuid
-  userId String  @map("user_id") @db.Uuid
-  title  String? // auto-generated summary
+  id String @id @default(uuid()) @db.Uuid
+
+  // Nullable because the concierge answers guests too. The agent binds a real
+  // user id only once a JWT is verified (see `_verify_jwt` in the agent's
+  // websocket handler); before that the conversation is anonymous. This column
+  // was NOT NULL, which made guest conversations impossible to archive at all —
+  // and guests are the majority of the pre-login funnel.
+  userId   String? @map("user_id") @db.Uuid
+  // Opaque client-supplied handle for an anonymous conversation, retained so a
+  // guest session can be stitched to a user after they sign in mid-chat.
+  guestKey String? @map("guest_key")
+  title    String? // auto-generated summary
 
   // State
   isActive Boolean           @default(true) @map("is_active")
@@ -1212,19 +1221,29 @@ model AIChatSession {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
-  user     User            @relation(fields: [userId], references: [id])
+  user     User?           @relation(fields: [userId], references: [id])
   messages AIChatMessage[]
 
   @@index([userId])
   @@index([lastMessageAt])
+  // The admin AI-monitoring list and every metric filter on a created_at range.
+  @@index([createdAt])
   @@map("ai_chat_sessions")
 }
 
 model AIChatMessage {
   id        String @id @default(uuid()) @db.Uuid
   sessionId String @map("session_id") @db.Uuid
-  role      String // "user" | "assistant" | "system"
-  content   String @db.Text
+
+  // Per-session turn ordinal, assigned by the agent. This is what makes the
+  // batched archive flush idempotent: a retried batch collides on
+  // [sessionId, seq] and is skipped rather than duplicating the turn. It also
+  // gives a total order that `created_at` cannot, since turns inside one flush
+  // can share a timestamp.
+  seq Int
+
+  role    String // "user" | "assistant" | "system"
+  content String @db.Text
 
   // Structured content type (F10: text, trip_card, hotel_card, action, qr)
   messageType String @default("text") @map("message_type")
@@ -1232,11 +1251,15 @@ model AIChatMessage {
   // Metadata (linked entities, tool calls)
   metadata Json? @db.JsonB
 
+  // "Was this helpful?" — null until the user votes on the turn.
+  helpful Boolean? @map("helpful")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
   session AIChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
+  @@unique([sessionId, seq])
   @@index([sessionId, createdAt])
   @@map("ai_chat_messages")
 }

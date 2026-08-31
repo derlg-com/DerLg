@@ -1,15 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { Prisma, SupportedLanguage } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 
 @Injectable()
 export class AdminAIMonitoringService {
+  private readonly logger = new Logger(AdminAIMonitoringService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
   ) {}
 
-  private readonly SESSION_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+  /**
+   * Redis key the Python agent writes the live conversation to.
+   *
+   * `vibe-booking/agent/session/manager.py` uses `session:{session_id}` with a
+   * 7-day TTL. This service previously read `ai:session:{sessionId}` — a prefix
+   * nothing ever writes — so every lookup missed the cache, fell through to a
+   * database table that is also empty, and 404'd. Both services share
+   * `redis://localhost:6379/0`, so the prefix was the entire bug.
+   */
+  private sessionCacheKey(sessionId: string): string {
+    return `session:${sessionId}`;
+  }
 
   private getDefaultDateRange(filters?: {
     startDate?: string;
@@ -44,9 +58,15 @@ export class AdminAIMonitoringService {
     });
   }
 
-  private buildUserSessionMap(sessions: { userId: string; createdAt: Date }[]) {
+  private buildUserSessionMap(
+    sessions: { userId: string | null; createdAt: Date }[],
+  ) {
     const map = new Map<string, Date[]>();
     for (const session of sessions) {
+      // Guest sessions have no user id and cannot be correlated to a booking by
+      // user, so they are excluded from the correlation map rather than keyed
+      // under null. They still count toward total session volume.
+      if (session.userId === null) continue;
       if (!map.has(session.userId)) {
         map.set(session.userId, []);
       }
@@ -105,28 +125,46 @@ export class AdminAIMonitoringService {
   }
 
   async getAISessionDetails(sessionId: string) {
-    // Try Redis first (7-day TTL)
-    const redisKey = `ai:session:${sessionId}`;
-    const cached = await this.redis.getClient().get(redisKey);
+    // Live state first: while the agent holds the conversation in Redis it is
+    // the freshest copy, including turns not yet flushed to Postgres.
+    const cached = await this.redis
+      .getClient()
+      .get(this.sessionCacheKey(sessionId));
 
     if (cached) {
       // The cached payload is opaque to us — it is written by the Python agent —
       // so it is surfaced as an unknown record rather than pretending to a shape.
-      return JSON.parse(cached) as Record<string, unknown>;
+      try {
+        return {
+          source: 'redis' as const,
+          sessionId,
+          expired: false,
+          live: JSON.parse(cached) as Record<string, unknown>,
+        };
+      } catch (error) {
+        // A corrupt payload should degrade to the archive, not fail the request.
+        this.logger.warn(
+          `Unparseable Redis payload for session ${sessionId}: ${(error as Error).message}`,
+        );
+      }
     }
 
-    // Check if session exists in DB
     const session = await this.prisma.aIChatSession.findUnique({
       where: { id: sessionId },
       include: {
         messages: {
-          orderBy: { createdAt: 'asc' },
+          // seq is the agent-assigned turn ordinal and the only total order that
+          // survives a batched flush — turns written in one batch can share a
+          // created_at, so ordering on the timestamp is not deterministic.
+          orderBy: { seq: 'asc' },
           select: {
             id: true,
+            seq: true,
             role: true,
             content: true,
             messageType: true,
             metadata: true,
+            helpful: true,
             createdAt: true,
           },
         },
@@ -140,8 +178,185 @@ export class AdminAIMonitoringService {
       return null;
     }
 
-    // Session exists in DB but Redis TTL expired
-    return { expired: true, sessionId: sessionId };
+    // The Redis TTL has lapsed, but the archive still holds the transcript. The
+    // previous version fetched exactly this payload and then threw it away,
+    // returning `{ expired: true }` and nothing else.
+    return {
+      source: 'db' as const,
+      sessionId,
+      expired: true,
+      title: session.title,
+      language: session.language,
+      isActive: session.isActive,
+      userId: session.userId,
+      guestKey: session.guestKey,
+      user: session.user,
+      lastMessageAt: session.lastMessageAt,
+      createdAt: session.createdAt,
+      messages: session.messages,
+    };
+  }
+
+  /**
+   * Paginated session list for the admin AI-monitoring screen.
+   *
+   * Correlation to bookings is done per page rather than across the whole table:
+   * only the users on this page can matter, so the booking lookup stays bounded
+   * no matter how large the archive grows.
+   */
+  async listAISessions(filters: {
+    search?: string;
+    language?: SupportedLanguage;
+    onlyGuests?: boolean;
+    page?: number;
+    limit?: number;
+  }) {
+    const currentPage = Math.max(1, filters.page ?? 1);
+    const take = Math.min(100, Math.max(1, filters.limit ?? 20));
+    const skip = (currentPage - 1) * take;
+
+    const where: Prisma.AIChatSessionWhereInput = {};
+    if (filters.language) {
+      where.language = filters.language;
+    }
+    if (filters.onlyGuests) {
+      where.userId = null;
+    }
+    if (filters.search && filters.search.trim() !== '') {
+      const term = filters.search.trim();
+      where.OR = [
+        { title: { contains: term, mode: 'insensitive' } },
+        { guestKey: { contains: term, mode: 'insensitive' } },
+        { user: { email: { contains: term, mode: 'insensitive' } } },
+        { user: { fullName: { contains: term, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [sessions, total] = await Promise.all([
+      this.prisma.aIChatSession.findMany({
+        where,
+        skip,
+        take,
+        // Most recently active first; falls back to createdAt for sessions that
+        // never produced a message.
+        orderBy: [{ lastMessageAt: 'desc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          userId: true,
+          guestKey: true,
+          title: true,
+          language: true,
+          isActive: true,
+          lastMessageAt: true,
+          createdAt: true,
+          user: { select: { id: true, email: true, fullName: true } },
+          _count: { select: { messages: true } },
+        },
+      }),
+      this.prisma.aIChatSession.count({ where }),
+    ]);
+
+    const userIds = [
+      ...new Set(
+        sessions.map((s) => s.userId).filter((id): id is string => id !== null),
+      ),
+    ];
+
+    // A session "converted" when its owner booked within 24h of it starting —
+    // the same window the AI-assisted metrics use, kept consistent on purpose.
+    const bookings = userIds.length
+      ? await this.prisma.booking.findMany({
+          where: { userId: { in: userIds } },
+          select: { userId: true, createdAt: true },
+        })
+      : [];
+
+    const bookingsByUser = new Map<string, Date[]>();
+    for (const booking of bookings) {
+      const list = bookingsByUser.get(booking.userId) ?? [];
+      list.push(booking.createdAt);
+      bookingsByUser.set(booking.userId, list);
+    }
+
+    const data = sessions.map((s) => {
+      const userBookings = s.userId ? bookingsByUser.get(s.userId) : undefined;
+      const converted = (userBookings ?? []).some((bookedAt) => {
+        const diff = bookedAt.getTime() - s.createdAt.getTime();
+        return diff >= 0 && diff <= 24 * 60 * 60 * 1000;
+      });
+
+      return {
+        id: s.id,
+        title: s.title,
+        language: s.language,
+        isActive: s.isActive,
+        isGuest: s.userId === null,
+        userId: s.userId,
+        guestKey: s.guestKey,
+        user: s.user,
+        messageCount: s._count.messages,
+        lastMessageAt: s.lastMessageAt,
+        createdAt: s.createdAt,
+        convertedToBooking: converted,
+      };
+    });
+
+    return {
+      data,
+      meta: {
+        page: currentPage,
+        limit: take,
+        total,
+        totalPages: Math.ceil(total / take),
+      },
+    };
+  }
+
+  /**
+   * Archived transcript for one session.
+   *
+   * Distinct from `getAISessionDetails`, which prefers the live Redis copy: this
+   * always reads the durable rows, so the admin can inspect what was actually
+   * persisted rather than what happens to still be cached.
+   */
+  async getAISessionTranscript(sessionId: string) {
+    const session = await this.prisma.aIChatSession.findUnique({
+      where: { id: sessionId },
+      select: {
+        id: true,
+        userId: true,
+        guestKey: true,
+        title: true,
+        language: true,
+        isActive: true,
+        lastMessageAt: true,
+        createdAt: true,
+        user: { select: { id: true, email: true, fullName: true } },
+        messages: {
+          orderBy: { seq: 'asc' },
+          select: {
+            id: true,
+            seq: true,
+            role: true,
+            content: true,
+            messageType: true,
+            metadata: true,
+            helpful: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!session) {
+      return null;
+    }
+
+    return {
+      ...session,
+      isGuest: session.userId === null,
+      messageCount: session.messages.length,
+    };
   }
 
   async getAIBookingSuccessRate(filters?: {
@@ -202,17 +417,22 @@ export class AdminAIMonitoringService {
       where: { createdAt: { gte: startDate, lte: endDate } },
     });
 
-    const avgMessagesPerSession = await this.prisma.$queryRaw<
-      { avgMessages: number }[]
-    >`
-      SELECT AVG(msg_count)::float as avg_messages
-      FROM (
-        SELECT sessionId, COUNT(*) as msg_count
-        FROM ai_chat_messages
-        WHERE created_at >= ${startDate} AND created_at <= ${endDate}
-        GROUP BY session_id
-      ) sub
-    `;
+    // Was a raw query that selected `sessionId` while grouping by `session_id`.
+    // `sessionId` is the Prisma field name, not a column — the column is
+    // `session_id` — so Postgres would have raised 42703 the moment the table
+    // held a single row. `groupBy` removes the hand-written SQL entirely and
+    // keeps the field/column mapping in Prisma's hands.
+    const messageCounts = await this.prisma.aIChatMessage.groupBy({
+      by: ['sessionId'],
+      where: { createdAt: { gte: startDate, lte: endDate } },
+      _count: { _all: true },
+    });
+
+    const avgMessagesPerSession =
+      messageCounts.length > 0
+        ? messageCounts.reduce((sum, row) => sum + row._count._all, 0) /
+          messageCounts.length
+        : 0;
 
     const [aiSessions, bookings] = await Promise.all([
       this.getAISessionsInRange(startDate, endDate),
@@ -259,9 +479,7 @@ export class AdminAIMonitoringService {
 
     return {
       totalSessions: totalSessions,
-      avgMessagesPerSession:
-        Math.round((Number(avgMessagesPerSession[0]?.avgMessages) || 0) * 100) /
-        100,
+      avgMessagesPerSession: Math.round(avgMessagesPerSession * 100) / 100,
       avgBookingTimeMinutes: avgBookingTimeMinutes,
       conversionRatePercent: conversionRate,
       bookingsConverted: aiAssistedCount,

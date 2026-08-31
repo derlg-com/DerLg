@@ -41,7 +41,49 @@ class InMemoryRedis {
     const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
     return Array.from(this.store.keys()).filter((k) => regex.test(k));
   }
+
+  /**
+   * Added for parity with the real RedisService.
+   *
+   * This stub replaces RedisService wholesale, so any method the application
+   * calls during bootstrap must exist. `AdminGateway.subscribeToRedis` calls
+   * `getClient().duplicate()` while the module initialises, and its absence broke
+   * the whole suite at the hook level with "this.redis.getClient is not a
+   * function" — a failure previously hidden behind an earlier error in beforeEach.
+   */
+  getClient() {
+    const noop = () => undefined;
+    return {
+      // A subscriber connection is duplicated from the client; the gateway only
+      // ever psubscribes on it.
+      duplicate: () => ({
+        psubscribe: (...args: unknown[]) => {
+          const cb = args.at(-1);
+          if (typeof cb === 'function') (cb as (e: null) => void)(null);
+        },
+        on: noop,
+        quit: async () => undefined,
+      }),
+      del: async (...keys: string[]) => {
+        keys.forEach((k) => this.store.delete(k));
+        return keys.length;
+      },
+      get: (key: string) => this.get(key),
+      setex: (key: string, seconds: number, value: string) =>
+        this.setex(key, seconds, value),
+    };
+  }
+
+  /** Pattern delete, used by session revocation and cache invalidation. */
+  async delByPattern(pattern: string): Promise<number> {
+    const matching = await this.keys(pattern);
+    matching.forEach((key) => this.store.delete(key));
+    return matching.length;
+  }
 }
+
+/** The only accounts this spec creates, and therefore the only ones it may delete. */
+const FIXTURE_EMAILS = ['test@example.com', 'unknown@example.com'];
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication<App>;
@@ -74,8 +116,18 @@ describe('AuthController (e2e)', () => {
     await app.init();
   }, 30000);
 
+  /*
+   * Scoped to this spec's own fixtures.
+   *
+   * This was an unscoped `prisma.user.deleteMany()`, which deletes EVERY user in
+   * whatever database DATABASE_URL points at — the seeded development database
+   * during local runs. It only ever failed loudly (FK RESTRICT from `bookings`)
+   * rather than silently wiping the data, which is the sole reason the hazard went
+   * unnoticed. The spec only uses the two @example.com addresses below, so there
+   * was never a need to truncate the table.
+   */
   beforeEach(async () => {
-    await prisma.user.deleteMany();
+    await prisma.user.deleteMany({ where: { email: { in: FIXTURE_EMAILS } } });
     const keys = await redisMock.keys('session:*');
     const resetKeys = await redisMock.keys('password_reset:*');
     for (const key of [...keys, ...resetKeys]) {
@@ -84,7 +136,7 @@ describe('AuthController (e2e)', () => {
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany();
+    await prisma.user.deleteMany({ where: { email: { in: FIXTURE_EMAILS } } });
     await app.close();
   });
 

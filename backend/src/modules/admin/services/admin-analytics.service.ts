@@ -228,6 +228,9 @@ export class AdminAnalyticsService {
 
     const userSessionMap = new Map<string, Date[]>();
     for (const session of aiSessions) {
+      // Guest sessions carry no user id, so they cannot be correlated to a
+      // booking by user. Skip them rather than keying the map on null.
+      if (session.userId === null) continue;
       if (!userSessionMap.has(session.userId)) {
         userSessionMap.set(session.userId, []);
       }
@@ -264,25 +267,29 @@ export class AdminAnalyticsService {
       where: { createdAt: { gte: thirtyDaysAgo } },
     });
 
-    const avgMessagesPerSession = await this.prisma.$queryRaw<
-      { avgMessages: number }[]
-    >`
-      SELECT AVG(msg_count)::float as avg_messages
-      FROM (
-        SELECT sessionId, COUNT(*) as msg_count
-        FROM ai_chat_messages
-        WHERE created_at >= ${thirtyDaysAgo}
-        GROUP BY session_id
-      ) sub
-    `;
+    // A second copy of the raw query that was fixed in admin-ai-monitoring: it
+    // selected `sessionId` (a Prisma field name) while grouping by `session_id`
+    // (the real column), so Postgres would raise 42703 the moment the table held a
+    // row. The table was empty until the chat archive started writing, which is
+    // why it never surfaced. `groupBy` keeps the field/column mapping in Prisma's
+    // hands and removes the hand-written SQL entirely.
+    const messageCounts = await this.prisma.aIChatMessage.groupBy({
+      by: ['sessionId'],
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      _count: { _all: true },
+    });
+
+    const avgMessagesPerSession =
+      messageCounts.length > 0
+        ? messageCounts.reduce((sum, row) => sum + row._count._all, 0) /
+          messageCounts.length
+        : 0;
 
     const aiAssisted = await this.getAIAssistedBookings();
 
     return {
       totalSessions30d: totalSessions,
-      avgMessagesPerSession:
-        Math.round((Number(avgMessagesPerSession[0]?.avgMessages) || 0) * 100) /
-        100,
+      avgMessagesPerSession: Math.round(avgMessagesPerSession * 100) / 100,
       bookingsConverted: aiAssisted.aiAssistedBookings,
       conversionRatePercent: aiAssisted.conversionRatePercent,
     };

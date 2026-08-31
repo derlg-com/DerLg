@@ -2,11 +2,15 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
+  Param,
   Query,
   UseGuards,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ServiceKeyGuard } from '../../common/guards/service-key.guard';
 import { Public } from '../../common/decorators/public.decorator';
@@ -28,6 +32,10 @@ import {
   GetPlacesDto,
   GetFestivalsDto,
   CreateCustomTripDto,
+  UpsertChatSessionDto,
+  RebindChatSessionDto,
+  AppendChatMessagesDto,
+  ChatMessageFeedbackDto,
 } from './ai-tools.dto';
 
 @Public()
@@ -131,6 +139,56 @@ export class AiToolsController {
     return {
       success: true,
       data: await this.service.getUserLoyalty(dto.user_id),
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // Chat archive
+  // -------------------------------------------------------------------------
+  // The only sanctioned write path into ai_chat_sessions / ai_chat_messages.
+  // The AI agent must never reach Postgres directly, so it posts here behind
+  // ServiceKeyGuard instead.
+
+  @Post('chat-sessions')
+  @HttpCode(HttpStatus.OK)
+  async upsertChatSession(@Body() dto: UpsertChatSessionDto) {
+    return { success: true, data: await this.service.upsertChatSession(dto) };
+  }
+
+  @Patch('chat-sessions/:sessionId')
+  @HttpCode(HttpStatus.OK)
+  async rebindChatSession(
+    @Param('sessionId', ParseUUIDPipe) sessionId: string,
+    @Body() dto: RebindChatSessionDto,
+  ) {
+    return {
+      success: true,
+      data: await this.service.rebindChatSession(sessionId, dto),
+    };
+  }
+
+  @Post('chat-sessions/:sessionId/messages')
+  @HttpCode(HttpStatus.OK)
+  async appendChatMessages(
+    @Param('sessionId', ParseUUIDPipe) sessionId: string,
+    @Body() dto: AppendChatMessagesDto,
+  ) {
+    return {
+      success: true,
+      data: await this.service.appendChatMessages(sessionId, dto),
+    };
+  }
+
+  @Patch('chat-sessions/:sessionId/messages/:seq/feedback')
+  @HttpCode(HttpStatus.OK)
+  async setChatMessageFeedback(
+    @Param('sessionId', ParseUUIDPipe) sessionId: string,
+    @Param('seq', ParseIntPipe) seq: number,
+    @Body() dto: ChatMessageFeedbackDto,
+  ) {
+    return {
+      success: true,
+      data: await this.service.setChatMessageFeedback(sessionId, seq, dto),
     };
   }
 }

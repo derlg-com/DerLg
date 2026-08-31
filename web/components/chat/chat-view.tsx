@@ -65,8 +65,10 @@ export function ChatView() {
   const handleFeedback = React.useCallback(
     (id: string, helpful: boolean) => {
       dispatch({ type: 'feedback', id, helpful })
-      // The agent logs feedback against the id we mint: its agent_message frames
-      // carry no id of their own (verified in the agent's websocket.py).
+      // `id` is the agent's own `message_id` when it sent one (the transcript
+      // reducer prefers it), which is what lets the agent resolve the vote to a
+      // stored turn and persist it. Older agent builds send no id; the locally
+      // minted fallback still round-trips, it just cannot be persisted.
       send({ type: 'feedback', message_id: id, helpful })
     },
     [send],

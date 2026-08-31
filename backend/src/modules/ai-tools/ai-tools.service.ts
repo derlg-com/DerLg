@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { SingleResourceKind } from '@prisma/client';
+import { SingleResourceKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   SearchTripsDto,
@@ -18,6 +18,10 @@ import {
   EstimateBudgetDto,
   GetPlacesDto,
   GetFestivalsDto,
+  UpsertChatSessionDto,
+  RebindChatSessionDto,
+  AppendChatMessagesDto,
+  ChatMessageFeedbackDto,
 } from './ai-tools.dto';
 import { ErrorCode } from '../../common/errors/error-codes';
 
@@ -845,6 +849,173 @@ export class AiToolsService {
     });
     if (!user) throw new NotFoundException('User not found');
     return { user_id: userId, points: user.loyaltyPoints };
+  }
+
+  // -------------------------------------------------------------------------
+  // Chat archive
+  // -------------------------------------------------------------------------
+  // The agent's live conversation lives in Redis with a 7-day TTL and a 60-turn
+  // cap, so without these writes no transcript survives and every admin AI
+  // metric reads zero. The agent calls them fire-and-forget behind its circuit
+  // breaker: persistence must never block or break the chat stream.
+
+  /**
+   * Creates the session row, or refreshes it if the socket reconnected.
+   *
+   * Idempotent by `session_id`, which the agent generates and reuses across
+   * reconnects, so a repeated connect does not fork the transcript.
+   */
+  async upsertChatSession(dto: UpsertChatSessionDto) {
+    const session = await this.prisma.aIChatSession.upsert({
+      where: { id: dto.session_id },
+      create: {
+        id: dto.session_id,
+        userId: dto.user_id ?? null,
+        guestKey: dto.guest_key ?? null,
+        language: dto.language ?? 'en',
+        title: dto.title ?? null,
+      },
+      update: {
+        // A reconnect may carry a language switch, or a user id where the
+        // previous connection was anonymous. Never overwrite a known user id
+        // with null: `?? undefined` leaves the column untouched when absent.
+        userId: dto.user_id ?? undefined,
+        guestKey: dto.guest_key ?? undefined,
+        language: dto.language ?? undefined,
+        title: dto.title ?? undefined,
+        isActive: true,
+      },
+      select: { id: true, userId: true, guestKey: true, language: true },
+    });
+
+    return {
+      id: session.id,
+      user_id: session.userId,
+      guest_key: session.guestKey,
+      language: session.language,
+    };
+  }
+
+  /**
+   * Rebinds an anonymous session to a real user.
+   *
+   * Called when a guest authenticates mid-conversation, so the turns already
+   * archived under the guest handle stay attached to the same transcript and
+   * become attributable in the AI-assisted booking correlation.
+   */
+  async rebindChatSession(sessionId: string, dto: RebindChatSessionDto) {
+    await this.assertSessionExists(sessionId);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.user_id },
+      select: { id: true },
+    });
+    if (!user) {
+      throw new NotFoundException(`User ${dto.user_id} not found`);
+    }
+
+    const session = await this.prisma.aIChatSession.update({
+      where: { id: sessionId },
+      data: { userId: dto.user_id },
+      select: { id: true, userId: true },
+    });
+
+    return { id: session.id, user_id: session.userId };
+  }
+
+  /**
+   * Appends a batch of turns.
+   *
+   * `skipDuplicates` plus the [sessionId, seq] unique index is what makes the
+   * flush safe to retry: the agent only advances its `flushed_seq` on a
+   * successful response, so a timeout re-sends turns that may already have
+   * landed. Those collide on seq and are dropped instead of duplicating.
+   */
+  async appendChatMessages(sessionId: string, dto: AppendChatMessagesDto) {
+    await this.assertSessionExists(sessionId);
+
+    if (dto.messages.length === 0) {
+      return { inserted: 0, received: 0 };
+    }
+
+    const rows = dto.messages.map((m) => ({
+      sessionId,
+      seq: m.seq,
+      role: m.role,
+      content: m.content,
+      messageType: m.message_type ?? 'text',
+      metadata: (m.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
+    }));
+
+    const latest = dto.messages.reduce(
+      (max, m) => (m.seq > max.seq ? m : max),
+      dto.messages[0],
+    );
+
+    // One transaction so `last_message_at` can never advance for a batch that
+    // failed to insert — the admin session list orders on that column.
+    const [created] = await this.prisma.$transaction([
+      this.prisma.aIChatMessage.createMany({
+        data: rows,
+        skipDuplicates: true,
+      }),
+      this.prisma.aIChatSession.update({
+        where: { id: sessionId },
+        data: { lastMessageAt: new Date() },
+        select: { id: true },
+      }),
+    ]);
+
+    return {
+      inserted: created.count,
+      received: dto.messages.length,
+      last_seq: latest.seq,
+    };
+  }
+
+  /**
+   * Records a thumbs up/down against one archived turn.
+   *
+   * Addressed by (session, seq) rather than the row's own uuid because the agent
+   * knows the ordinal it assigned; it never sees the database id.
+   */
+  async setChatMessageFeedback(
+    sessionId: string,
+    seq: number,
+    dto: ChatMessageFeedbackDto,
+  ) {
+    const message = await this.prisma.aIChatMessage.findUnique({
+      where: { sessionId_seq: { sessionId, seq } },
+      select: { id: true },
+    });
+
+    if (!message) {
+      throw new NotFoundException(
+        `Message seq ${seq} not found for session ${sessionId}`,
+      );
+    }
+
+    const updated = await this.prisma.aIChatMessage.update({
+      where: { id: message.id },
+      data: { helpful: dto.helpful },
+      select: { id: true, seq: true, helpful: true },
+    });
+
+    return {
+      id: updated.id,
+      seq: updated.seq,
+      helpful: updated.helpful,
+    };
+  }
+
+  private async assertSessionExists(sessionId: string): Promise<void> {
+    const session = await this.prisma.aIChatSession.findUnique({
+      where: { id: sessionId },
+      select: { id: true },
+    });
+    if (!session) {
+      throw new NotFoundException(`Chat session ${sessionId} not found`);
+    }
   }
 }
 
