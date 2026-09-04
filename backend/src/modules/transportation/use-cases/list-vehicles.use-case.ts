@@ -14,6 +14,8 @@ const VEHICLE_SELECT = {
   name: true,
   licensePlate: true,
   capacity: true,
+  tier: true,
+  subtype: true,
   priceUsd: true,
   pricingModel: true,
   province: true,
@@ -30,16 +32,24 @@ export class ListVehiclesUseCase {
   async execute(
     query: ListVehiclesDto,
   ): Promise<PaginatedResponse<VehicleSummary>> {
-    const { page = 1, limit = 20, type } = query;
+    const { page = 1, limit = 20, type, tier, subtype } = query;
     const safePage = Math.max(1, page);
     const safeLimit = Math.min(100, Math.max(1, limit));
 
-    const cacheKey = vehicleListKey({ page: safePage, limit: safeLimit, type });
+    const cacheKey = vehicleListKey({
+      page: safePage,
+      limit: safeLimit,
+      type,
+      tier,
+      subtype,
+    });
 
     return this.cache.getOrSet(cacheKey, 300, async () => {
       const where: Prisma.TransportationVehicleWhereInput = {
         isActive: true,
         ...(type && { vehicleType: type }),
+        ...(tier && { tier }),
+        ...(subtype && { subtype }),
       };
 
       const [total, rows] = await Promise.all([

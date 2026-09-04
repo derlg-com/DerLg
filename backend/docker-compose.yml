@@ -1,11 +1,28 @@
 # =============================================================================
-# DerLg Backend — Development Docker Compose
+# DerLg Backend — Development Docker Compose (FALLBACK / CI ONLY)
 # =============================================================================
-# Development uses Supabase for PostgreSQL, so this file only provides Redis.
+# Local development uses PostgreSQL and Redis installed NATIVELY on the host and
+# managed by systemd. See backend/.env.example for the connection strings and the
+# ports to expect. This file is kept for machines without a native install, and
+# for CI.
+#
+# Supabase is deliberately not used, in the cloud or via its local stack: DerLg
+# owns its own Postgres so dev data is not entangled with a Supabase project.
+#
+# If you do use this file, note the published ports differ from the native setup
+# (5433 here vs 5434 native) and you must update DATABASE_URL/DIRECT_URL to match.
+# Redis publishes 6380 in both setups because 6379 is commonly already bound.
+#
 # Run: docker compose up -d
 # =============================================================================
 
-version: "3.9"
+# Explicit project name. Without this, Compose derives the project from the
+# directory name — "backend" — which several unrelated stacks on a typical dev
+# machine also claim (vibe-survey, derlg-api, a stray mysql). Compose then
+# matches those containers to the services here by name and offers to recreate
+# or remove them; `docker compose down` in this directory would take them with
+# it. Pinning the name scopes every compose command to DerLg alone.
+name: derlg-dev
 
 services:
   postgres:
@@ -17,6 +34,8 @@ services:
       POSTGRES_DB: derlg_dev
     ports:
       - "5433:5432"
+    volumes:
+      - derlg-pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -29,7 +48,9 @@ services:
     image: redis:8.6-alpine
     container_name: derlg-redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
+    volumes:
+      - derlg-redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -37,6 +58,10 @@ services:
       retries: 5
     networks:
       - derlg-dev
+
+volumes:
+  derlg-pgdata:
+  derlg-redisdata:
 
 networks:
   derlg-dev:

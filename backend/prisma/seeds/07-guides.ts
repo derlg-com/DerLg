@@ -1,8 +1,10 @@
 // =============================================================================
 // Seed: 07 — Tour guides (Siem Reap, Phnom Penh, Kampot)
+// P2: enum-backed specialties (Specialty), widened SupportedLanguage set,
+// and guide↔trip package links (implicit m2m, populated by 08-trips.ts).
 // =============================================================================
 
-import type { PrismaClient, SupportedLanguage } from '@prisma/client';
+import type { PrismaClient, SupportedLanguage, Specialty } from '@prisma/client';
 
 import imageUrls = require('./image-urls.json');
 
@@ -14,7 +16,7 @@ interface GuideEntry {
   province: string;
   provinces: string[];
   languages: SupportedLanguage[];
-  specialities: string[];
+  specialties: Specialty[];
 }
 
 const GUIDES: GuideEntry[] = [
@@ -26,7 +28,7 @@ const GUIDES: GuideEntry[] = [
     province: 'Siem Reap',
     provinces: ['Siem Reap', 'Battambang'],
     languages: ['en', 'km'],
-    specialities: ['Angkor Wat historian', 'Khmer mythology expert', 'Photography guide'],
+    specialties: ['culture_history', 'photography'],
   },
   {
     bio: 'Dara is a certified archaeologist with a Master\'s degree in Southeast Asian Studies. He specializes in lesser-known temples and can take you off the beaten path to discover hidden ruins most tourists never see.',
@@ -35,8 +37,8 @@ const GUIDES: GuideEntry[] = [
     pricePerDayUsd: 55,
     province: 'Siem Reap',
     provinces: ['Siem Reap', 'Preah Vihear', 'Kampong Thom'],
-    languages: ['en', 'zh', 'km'],
-    specialities: ['Archaeology specialist', 'Hidden temples', 'Sunrise photography'],
+    languages: ['en', 'zh', 'ja', 'ko', 'km'],
+    specialties: ['culture_history', 'photography', 'adventure'],
   },
   {
     bio: 'Sopheap is a passionate food guide who knows every street food stall, hidden market, and family-run restaurant in Phnom Penh. Her tours combine culinary delights with stories of Cambodian resilience and culture.',
@@ -45,8 +47,8 @@ const GUIDES: GuideEntry[] = [
     pricePerDayUsd: 40,
     province: 'Phnom Penh',
     provinces: ['Phnom Penh', 'Kandal'],
-    languages: ['en', 'zh', 'km'],
-    specialities: ['Street food expert', 'Cultural storyteller', 'Market tours'],
+    languages: ['en', 'zh', 'fr', 'km'],
+    specialties: ['food_tours', 'culture_history'],
   },
   {
     bio: 'Channary grew up in a farming family in Kampot and knows the countryside intimately. She specializes in nature tours, pepper plantation visits, and authentic village experiences that support local communities.',
@@ -56,12 +58,19 @@ const GUIDES: GuideEntry[] = [
     province: 'Kampot',
     provinces: ['Kampot', 'Kep', 'Takeo'],
     languages: ['en', 'km'],
-    specialities: ['Nature trekking', 'Pepper plantation tours', 'Village homestays'],
+    specialties: ['nature_trekking', 'family_friendly'],
   },
 ];
 
 export = async function seed(prisma: PrismaClient): Promise<void> {
   console.log('  • guides');
+
+  // Idempotent reseed: remove previously seeded guides and their demo users.
+  // Bookings/reviews reference guides via onDelete: SetNull, so this is safe.
+  await prisma.guide.deleteMany({});
+  await prisma.user.deleteMany({
+    where: { email: { startsWith: 'guide.', endsWith: '@derlg.demo' } },
+  });
 
   for (let i = 0; i < GUIDES.length; i++) {
     const g = GUIDES[i];
@@ -101,11 +110,11 @@ export = async function seed(prisma: PrismaClient): Promise<void> {
       });
     }
 
-    for (const spec of g.specialities) {
-      await prisma.guideSpeciality.create({
+    for (const spec of g.specialties) {
+      await prisma.guideSpecialty.create({
         data: {
           guideId: guide.id,
-          speciality: spec,
+          specialty: spec,
         },
       });
     }

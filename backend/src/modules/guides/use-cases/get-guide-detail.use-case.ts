@@ -18,7 +18,21 @@ const GUIDE_DETAIL_SELECT = {
   provinces: true,
   isVerified: true,
   languages: { select: { language: true } },
-  specialities: { select: { speciality: true } },
+  specialties: { select: { specialty: true } },
+  trips: {
+    select: {
+      id: true,
+      durationDays: true,
+      basePriceUsd: true,
+      coverImage: true,
+      category: true,
+      translations: {
+        where: { language: 'en' },
+        select: { title: true },
+      },
+    },
+    take: 10,
+  },
 } satisfies Prisma.GuideSelect;
 
 @Injectable()

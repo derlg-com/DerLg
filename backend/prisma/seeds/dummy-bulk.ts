@@ -204,16 +204,16 @@ async function main(): Promise<void> {
   await prisma.guide.createMany({
     data: guideIds.map((id, i) => ({ id, userId: guideUserIds[i], bio: `Experienced Cambodian tour guide #${i}.`, avatarUrl: '', images: [], pricePerDayUsd: money(25, 90), isVerified: Math.random() < 0.7, province: pick(PROVINCES).name, provinces: [pick(PROVINCES).name, pick(PROVINCES).name], isActive: true })),
   });
-  const SPEC = ['Angkor Wat historian', 'Street food expert', 'Nature trekking', 'Photography guide', 'Khmer mythology', 'Village homestays', 'Archaeology specialist', 'Sunrise tours'];
+  const SPEC = ['culture_history', 'food_tours', 'nature_trekking', 'photography', 'family_friendly', 'business', 'luxury', 'adventure'] as const;
   await prisma.guideLanguage.createMany({
     data: guideIds.flatMap((guideId) => [...new Set([pick(LANGS), pick(LANGS)])].map((language) => ({ guideId, language }))),
     skipDuplicates: true,
   });
-  await prisma.guideSpeciality.createMany({
-    data: guideIds.flatMap((guideId) => [...new Set([pick(SPEC), pick(SPEC)])].map((speciality) => ({ guideId, speciality }))),
+  await prisma.guideSpecialty.createMany({
+    data: guideIds.flatMap((guideId) => [...new Set([pick(SPEC), pick(SPEC)])].map((specialty) => ({ guideId, specialty }))),
     skipDuplicates: true,
   });
-  console.log(`  ✅ guides: ${N}  +  guide_languages & guide_specialities (~${N}+ each)`);
+  console.log(`  ✅ guides: ${N}  +  guide_languages & guide_specialties (~${N}+ each)`);
 
   // ---- 10. TRIPS + translations + itinerary items + their translations ------
   const tripIds = ids(N);
@@ -378,8 +378,11 @@ async function main(): Promise<void> {
   });
   await prisma.aIChatMessage.createMany({
     data: sessionIds.flatMap((sessionId) => [
-      { sessionId, role: 'user', content: 'I want a 3-day temple tour near Siem Reap.', messageType: 'text', metadata: { intent: 'discover' } },
-      { sessionId, role: 'assistant', content: 'Great! I found 3 packages that match your vibe.', messageType: 'trip_card', metadata: { count: 3 } },
+      // `seq` is the per-session turn ordinal enforced by the
+      // [sessionId, seq] unique index — it makes the agent's batched archive
+      // flush idempotent, so it must be explicit here too.
+      { sessionId, seq: 0, role: 'user', content: 'I want a 3-day temple tour near Siem Reap.', messageType: 'text', metadata: { intent: 'discover' } },
+      { sessionId, seq: 1, role: 'assistant', content: 'Great! I found 3 packages that match your vibe.', messageType: 'trip_card', metadata: { count: 3 } },
     ]),
   });
   console.log(`  ✅ ai_chat_sessions: ${N}  +  ai_chat_messages: ${N * 2}`);

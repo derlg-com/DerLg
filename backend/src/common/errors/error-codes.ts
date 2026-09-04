@@ -152,6 +152,8 @@ export const ErrorCode = {
   AI_SERVICE_UNAVAILABLE: 'AI_SERVICE_UNAVAILABLE',
   AI_TIMEOUT: 'AI_TIMEOUT',
   AI_INVALID_CONTEXT: 'AI_INVALID_CONTEXT',
+  AI_TRIP_EMPTY: 'AI_TRIP_EMPTY',
+  AI_TRIP_COMPONENT_NOT_FOUND: 'AI_TRIP_COMPONENT_NOT_FOUND',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

@@ -17,9 +17,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
-      NVIDIA_BASE_URL: ${NVIDIA_BASE_URL:-https://integrate.api.nvidia.com/v1}
-      MODEL_LLM: ${MODEL_LLM:-openai/gpt-oss-120b}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://gateway.rayucode.com/v1}
+      MODEL_LLM: ${MODEL_LLM:-longcat-2.0}
       USE_OLLAMA: ${USE_OLLAMA:-false}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       BACKEND_URL: http://backend:3001

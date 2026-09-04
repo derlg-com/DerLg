@@ -34,5 +34,8 @@ def test_backoff_is_capped_and_increases():
     assert d3 >= d0 and d3 <= 10.0
 
 
-def test_max_attempts_increased():
-    assert _MAX_ATTEMPTS >= 3
+def test_max_attempts_reduced():
+    # P6a: retries reduced 4 -> 2 so a degraded model can't stall the chat for
+    # minutes; the WebSocket layer turns the final failure into a retryable
+    # error frame.
+    assert _MAX_ATTEMPTS == 2

@@ -29,7 +29,13 @@
 
 - **2.2.1** Redis client functions implemented in `utils/redis.py` (not `src/services/redis_client.py`).
 - **2.2.2** Session key uses `session:{session_id}` instead of the specified `ai:conv:{user_id}`. TTL of 7 days is correct.
-- **2.2.5** PostgreSQL flush on WebSocket disconnect is **not implemented**.
+- **2.2.5** ~~PostgreSQL flush on WebSocket disconnect is **not implemented**.~~
+  **RESOLVED.** Implemented as a hybrid archive in `agent/session/archive.py`: the
+  session row is upserted on connect, turns are batch-appended every
+  `FLUSH_EVERY` (4) turns, and the remainder is flushed in the WebSocket handler's
+  `finally` block. Writes go through the backend's `/v1/ai-tools/chat-sessions*`
+  endpoints — the agent still holds no database credentials. Retry-safe via a
+  monotonic `seq` and a `[session_id, seq]` unique index.
 
 ---
 
@@ -77,7 +83,10 @@
 ### Task 6.1: Connection Management
 
 - **6.1.1** WebSocket endpoint implemented in `api/websocket.py`.
-- **6.1.5** On disconnect: session is saved to Redis and removed from `active_connections`, but the PostgreSQL archive flush is **not implemented**.
+- **6.1.5** ~~On disconnect: session is saved to Redis and removed from `active_connections`, but the PostgreSQL archive flush is **not implemented**.~~
+  **RESOLVED.** The `finally` block now awaits `archive.flush(session)` before the
+  Redis save. Awaited rather than detached, because the connection is already
+  closing and a background task could be cancelled before it ran.
 
 ### Task 6.2: Message Handling
 

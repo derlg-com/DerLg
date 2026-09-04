@@ -94,6 +94,12 @@ enum SingleResourceKind {
 enum PaymentProvider {
   stripe
   bakong
+  // ABA Bank KHQR. Distinct from `bakong` even though both ride the KHQR rail:
+  // ABA payments are confirmed out-of-band from a Telegram credit alert rather
+  // than by polling a provider API, so every lookup has to be able to tell them
+  // apart. Treating them as one value made an ABA alert able to settle a Bakong
+  // row that happened to share an amount.
+  aba
 
   @@map("payment_provider")
 }
@@ -174,6 +180,13 @@ enum SupportedLanguage {
   en
   zh
   km
+  ja
+  ko
+  fr
+  de
+  es
+  th
+  vi
 
   @@map("supported_language")
 }
@@ -195,6 +208,7 @@ enum TripCategory {
   culture
   adventure
   food
+  custom // AI-composed custom trip (P6b)
 
   @@map("trip_category")
 }
@@ -205,6 +219,47 @@ enum VehicleType {
   bus
 
   @@map("vehicle_type")
+}
+
+enum HotelType {
+  resort
+  boutique
+  hotel
+  guesthouse
+  hostel
+  villa
+
+  @@map("hotel_type")
+}
+
+enum Specialty {
+  culture_history
+  food_tours
+  nature_trekking
+  photography
+  family_friendly
+  business
+  luxury
+  adventure
+
+  @@map("specialty")
+}
+
+enum VehicleTier {
+  normal
+  vip
+
+  @@map("vehicle_tier")
+}
+
+enum VehicleSubtype {
+  starex
+  hiace
+  alphard
+  small_bus
+  big_bus
+
+  @@map("vehicle_subtype")
 }
 
 enum PricingModel {
@@ -229,6 +284,79 @@ enum AuditEventType {
   security_event
 
   @@map("audit_event_type")
+}
+
+// --- Admin panel & fleet operations (F110–F118) -------------------------------
+
+enum DriverStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+
+  @@map("driver_status")
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_MAINTENANCE
+  COMPLETED
+
+  @@map("maintenance_status")
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  OPERATIONS_MANAGER
+  FLEET_MANAGER
+  SUPPORT_AGENT
+
+  @@map("admin_role")
+}
+
+enum AssignmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+
+  @@map("assignment_status")
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+
+  @@map("ticket_status")
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@map("ticket_priority")
+}
+
+enum BroadcastStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+
+  @@map("broadcast_status")
+}
+
+enum AuthProvider {
+  google
+  telegram
+  apple
+  facebook
+
+  @@map("auth_provider")
 }
 
 // =============================================================================
@@ -282,6 +410,13 @@ model User {
   auditLogs            AuditLog[]
   favorites            Favorite[]
   payments             Payment[]
+  oauthAccounts        OAuthAccount[]
+
+  // Admin panel relations (F110–F118)
+  adminProfile    AdminUser?
+  assignedTickets SupportTicket[]    @relation("SupportTicketAssignee")
+  sentBroadcasts  BroadcastMessage[] @relation("BroadcastSender")
+  createdBackups  Backup[]           @relation("BackupCreator")
 
   @@map("users")
 }
@@ -297,6 +432,33 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model OAuthAccount {
+  id                String       @id @default(uuid()) @db.Uuid
+  userId            String       @map("user_id") @db.Uuid
+  provider          AuthProvider @map("provider")
+  providerAccountId String       @map("provider_account_id")
+
+  email             String?      @map("email")
+  displayName       String?      @map("display_name")
+  avatarUrl         String?      @map("avatar_url")
+
+  profileData       Json?        @map("profile_data") @db.JsonB
+
+  accessToken       String?      @map("access_token") @db.Text
+  refreshToken      String?      @map("refresh_token") @db.Text
+  tokenExpiresAt    DateTime?    @map("token_expires_at") @db.Timestamptz()
+
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([provider, email])
+  @@map("oauth_accounts")
 }
 
 // =============================================================================
@@ -360,6 +522,9 @@ model Trip {
   basePriceUsd Decimal @map("base_price_usd") @db.Decimal(10, 2)
   maxCapacity  Int     @default(10) @map("max_capacity")
 
+  // AI-composed custom trips (P6b): server-priced component extras snapshot.
+  extras Json? @db.JsonB
+
   // Cover
   coverImage String?  @map("cover_image")
   images     String[] @default([]) @db.Text
@@ -372,6 +537,7 @@ model Trip {
   // Relations
   translations       TripTranslation[]
   itineraryItems     TripItineraryItem[]
+  guides             Guide[] // implicit m2m — trip packages a guide runs (P2)
   reviews            Review[]
   favorites          Favorite[]
   bookingItems       BookingItem[]
@@ -477,15 +643,16 @@ model FestivalTranslation {
 // =============================================================================
 
 model Hotel {
-  id          String   @id @default(uuid()) @db.Uuid
-  latitude    Decimal  @db.Decimal(10, 7)
-  longitude   Decimal  @db.Decimal(10, 7)
-  starRating  Int?     @map("star_rating")
-  images      String[] @default([]) @db.Text
-  amenities   String[] @default([]) @db.Text
-  isPublished Boolean  @default(false) @map("is_published")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+  id          String     @id @default(uuid()) @db.Uuid
+  latitude    Decimal    @db.Decimal(10, 7)
+  longitude   Decimal    @db.Decimal(10, 7)
+  type        HotelType? @map("type")
+  starRating  Int?       @map("star_rating")
+  images      String[]   @default([]) @db.Text
+  amenities   String[]   @default([]) @db.Text
+  isPublished Boolean    @default(false) @map("is_published")
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz()
 
   // Relations
   translations HotelTranslation[]
@@ -495,6 +662,7 @@ model Hotel {
   tripItems    TripItineraryItem[]
 
   @@index([isPublished])
+  @@index([type])
   @@map("hotels")
 }
 
@@ -538,10 +706,12 @@ model HotelRoom {
 // =============================================================================
 
 model TransportationVehicle {
-  id           String      @id @default(uuid()) @db.Uuid
-  vehicleType  VehicleType @map("vehicle_type")
+  id           String          @id @default(uuid()) @db.Uuid
+  vehicleType  VehicleType     @map("vehicle_type")
+  tier         VehicleTier?    @map("tier")
+  subtype      VehicleSubtype? @map("subtype")
   name         String
-  licensePlate String?     @map("license_plate")
+  licensePlate String?         @map("license_plate")
 
   // Capacity & Pricing
   capacity     Int          @default(4)
@@ -558,7 +728,14 @@ model TransportationVehicle {
   // Relations
   bookingItems BookingItem[]
 
+  // Admin panel relations (F110–F118)
+  drivers            Driver[]
+  maintenanceRecords VehicleMaintenance[]
+  driverAssignments  DriverAssignment[]
+
   @@index([vehicleType])
+  @@index([tier])
+  @@index([subtype])
   @@index([province])
   @@index([isActive])
   @@map("transportation_vehicles")
@@ -595,7 +772,8 @@ model Guide {
 
   // Relations
   languages    GuideLanguage[]
-  specialities GuideSpeciality[]
+  specialties  GuideSpecialty[]
+  trips        Trip[] // implicit m2m — packages this guide runs (P2)
   reviews      Review[]
   bookingItems BookingItem[]
   favorites    Favorite[]
@@ -617,15 +795,15 @@ model GuideLanguage {
   @@map("guide_languages")
 }
 
-model GuideSpeciality {
-  id         String @id @default(uuid()) @db.Uuid
-  guideId    String @map("guide_id") @db.Uuid
-  speciality String // e.g. "Angkor Wat historian", "street food expert", "nature trekking"
+model GuideSpecialty {
+  id        String    @id @default(uuid()) @db.Uuid
+  guideId   String    @map("guide_id") @db.Uuid
+  specialty Specialty
 
   guide Guide @relation(fields: [guideId], references: [id], onDelete: Cascade)
 
-  @@unique([guideId, speciality])
-  @@map("guide_specialities")
+  @@unique([guideId, specialty])
+  @@map("guide_specialties")
 }
 
 // =============================================================================
@@ -680,6 +858,9 @@ model Booking {
   items        BookingItem[]
   payments     Payment[]
   notification Notification[]
+
+  // Admin panel relations (F110–F118)
+  driverAssignments DriverAssignment[]
 
   @@index([userId])
   @@index([status])
@@ -739,8 +920,16 @@ model Payment {
   id                String          @id @default(uuid()) @db.Uuid
   bookingId         String          @map("booking_id") @db.Uuid
   userId            String          @map("user_id") @db.Uuid
-  provider          PaymentProvider
-  providerPaymentId String?         @map("provider_payment_id")
+  provider PaymentProvider
+  /// Provider-side settlement id: a Stripe charge id, or an ABA transaction id
+  /// from the Telegram credit alert.
+  ///
+  /// Unique, and that uniqueness is the idempotency guarantee for settlement.
+  /// Stripe redelivers webhooks and Telegram can replay a message on reconnect;
+  /// without a DB-level constraint, a replayed event would settle a payment
+  /// twice. Postgres allows unlimited NULLs in a unique index, so unsettled rows
+  /// are unaffected.
+  providerPaymentId String? @unique @map("provider_payment_id")
 
   // Amounts
   amountUsd    Decimal  @map("amount_usd") @db.Decimal(10, 2)
@@ -755,7 +944,13 @@ model Payment {
   stripePaymentIntentId String? @map("stripe_payment_intent_id")
   clientSecret          String? @map("client_secret")
 
-  // QR (Bakong)
+  // QR (KHQR — Bakong and ABA)
+  //
+  // `qrPayload` is the EMVCo/KHQR string the customer's banking app decodes. It
+  // is the payment instrument, so it is persisted: re-deriving it would mint a
+  // new expiry and silently invalidate the code already on the customer's screen.
+  // The PNG is rendered on demand from this string and never stored.
+  qrPayload   String?   @map("qr_payload")
   qrCodeUrl   String?   @map("qr_code_url")
   qrExpiresAt DateTime? @map("qr_expires_at") @db.Timestamptz()
 
@@ -777,6 +972,10 @@ model Payment {
   @@index([provider])
   @@index([status])
   @@index([stripePaymentIntentId])
+  // The ABA Telegram listener's hot path: find the pending payment for an exact
+  // amount from a specific provider. Without this it is a full scan of `payments`
+  // on every credit alert, and it runs while a customer waits at a QR code.
+  @@index([provider, status, amountUsd])
   @@map("payments")
 }
 
@@ -937,6 +1136,7 @@ model EmergencyAlert {
   // Relations
   user     User    @relation(fields: [userId], references: [id])
   driverId String? @map("driver_id") @db.Uuid
+  driver   Driver? @relation(fields: [driverId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([driverId])
@@ -1060,9 +1260,18 @@ model Favorite {
 // =============================================================================
 
 model AIChatSession {
-  id     String  @id @default(uuid()) @db.Uuid
-  userId String  @map("user_id") @db.Uuid
-  title  String? // auto-generated summary
+  id String @id @default(uuid()) @db.Uuid
+
+  // Nullable because the concierge answers guests too. The agent binds a real
+  // user id only once a JWT is verified (see `_verify_jwt` in the agent's
+  // websocket handler); before that the conversation is anonymous. This column
+  // was NOT NULL, which made guest conversations impossible to archive at all —
+  // and guests are the majority of the pre-login funnel.
+  userId   String? @map("user_id") @db.Uuid
+  // Opaque client-supplied handle for an anonymous conversation, retained so a
+  // guest session can be stitched to a user after they sign in mid-chat.
+  guestKey String? @map("guest_key")
+  title    String? // auto-generated summary
 
   // State
   isActive Boolean           @default(true) @map("is_active")
@@ -1073,19 +1282,29 @@ model AIChatSession {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
-  user     User            @relation(fields: [userId], references: [id])
+  user     User?           @relation(fields: [userId], references: [id])
   messages AIChatMessage[]
 
   @@index([userId])
   @@index([lastMessageAt])
+  // The admin AI-monitoring list and every metric filter on a created_at range.
+  @@index([createdAt])
   @@map("ai_chat_sessions")
 }
 
 model AIChatMessage {
   id        String @id @default(uuid()) @db.Uuid
   sessionId String @map("session_id") @db.Uuid
-  role      String // "user" | "assistant" | "system"
-  content   String @db.Text
+
+  // Per-session turn ordinal, assigned by the agent. This is what makes the
+  // batched archive flush idempotent: a retried batch collides on
+  // [sessionId, seq] and is skipped rather than duplicating the turn. It also
+  // gives a total order that `created_at` cannot, since turns inside one flush
+  // can share a timestamp.
+  seq Int
+
+  role    String // "user" | "assistant" | "system"
+  content String @db.Text
 
   // Structured content type (F10: text, trip_card, hotel_card, action, qr)
   messageType String @default("text") @map("message_type")
@@ -1093,11 +1312,15 @@ model AIChatMessage {
   // Metadata (linked entities, tool calls)
   metadata Json? @db.JsonB
 
+  // "Was this helpful?" — null until the user votes on the turn.
+  helpful Boolean? @map("helpful")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
   session AIChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
+  @@unique([sessionId, seq])
   @@index([sessionId, createdAt])
   @@map("ai_chat_messages")
 }
@@ -1199,4 +1422,218 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// =============================================================================
+// ADMIN PANEL & FLEET OPERATIONS (F110–F118)
+// =============================================================================
+// Merged in from the standalone `derlg-system-admin` service. These seven tables
+// were previously defined in that project's own schema against a separate
+// database; they now live here so the admin panel and the public site share one
+// schema and one Prisma client.
+//
+// Departures from the original standalone definitions, all deliberate:
+//  - Field names follow this file's convention (camelCase in Prisma, snake_case
+//    in Postgres via @map) rather than the snake_case-everywhere style that the
+//    old schema inherited from `prisma db pull`.
+//  - Enums are @@map'd to snake_case type names to match every other enum here.
+//    The TypeScript names (AdminRole, DriverStatus, …) are unchanged, so ported
+//    code importing them from @prisma/client still compiles.
+//  - Real foreign keys are declared. The original migration created these tables
+//    with no FKs at all, which left assignments and admin rows able to outlive
+//    the users, bookings and vehicles they point at.
+// =============================================================================
+
+model Driver {
+  id         String @id @default(uuid()) @db.Uuid
+  driverName String @map("driver_name") @db.VarChar(255)
+
+  // Human-facing fleet identifier (e.g. "DRV-014"), used for Telegram sign-in.
+  driverId String @unique @map("driver_id") @db.VarChar(50)
+
+  // Telegram account binding. Null until the driver completes /start + PIN.
+  telegramId BigInt? @unique @map("telegram_id")
+
+  // bcrypt hash of the driver's 4-digit PIN — never the PIN itself.
+  authPin String @map("auth_pin") @db.VarChar(255)
+
+  phone String @db.VarChar(20)
+
+  // Assigned vehicle. SetNull so retiring a vehicle does not delete the driver.
+  vehicleId String? @map("vehicle_id") @db.Uuid
+
+  status DriverStatus @default(OFFLINE)
+
+  // Bot reply language. Kept as a short string rather than SupportedLanguage
+  // because it is written by the Telegram handlers from Telegram's own locale
+  // codes, which are not constrained to the languages the website supports.
+  preferredLanguage String @default("en") @map("preferred_language") @db.VarChar(5)
+
+  lastStatusUpdate     DateTime  @default(now()) @map("last_status_update") @db.Timestamptz()
+  lastTelegramActivity DateTime? @map("last_telegram_activity") @db.Timestamptz()
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  vehicle         TransportationVehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  assignments     DriverAssignment[]
+  emergencyAlerts EmergencyAlert[]
+  supportTickets  SupportTicket[]
+
+  @@index([telegramId])
+  @@index([status])
+  @@index([vehicleId])
+  @@map("drivers")
+}
+
+model DriverAssignment {
+  id        String @id @default(uuid()) @db.Uuid
+  driverId  String @map("driver_id") @db.Uuid
+  bookingId String @map("booking_id") @db.Uuid
+  vehicleId String @map("vehicle_id") @db.Uuid
+
+  status AssignmentStatus @default(PENDING)
+
+  // Lifecycle timestamps: offered → answered → started → finished.
+  assignmentTimestamp DateTime  @default(now()) @map("assignment_timestamp") @db.Timestamptz()
+  responseTimestamp   DateTime? @map("response_timestamp") @db.Timestamptz()
+  tripStartTime       DateTime? @map("trip_start_time") @db.Timestamptz()
+  completionTimestamp DateTime? @map("completion_timestamp") @db.Timestamptz()
+
+  rejectionReason  String? @map("rejection_reason") @db.Text
+  telegramNotified Boolean @default(false) @map("telegram_notified")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  driver  Driver                @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  booking Booking               @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  vehicle TransportationVehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  @@index([driverId])
+  @@index([bookingId])
+  @@index([vehicleId])
+  @@index([status])
+  @@index([driverId, completionTimestamp]) // supports per-driver earnings history
+  @@map("driver_assignments")
+}
+
+model VehicleMaintenance {
+  id        String @id @default(uuid()) @db.Uuid
+  vehicleId String @map("vehicle_id") @db.Uuid
+
+  maintenanceType String    @map("maintenance_type") @db.VarChar(100)
+  scheduledDate   DateTime  @map("scheduled_date") @db.Date
+  completionDate  DateTime? @map("completion_date") @db.Date
+
+  maintenanceCost  Decimal? @map("maintenance_cost") @db.Decimal(10, 2)
+  maintenanceNotes String?  @map("maintenance_notes") @db.Text
+
+  status MaintenanceStatus @default(SCHEDULED)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  vehicle TransportationVehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("vehicle_maintenance")
+}
+
+model AdminUser {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @unique @map("user_id") @db.Uuid
+
+  adminRole AdminRole @map("admin_role")
+
+  // Optional per-user permission overrides on top of the role, shape
+  // { [capability: string]: boolean }. Null means "role defaults only".
+  permissions Json? @db.JsonB
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations — Cascade so deleting a user cannot leave a live admin grant.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([adminRole])
+  @@map("admin_users")
+}
+
+model SupportTicket {
+  id       String @id @default(uuid()) @db.Uuid
+  ticketId String @unique @map("ticket_id") @db.VarChar(20)
+  driverId String @map("driver_id") @db.Uuid
+
+  message  String         @db.Text
+  status   TicketStatus   @default(OPEN)
+  priority TicketPriority @default(NORMAL)
+
+  // Admin handling the ticket. SetNull so deactivating staff keeps the history.
+  assignedTo String?   @map("assigned_to") @db.Uuid
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz()
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Relations
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  assignee User?  @relation("SupportTicketAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  @@index([driverId])
+  @@index([status])
+  @@index([assignedTo])
+  @@map("support_tickets")
+}
+
+model BroadcastMessage {
+  id        String  @id @default(uuid()) @db.Uuid
+  messageId String  @unique @map("message_id") @db.VarChar(50)
+  content   String  @db.Text
+  imageUrl  String? @map("image_url") @db.VarChar(500)
+
+  // Driver-selection filter evaluated when the broadcast job runs,
+  // e.g. { status: "AVAILABLE", province: "Siem Reap" }.
+  targetFilter Json @map("target_filter") @db.JsonB
+
+  sentBy String @map("sent_by") @db.Uuid
+
+  status      BroadcastStatus @default(PENDING)
+  sentCount   Int             @default(0) @map("sent_count")
+  failedCount Int             @default(0) @map("failed_count")
+  completedAt DateTime?       @map("completed_at") @db.Timestamptz()
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations — Restrict so a delivery record always keeps its sender.
+  sender User @relation("BroadcastSender", fields: [sentBy], references: [id], onDelete: Restrict)
+
+  @@index([sentBy])
+  @@index([status])
+  @@map("broadcast_messages")
+}
+
+model Backup {
+  id              String  @id @default(uuid()) @db.Uuid
+  backupFileUrl   String  @map("backup_file_url") @db.Text
+  backupSizeBytes BigInt? @map("backup_size_bytes")
+
+  createdByAdminId String @map("created_by_admin_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations — Restrict so an audit trail of who took a backup survives.
+  createdBy User @relation("BackupCreator", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([createdByAdminId])
+  @@map("backups")
 }

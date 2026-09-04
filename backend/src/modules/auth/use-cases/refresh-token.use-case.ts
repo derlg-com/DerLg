@@ -8,6 +8,8 @@ import { ErrorCode } from '../../../common/errors/error-codes';
 import { RefreshTokenPayload } from '../interfaces';
 import { GenerateTokensUseCase } from './generate-tokens.use-case';
 
+import type { AuthResponse } from '../interfaces';
+
 @Injectable()
 export class RefreshTokenUseCase {
   constructor(
@@ -18,9 +20,11 @@ export class RefreshTokenUseCase {
     private readonly generateTokens: GenerateTokensUseCase,
   ) {}
 
-  async execute(
-    refreshToken: string,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  async execute(refreshToken: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: AuthResponse['user'];
+  }> {
     try {
       const payload = this.jwtService.verify<RefreshTokenPayload>(
         refreshToken,
@@ -57,6 +61,7 @@ export class RefreshTokenUseCase {
       return {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
+        user: result.user,
       };
     } catch {
       throw new UnauthorizedException({

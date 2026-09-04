@@ -1,9 +1,8 @@
 import { mapHotelDetail, type HotelDetailRow } from './map-hotel.util';
 
-const baseRow = (
-  rooms?: { priceUsd: number }[],
-): HotelDetailRow => ({
+const baseRow = (rooms?: { priceUsd: number }[]): HotelDetailRow => ({
   id: 'h1',
+  type: null,
   starRating: 4,
   images: ['cover.jpg', 'room.jpg'],
   latitude: 13.3671,

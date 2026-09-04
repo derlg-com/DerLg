@@ -1,6 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { SingleResourceKind } from '@prisma/client';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { SingleResourceKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaymentsService } from '../payments/services/payments.service';
+import { PaymentMethod } from '../payments/dto/payments.dto';
 import {
   SearchTripsDto,
   SearchHotelsDto,
@@ -8,18 +14,27 @@ import {
   SearchTransportDto,
   CheckAvailabilityDto,
   CreateBookingHoldDto,
+  CreateCustomTripDto,
   SendSosAlertDto,
   GeneratePaymentQrDto,
   EstimateBudgetDto,
   GetPlacesDto,
   GetFestivalsDto,
+  UpsertChatSessionDto,
+  RebindChatSessionDto,
+  AppendChatMessagesDto,
+  ChatMessageFeedbackDto,
 } from './ai-tools.dto';
+import { ErrorCode } from '../../common/errors/error-codes';
 
 const HOLD_TTL_MIN = 15;
 
 @Injectable()
 export class AiToolsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly payments: PaymentsService,
+  ) {}
 
   async searchTrips(dto: SearchTripsDto) {
     // Destination is matched against free text (title/subtitle/description) because
@@ -31,7 +46,12 @@ export class AiToolsService {
         // Duration is a ±2-day tolerance window (not exact) so a 5-day trip
         // still surfaces for a "3 day" request instead of returning empty.
         ...(dto.duration_days
-          ? { durationDays: { gte: dto.duration_days - 2, lte: dto.duration_days + 2 } }
+          ? {
+              durationDays: {
+                gte: dto.duration_days - 2,
+                lte: dto.duration_days + 2,
+              },
+            }
           : {}),
         ...(dto.budget_usd ? { basePriceUsd: { lte: dto.budget_usd } } : {}),
         ...(dto.destination
@@ -39,8 +59,15 @@ export class AiToolsService {
               translations: {
                 some: {
                   OR: [
-                    { title: { contains: dto.destination, mode: 'insensitive' } },
-                    { subtitle: { contains: dto.destination, mode: 'insensitive' } },
+                    {
+                      title: { contains: dto.destination, mode: 'insensitive' },
+                    },
+                    {
+                      subtitle: {
+                        contains: dto.destination,
+                        mode: 'insensitive',
+                      },
+                    },
                     {
                       description: {
                         contains: dto.destination,
@@ -77,6 +104,7 @@ export class AiToolsService {
               },
             }
           : {}),
+        ...(dto.type ? { type: dto.type } : {}),
         rooms: {
           some: {
             isActive: true,
@@ -99,8 +127,10 @@ export class AiToolsService {
     });
     return hotels.map((h) => ({
       id: h.id,
+      room_id: h.rooms[0]?.id ?? null,
       name: h.translations[0]?.name ?? '',
       address: h.translations[0]?.address ?? '',
+      type: h.type,
       star_rating: h.starRating,
       price_from_usd: h.rooms[0] ? Number(h.rooms[0].priceUsd) : null,
       images: h.images,
@@ -113,7 +143,7 @@ export class AiToolsService {
         isActive: true,
         isVerified: true,
         province: { contains: dto.location, mode: 'insensitive' },
-        languages: { some: { language: dto.language as 'en' | 'zh' | 'km' } },
+        languages: { some: { language: dto.language as never } },
       },
       select: {
         id: true,
@@ -124,7 +154,20 @@ export class AiToolsService {
         province: true,
         isVerified: true,
         languages: { select: { language: true } },
-        specialities: { select: { speciality: true } },
+        specialties: { select: { specialty: true } },
+        trips: {
+          select: {
+            id: true,
+            durationDays: true,
+            basePriceUsd: true,
+            coverImage: true,
+            translations: {
+              where: { language: 'en' },
+              select: { title: true },
+            },
+          },
+          take: 5,
+        },
       },
       take: 10,
     });
@@ -145,11 +188,18 @@ export class AiToolsService {
       name: nameByUserId.get(g.userId) || 'Local Guide',
       bio: g.bio,
       languages: g.languages.map((l) => l.language),
-      specialities: g.specialities.map((s) => s.speciality),
+      specialties: g.specialties.map((s) => s.specialty),
       price_per_day_usd: Number(g.pricePerDayUsd),
       province: g.province,
       avatar_url: g.avatarUrl,
       is_verified: g.isVerified,
+      packages: g.trips.map((t) => ({
+        id: t.id,
+        title: t.translations[0]?.title ?? '',
+        duration_days: t.durationDays,
+        price_usd: Number(t.basePriceUsd),
+        cover_image: t.coverImage,
+      })),
     }));
   }
 
@@ -159,6 +209,8 @@ export class AiToolsService {
         isActive: true,
         province: { contains: dto.from_location, mode: 'insensitive' },
         ...(dto.mode ? { vehicleType: dto.mode as never } : {}),
+        ...(dto.tier ? { tier: dto.tier } : {}),
+        ...(dto.subtype ? { subtype: dto.subtype } : {}),
       },
       take: 10,
       orderBy: { priceUsd: 'asc' },
@@ -169,12 +221,193 @@ export class AiToolsService {
       operator: v.name,
       price_usd: Number(v.priceUsd),
       capacity: v.capacity,
+      tier: v.tier,
+      subtype: v.subtype,
       from_location: dto.from_location,
       to_location: dto.to_location,
       departure_date: dto.departure_date,
       pricing_model: v.pricingModel,
       images: v.images,
     }));
+  }
+
+  /**
+   * P6b — AI-composed custom trip. Prices components server-side (hotel room
+   * and guide/vehicle per-day rates x duration), caps extras at $500/unit via
+   * the DTO, persists a real Trip row (category=custom, extras JSON) and
+   * returns the composed quote in snake_case for the agent's normalizer.
+   */
+  async createCustomTrip(dto: CreateCustomTripDto) {
+    const durationDays = dto.duration_days;
+    const hasComponents =
+      Boolean(dto.hotel_room_id) ||
+      Boolean(dto.guide_id) ||
+      Boolean(dto.vehicle_id);
+    const extras = dto.extras ?? [];
+    if (!hasComponents && extras.length === 0) {
+      throw new BadRequestException({
+        code: ErrorCode.AI_TRIP_EMPTY,
+        message: 'Custom trip must include at least one component or extra',
+      });
+    }
+
+    const [room, guide, vehicle] = await Promise.all([
+      dto.hotel_room_id
+        ? (async () => {
+            const foundRoom = await this.prisma.hotelRoom.findUnique({
+              where: { id: dto.hotel_room_id },
+              include: {
+                hotel: {
+                  include: {
+                    translations: {
+                      where: { language: 'en' },
+                      select: { name: true },
+                    },
+                  },
+                },
+              },
+            });
+            if (foundRoom) return foundRoom;
+            if (typeof this.prisma.hotelRoom.findFirst === 'function') {
+              return this.prisma.hotelRoom.findFirst({
+                where: { hotelId: dto.hotel_room_id, isActive: true },
+                include: {
+                  hotel: {
+                    include: {
+                      translations: {
+                        where: { language: 'en' },
+                        select: { name: true },
+                      },
+                    },
+                  },
+                },
+                orderBy: { priceUsd: 'asc' },
+              });
+            }
+            return null;
+          })()
+        : Promise.resolve(null),
+      dto.guide_id
+        ? this.prisma.guide.findUnique({ where: { id: dto.guide_id } })
+        : Promise.resolve(null),
+      dto.vehicle_id
+        ? this.prisma.transportationVehicle.findUnique({
+            where: { id: dto.vehicle_id },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    if (dto.hotel_room_id && !room) {
+      throw new NotFoundException({
+        code: ErrorCode.AI_TRIP_COMPONENT_NOT_FOUND,
+        message: 'Hotel room not found',
+      });
+    }
+    if (dto.guide_id && !guide) {
+      throw new NotFoundException({
+        code: ErrorCode.AI_TRIP_COMPONENT_NOT_FOUND,
+        message: 'Guide not found',
+      });
+    }
+    if (dto.vehicle_id && !vehicle) {
+      throw new NotFoundException({
+        code: ErrorCode.AI_TRIP_COMPONENT_NOT_FOUND,
+        message: 'Vehicle not found',
+      });
+    }
+
+    // Guide has no name column; resolve display name from the linked user.
+    let guideName: string | null = null;
+    if (guide) {
+      const guideUser = await this.prisma.user.findUnique({
+        where: { id: guide.userId },
+        select: { fullName: true },
+      });
+      guideName = guideUser?.fullName ?? null;
+    }
+
+    // Per-day components are priced as unit x duration (nights ≈ duration days).
+    const items: {
+      type: 'hotel' | 'guide' | 'transport';
+      name: string;
+      unit_price_usd: number;
+      quantity: number;
+      subtotal_usd: number;
+    }[] = [];
+
+    if (room) {
+      const unit = Number(room.priceUsd);
+      items.push({
+        type: 'hotel',
+        name: room.hotel.translations[0]?.name ?? room.roomType,
+        unit_price_usd: unit,
+        quantity: durationDays,
+        subtotal_usd: round2(unit * durationDays),
+      });
+    }
+    if (guide) {
+      const unit = Number(guide.pricePerDayUsd);
+      items.push({
+        type: 'guide',
+        name: guideName ?? 'Tour Guide',
+        unit_price_usd: unit,
+        quantity: durationDays,
+        subtotal_usd: round2(unit * durationDays),
+      });
+    }
+    if (vehicle) {
+      const unit = Number(vehicle.priceUsd);
+      items.push({
+        type: 'transport',
+        name: vehicle.name,
+        unit_price_usd: unit,
+        quantity: durationDays,
+        subtotal_usd: round2(unit * durationDays),
+      });
+    }
+
+    const extrasOut = extras.map((e) => ({
+      name: e.name,
+      description: e.description ?? null,
+      unit_price_usd: e.unit_price_usd,
+      quantity: e.quantity,
+      subtotal_usd: round2(e.unit_price_usd * e.quantity),
+    }));
+
+    const totalUsd = round2(
+      items.reduce((s, i) => s + i.subtotal_usd, 0) +
+        extrasOut.reduce((s, e) => s + e.subtotal_usd, 0),
+    );
+
+    const trip = await this.prisma.trip.create({
+      data: {
+        category: 'custom',
+        durationDays,
+        basePriceUsd: totalUsd,
+        maxCapacity: 10,
+        isPublished: true, // published so /v1/trips/:id renders the bookable card
+        extras: extrasOut,
+        ...(guide ? { guides: { connect: { id: guide.id } } } : {}),
+        translations: {
+          create: {
+            language: 'en',
+            title: dto.title,
+            description: dto.description ?? undefined,
+          },
+        },
+      },
+    });
+
+    return {
+      id: trip.id,
+      title: dto.title,
+      description: dto.description ?? null,
+      duration_days: durationDays,
+      total_usd: totalUsd,
+      items,
+      extras: extrasOut,
+      ...(dto.start_date ? { start_date: dto.start_date } : {}),
+    };
   }
 
   async checkAvailability(dto: CheckAvailabilityDto) {
@@ -278,40 +511,83 @@ export class AiToolsService {
         | 'hotel_room'
         | 'tour_guide'
         | 'transportation' = 'trip_package';
+      let resolvedItemId = dto.item_id;
 
       if (dto.item_type === 'trip') {
         const trip = await tx.trip.findUnique({ where: { id: dto.item_id } });
         if (!trip) throw new NotFoundException('Trip not found');
         // Atomic availability check
         const booked = await tx.bookingItem.count({
-          where: { tripId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+          where: {
+            tripId: dto.item_id,
+            startDate: { lte: travelDate },
+            endDate: { gte: travelDate },
+            booking: {
+              status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            },
+          },
         });
-        if (booked >= trip.maxCapacity) throw new Error('Trip is fully booked for this date');
+        if (booked >= trip.maxCapacity)
+          throw new Error('Trip is fully booked for this date');
         unitPrice = Number(trip.basePriceUsd);
         bookingType = 'trip_package';
       } else if (dto.item_type === 'hotel') {
-        const room = await tx.hotelRoom.findUnique({ where: { id: dto.item_id } });
+        let room = await tx.hotelRoom.findUnique({
+          where: { id: dto.item_id },
+        });
+        if (!room && typeof tx.hotelRoom.findFirst === 'function') {
+          room = await tx.hotelRoom.findFirst({
+            where: { hotelId: dto.item_id, isActive: true },
+            orderBy: { priceUsd: 'asc' },
+          });
+        }
         if (!room) throw new NotFoundException('Hotel room not found');
         const booked = await tx.bookingItem.count({
-          where: { hotelRoomId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+          where: {
+            hotelRoomId: room.id,
+            startDate: { lte: travelDate },
+            endDate: { gte: travelDate },
+            booking: {
+              status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            },
+          },
         });
-        if (booked > 0) throw new Error('Hotel room is not available for this date');
+        if (booked > 0)
+          throw new Error('Hotel room is not available for this date');
         unitPrice = Number(room.priceUsd);
         bookingType = 'hotel_room';
+        resolvedItemId = room.id;
       } else if (dto.item_type === 'transport') {
-        const vehicle = await tx.transportationVehicle.findUnique({ where: { id: dto.item_id } });
+        const vehicle = await tx.transportationVehicle.findUnique({
+          where: { id: dto.item_id },
+        });
         if (!vehicle) throw new NotFoundException('Vehicle not found');
         const booked = await tx.bookingItem.count({
-          where: { vehicleId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+          where: {
+            vehicleId: dto.item_id,
+            startDate: { lte: travelDate },
+            endDate: { gte: travelDate },
+            booking: {
+              status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            },
+          },
         });
-        if (booked >= vehicle.capacity) throw new Error('Vehicle is fully booked for this date');
+        if (booked >= vehicle.capacity)
+          throw new Error('Vehicle is fully booked for this date');
         unitPrice = Number(vehicle.priceUsd);
         bookingType = 'transportation';
       } else {
         const guide = await tx.guide.findUnique({ where: { id: dto.item_id } });
         if (!guide) throw new NotFoundException('Guide not found');
         const booked = await tx.bookingItem.count({
-          where: { guideId: dto.item_id, startDate: { lte: travelDate }, endDate: { gte: travelDate }, booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } } },
+          where: {
+            guideId: dto.item_id,
+            startDate: { lte: travelDate },
+            endDate: { gte: travelDate },
+            booking: {
+              status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            },
+          },
         });
         if (booked > 0) throw new Error('Guide is not available for this date');
         unitPrice = Number(guide.pricePerDayUsd);
@@ -336,9 +612,13 @@ export class AiToolsService {
             create: {
               bookingType,
               ...(dto.item_type === 'trip' ? { tripId: dto.item_id } : {}),
-              ...(dto.item_type === 'hotel' ? { hotelRoomId: dto.item_id } : {}),
+              ...(dto.item_type === 'hotel'
+                ? { hotelRoomId: resolvedItemId }
+                : {}),
               ...(dto.item_type === 'guide' ? { guideId: dto.item_id } : {}),
-              ...(dto.item_type === 'transport' ? { vehicleId: dto.item_id } : {}),
+              ...(dto.item_type === 'transport'
+                ? { vehicleId: dto.item_id }
+                : {}),
               startDate: travelDate,
               endDate: travelDate,
               snapshot: {},
@@ -354,58 +634,71 @@ export class AiToolsService {
         booking_id: booking.id,
         reference: booking.reference,
         amount_usd: Number(booking.totalUsd),
-        expires_at: booking.expiresAt!.toISOString(),
-        hold_expires_at: booking.expiresAt!.toISOString(),
-        methods: ['stripe', 'bakong'],
+        expires_at: booking.expiresAt.toISOString(),
+        hold_expires_at: booking.expiresAt.toISOString(),
+        // What the platform can actually charge. `bakong` was advertised here but
+        // has no implementation, so the concierge was offering travellers a
+        // payment method that could never take their money.
+        methods: ['card', 'aba_qr'],
       };
     });
   }
 
+  /**
+   * Mints a payable QR for a booking hold the agent created.
+   *
+   * Delegates to `PaymentsService` rather than building a QR here. This used to
+   * produce a pseudo-KHQR string of its own invention —
+   * `KHQR|ABA|DERLG-1|USD5.00|EXP...` — rendered through a public QR-image
+   * service. No banking app can pay that: it is not EMVCo-encoded, carries no
+   * merchant identifier and has no CRC. The concierge was handing travellers a
+   * picture of a barcode that moved no money, and writing every ABA payment to the
+   * database as `bakong`.
+   *
+   * `user_id` is required so ownership is enforced: the agent talks to this
+   * endpoint with a service key, which is not scoped to a customer, so without it
+   * anyone able to reach the agent could mint a QR against another user's booking.
+   */
   async generatePaymentQr(dto: GeneratePaymentQrDto) {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: dto.booking_id },
+    const booking = await this.prisma.booking.findFirst({
+      where: { id: dto.booking_id, userId: dto.user_id, deletedAt: null },
+      select: { id: true },
     });
     if (!booking) throw new NotFoundException('Booking not found');
 
-    const expiry = new Date(Date.now() + HOLD_TTL_MIN * 60 * 1000);
-    const provider = dto.provider.toLowerCase().includes('aba')
-      ? 'aba'
-      : 'bakong';
-    const amount = Number(booking.totalUsd);
-
-    // QR data string — for production, replace with actual KHQR generation
-    // (e.g. KHQR.io SDK or Bakong QR specification).
-    const qrData = `KHQR|${provider.toUpperCase()}|${booking.reference}|USD${amount.toFixed(2)}|EXP${expiry.getTime()}`;
-    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrData)}`;
-
-    const payment = await this.prisma.payment.create({
-      data: {
-        bookingId: booking.id,
-        userId: booking.userId,
-        provider: 'bakong', // schema only has stripe|bakong; ABA QR shares Bakong KHQR
-        amountUsd: amount,
-        currency: 'usd',
-        status: 'pending',
-        qrCodeUrl: qrImageUrl,
-        qrExpiresAt: expiry,
-      },
-    });
+    // ABA is the only KHQR provider that is actually implemented. The tool's
+    // `provider` argument still accepts "bakong" for backwards compatibility with
+    // conversations already in flight, but there is no Bakong integration to route
+    // to, so both spellings resolve to ABA rather than silently producing a QR
+    // nobody can pay.
+    const result = await this.payments.startPayment(
+      dto.user_id,
+      dto.booking_id,
+      PaymentMethod.ABA_QR,
+    );
 
     return {
-      payment_intent_id: payment.id,
-      booking_id: booking.id,
-      qr_data: qrData,
-      qr_image_url: qrImageUrl,
-      qr_url: qrImageUrl,
-      amount_usd: amount,
-      expiry: expiry.toISOString(),
-      provider,
+      payment_intent_id: result.paymentId,
+      booking_id: result.bookingId,
+      qr_data: result.qrPayload,
+      qr_image_url: result.qrImageDataUrl,
+      qr_url: result.qrImageDataUrl,
+      amount_usd: result.amountUsd,
+      expiry: result.expiresAt,
+      provider: 'aba',
     };
   }
 
-  async checkPaymentStatus(bookingId: string) {
-    const booking = await this.prisma.booking.findUnique({
-      where: { id: bookingId },
+  /**
+   * Payment status for a booking the caller owns.
+   *
+   * `userId` is part of the `where` clause rather than a post-fetch comparison,
+   * so a booking belonging to someone else is indistinguishable from one that
+   * does not exist — no "wrong owner" signal to enumerate against.
+   */
+  async checkPaymentStatus(bookingId: string, userId: string) {
+    const booking = await this.prisma.booking.findFirst({
+      where: { id: bookingId, userId },
       include: {
         payments: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
@@ -569,6 +862,17 @@ export class AiToolsService {
     const lat = parseFloat(parts[0]) || 11.5564;
     const lng = parseFloat(parts[1]) || 104.9282;
 
+    // Verify the user exists before the write so a non-existent user_id (e.g. a
+    // guest session) yields a clean 400 instead of surfacing the
+    // emergencyAlert.userId foreign-key violation as an opaque HTTP 500.
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.user_id },
+      select: { id: true },
+    });
+    if (!user) {
+      throw new BadRequestException(`User ${dto.user_id} not found`);
+    }
+
     await this.prisma.emergencyAlert.create({
       data: {
         userId: dto.user_id,
@@ -593,6 +897,177 @@ export class AiToolsService {
     if (!user) throw new NotFoundException('User not found');
     return { user_id: userId, points: user.loyaltyPoints };
   }
+
+  // -------------------------------------------------------------------------
+  // Chat archive
+  // -------------------------------------------------------------------------
+  // The agent's live conversation lives in Redis with a 7-day TTL and a 60-turn
+  // cap, so without these writes no transcript survives and every admin AI
+  // metric reads zero. The agent calls them fire-and-forget behind its circuit
+  // breaker: persistence must never block or break the chat stream.
+
+  /**
+   * Creates the session row, or refreshes it if the socket reconnected.
+   *
+   * Idempotent by `session_id`, which the agent generates and reuses across
+   * reconnects, so a repeated connect does not fork the transcript.
+   */
+  async upsertChatSession(dto: UpsertChatSessionDto) {
+    const session = await this.prisma.aIChatSession.upsert({
+      where: { id: dto.session_id },
+      create: {
+        id: dto.session_id,
+        userId: dto.user_id ?? null,
+        guestKey: dto.guest_key ?? null,
+        language: dto.language ?? 'en',
+        title: dto.title ?? null,
+      },
+      update: {
+        // A reconnect may carry a language switch, or a user id where the
+        // previous connection was anonymous. Never overwrite a known user id
+        // with null: `?? undefined` leaves the column untouched when absent.
+        userId: dto.user_id ?? undefined,
+        guestKey: dto.guest_key ?? undefined,
+        language: dto.language ?? undefined,
+        title: dto.title ?? undefined,
+        isActive: true,
+      },
+      select: { id: true, userId: true, guestKey: true, language: true },
+    });
+
+    return {
+      id: session.id,
+      user_id: session.userId,
+      guest_key: session.guestKey,
+      language: session.language,
+    };
+  }
+
+  /**
+   * Rebinds an anonymous session to a real user.
+   *
+   * Called when a guest authenticates mid-conversation, so the turns already
+   * archived under the guest handle stay attached to the same transcript and
+   * become attributable in the AI-assisted booking correlation.
+   */
+  async rebindChatSession(sessionId: string, dto: RebindChatSessionDto) {
+    await this.assertSessionExists(sessionId);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.user_id },
+      select: { id: true },
+    });
+    if (!user) {
+      throw new NotFoundException(`User ${dto.user_id} not found`);
+    }
+
+    const session = await this.prisma.aIChatSession.update({
+      where: { id: sessionId },
+      data: { userId: dto.user_id },
+      select: { id: true, userId: true },
+    });
+
+    return { id: session.id, user_id: session.userId };
+  }
+
+  /**
+   * Appends a batch of turns.
+   *
+   * `skipDuplicates` plus the [sessionId, seq] unique index is what makes the
+   * flush safe to retry: the agent only advances its `flushed_seq` on a
+   * successful response, so a timeout re-sends turns that may already have
+   * landed. Those collide on seq and are dropped instead of duplicating.
+   */
+  async appendChatMessages(sessionId: string, dto: AppendChatMessagesDto) {
+    await this.assertSessionExists(sessionId);
+
+    if (dto.messages.length === 0) {
+      return { inserted: 0, received: 0 };
+    }
+
+    const rows = dto.messages.map((m) => ({
+      sessionId,
+      seq: m.seq,
+      role: m.role,
+      content: m.content,
+      messageType: m.message_type ?? 'text',
+      metadata: (m.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
+    }));
+
+    const latest = dto.messages.reduce(
+      (max, m) => (m.seq > max.seq ? m : max),
+      dto.messages[0],
+    );
+
+    // One transaction so `last_message_at` can never advance for a batch that
+    // failed to insert — the admin session list orders on that column.
+    const [created] = await this.prisma.$transaction([
+      this.prisma.aIChatMessage.createMany({
+        data: rows,
+        skipDuplicates: true,
+      }),
+      this.prisma.aIChatSession.update({
+        where: { id: sessionId },
+        data: { lastMessageAt: new Date() },
+        select: { id: true },
+      }),
+    ]);
+
+    return {
+      inserted: created.count,
+      received: dto.messages.length,
+      last_seq: latest.seq,
+    };
+  }
+
+  /**
+   * Records a thumbs up/down against one archived turn.
+   *
+   * Addressed by (session, seq) rather than the row's own uuid because the agent
+   * knows the ordinal it assigned; it never sees the database id.
+   */
+  async setChatMessageFeedback(
+    sessionId: string,
+    seq: number,
+    dto: ChatMessageFeedbackDto,
+  ) {
+    const message = await this.prisma.aIChatMessage.findUnique({
+      where: { sessionId_seq: { sessionId, seq } },
+      select: { id: true },
+    });
+
+    if (!message) {
+      throw new NotFoundException(
+        `Message seq ${seq} not found for session ${sessionId}`,
+      );
+    }
+
+    const updated = await this.prisma.aIChatMessage.update({
+      where: { id: message.id },
+      data: { helpful: dto.helpful },
+      select: { id: true, seq: true, helpful: true },
+    });
+
+    return {
+      id: updated.id,
+      seq: updated.seq,
+      helpful: updated.helpful,
+    };
+  }
+
+  private async assertSessionExists(sessionId: string): Promise<void> {
+    const session = await this.prisma.aIChatSession.findUnique({
+      where: { id: sessionId },
+      select: { id: true },
+    });
+    if (!session) {
+      throw new NotFoundException(`Chat session ${sessionId} not found`);
+    }
+  }
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 function monthNameToIndex(month: string): number | null {

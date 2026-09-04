@@ -1,0 +1,456 @@
+@import 'tailwindcss';
+
+/*
+ * DerLg design tokens — clean high-contrast product UI.
+ *
+ * Principles enforced here:
+ *  - Neutral zinc base, ONE vivid accent reserved for primary action + active state.
+ *  - Hairline 1px borders carry structure; shadows are minimal.
+ *  - 4px spacing grid, radius 8/12, 16px base type at 1.5 line-height.
+ *  - Motion is feedback only: 150-250ms ease-out, disabled under reduced-motion.
+ */
+
+/* Tailwind v4: make `dark:` utilities follow the .dark class (our stored
+ * user preference), not prefers-color-scheme (the v4 default). Without this,
+ * any added `dark:` utility would silently diverge from our var(--…) system. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Neutral scale (zinc) */
+  --color-neutral-0: oklch(100% 0 0);
+  --color-neutral-50: oklch(98.5% 0.001 286);
+  --color-neutral-100: oklch(96.7% 0.002 286);
+  --color-neutral-200: oklch(92% 0.004 286);
+  --color-neutral-300: oklch(87.1% 0.006 286);
+  --color-neutral-400: oklch(70.5% 0.011 286);
+  --color-neutral-500: oklch(55.2% 0.014 286);
+  --color-neutral-600: oklch(44.2% 0.013 286);
+  --color-neutral-700: oklch(37% 0.011 286);
+  --color-neutral-800: oklch(27.4% 0.008 286);
+  --color-neutral-900: oklch(21% 0.006 286);
+  --color-neutral-950: oklch(14.1% 0.005 286);
+
+  /* Single accent — Mekong teal, evokes Cambodia's rivers and jade-green
+     landscapes. Reserved for primary action + active state only. */
+  --color-accent-50: oklch(97% 0.015 185);
+  --color-accent-100: oklch(93.5% 0.035 185);
+  --color-accent-200: oklch(87% 0.065 185);
+  --color-accent-300: oklch(79% 0.095 185);
+  --color-accent-400: oklch(71% 0.12 185);
+  --color-accent-500: oklch(62% 0.14 185);
+  --color-accent-600: oklch(53% 0.145 185);
+  --color-accent-700: oklch(45% 0.13 185);
+  --color-accent-800: oklch(38% 0.105 185);
+  --color-accent-900: oklch(32% 0.08 185);
+
+  /* Status colors */
+  --color-success-500: oklch(60% 0.15 155);
+  --color-success-600: oklch(52% 0.14 155);
+  --color-warning-500: oklch(75% 0.16 75);
+  --color-warning-600: oklch(66% 0.15 75);
+  --color-danger-500: oklch(58% 0.21 20);
+  --color-danger-600: oklch(50% 0.2 20);
+  --color-info-500: oklch(60% 0.15 250);
+  /* Radius: 8 / 12 only, plus full for pills */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Motion — feedback only */
+  --ease-out-quick: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 250ms;
+
+  /* Typography */
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, 'Noto Sans SC', 'Noto Sans Khmer', sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, 'SFMono-Regular', monospace;
+}
+
+/*
+ * Semantic surface tokens. Every component references these, never raw scale
+ * values, so light/dark and future theming stay a single-file change.
+ */
+:root {
+  --canvas: var(--color-neutral-0);
+  --surface: var(--color-neutral-0);
+  --surface-raised: var(--color-neutral-50);
+  --surface-sunken: var(--color-neutral-100);
+  --surface-hover: var(--color-neutral-100);
+
+  --text-primary: var(--color-neutral-950);
+  --text-secondary: var(--color-neutral-600);
+  /* Darker than neutral-500 so small text still clears 4.5:1 on the sunken
+     surface (the footer), not just on the white canvas. */
+  --text-tertiary: oklch(48% 0.013 286);
+  --text-inverse: var(--color-neutral-0);
+
+  --border-subtle: var(--color-neutral-200);
+  --border-default: var(--color-neutral-300);
+  --border-strong: var(--color-neutral-400);
+
+  --accent: var(--color-accent-600);
+  --accent-hover: var(--color-accent-700);
+  --accent-subtle: var(--color-accent-50);
+  --accent-subtle-text: var(--color-accent-800);
+  --accent-text: var(--color-neutral-0);
+
+  /* Error/inline-danger text sits on the canvas, so it needs its own shade that
+     clears 4.5:1 in both themes rather than reusing the mid-tone danger-500. */
+  --text-danger: oklch(45% 0.19 20);
+
+  --focus-ring: var(--color-accent-500);
+
+  /* Danger action pair — theme-aware solid danger button. The text token flips
+     per theme so contrast holds on the lighter dark-mode danger background. */
+  --danger: var(--color-danger-600);
+  --danger-hover: var(--color-danger-500);
+  --danger-text: var(--color-neutral-0);
+
+  /*
+   * Tone pairs for badges and inline status. Each background/foreground pair is
+   * verified against WCAG AA 4.5:1 by the axe sweep in e2e/design-system.spec.ts,
+   * which is why the foreground is a deliberately dark shade rather than the
+   * mid-tone 500/600 used for icons on the plain surface.
+   */
+  --tone-success-bg: color-mix(in oklch, var(--color-success-500) 13%, white);
+  --tone-success-text: oklch(38% 0.1 155);
+  --tone-success-border: color-mix(in oklch, var(--color-success-500) 40%, white);
+  --tone-warning-bg: color-mix(in oklch, var(--color-warning-500) 16%, white);
+  --tone-warning-text: oklch(38% 0.08 75);
+  --tone-warning-border: color-mix(in oklch, var(--color-warning-500) 40%, white);
+  --tone-danger-bg: color-mix(in oklch, var(--color-danger-500) 12%, white);
+  --tone-danger-text: oklch(40% 0.16 20);
+  --tone-danger-border: color-mix(in oklch, var(--color-danger-500) 40%, white);
+  --tone-info-bg: color-mix(in oklch, var(--color-info-500) 13%, white);
+  --tone-info-text: oklch(40% 0.14 250);
+  --tone-info-border: color-mix(in oklch, var(--color-info-500) 40%, white);
+
+  color-scheme: light;
+}
+
+.dark {
+  --canvas: var(--color-neutral-950);
+  --surface: var(--color-neutral-900);
+  --surface-raised: var(--color-neutral-800);
+  --surface-sunken: var(--color-neutral-950);
+  --surface-hover: var(--color-neutral-800);
+
+  --text-primary: var(--color-neutral-50);
+  --text-secondary: var(--color-neutral-300);
+  --text-tertiary: var(--color-neutral-400);
+  --text-inverse: var(--color-neutral-950);
+
+  --border-subtle: var(--color-neutral-800);
+  --border-default: var(--color-neutral-700);
+  --border-strong: var(--color-neutral-600);
+
+  --accent: var(--color-accent-500);
+  --accent-hover: var(--color-accent-400);
+  --accent-subtle: oklch(24% 0.05 185);
+  --accent-subtle-text: oklch(87% 0.08 185);
+  --accent-text: var(--color-neutral-950);
+
+  --text-danger: oklch(78% 0.14 20);
+
+  --focus-ring: var(--color-accent-400);
+
+  /* Dark mode: lighter danger background needs white text for contrast
+     (near-black text on danger-500 red falls below 4.5:1). */
+  --danger: var(--color-danger-500);
+  --danger-hover: var(--color-danger-400);
+  --danger-text: var(--color-neutral-0);
+
+  /* Dark mode inverts each pair: a dark tinted plate with light text on it. */
+  --tone-success-bg: color-mix(in oklch, var(--color-success-500) 22%, var(--color-neutral-950));
+  --tone-success-text: oklch(86% 0.13 155);
+  --tone-success-border: color-mix(in oklch, var(--color-success-500) 40%, var(--color-neutral-950));
+  --tone-warning-bg: color-mix(in oklch, var(--color-warning-500) 20%, var(--color-neutral-950));
+  --tone-warning-text: oklch(88% 0.13 75);
+  --tone-warning-border: color-mix(in oklch, var(--color-warning-500) 40%, var(--color-neutral-950));
+  --tone-danger-bg: color-mix(in oklch, var(--color-danger-500) 22%, var(--color-neutral-950));
+  --tone-danger-text: oklch(85% 0.1 20);
+  --tone-danger-border: color-mix(in oklch, var(--color-danger-500) 40%, var(--color-neutral-950));
+  --tone-info-bg: color-mix(in oklch, var(--color-info-500) 22%, var(--color-neutral-950));
+  --tone-info-text: oklch(86% 0.1 250);
+  --tone-info-border: color-mix(in oklch, var(--color-info-500) 40%, var(--color-neutral-950));
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Visible, consistent focus for keyboard users on every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Khmer and Chinese need slightly looser leading to stay legible. */
+  :lang(km) body {
+    line-height: 1.75;
+  }
+
+  :lang(zh) body {
+    line-height: 1.65;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Horizontal snap rail — the mobile alternative to a grid. */
+  .snap-rail {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .snap-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .snap-rail > * {
+    scroll-snap-align: start;
+    flex: 0 0 auto;
+  }
+
+  /* Screen-reader-only text that becomes visible on focus (skip links). */
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
+/*
+ * .md-prose — design-system-aware Markdown rendering for agent chat replies.
+ *
+ * react-markdown emits standard semantic elements (h1-h6, p, ul, ol, li, strong,
+ * em, a, code, pre, blockquote, table, hr). This block sizes and colours every
+ * one from the app's CSS variables so Markdown output reads like a first-class
+ * part of the UI instead of a raw browser-default HTML dump. Spacing uses a
+ * single `--md-spacing` custom property so the whole block tightens in the
+ * compact chat bubble without fighting the surrounding layout.
+ *
+ * Light and dark are handled by the variables already defined on `:root` /
+ * `.dark` — no per-theme overrides needed.
+ */
+@layer components {
+  .md-prose {
+    --md-spacing: 0.75rem;
+    --md-code-bg: color-mix(in oklch, var(--color-neutral-950) 4%, transparent);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .dark .md-prose {
+    --md-code-bg: color-mix(in oklch, var(--color-neutral-0) 8%, transparent);
+  }
+
+  .md-prose > * + * {
+    margin-top: var(--md-spacing);
+  }
+
+  .md-prose h1,
+  .md-prose h2,
+  .md-prose h3,
+  .md-prose h4 {
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .md-prose h1 { font-size: 1.15rem; }
+  .md-prose h2 { font-size: 1.05rem; }
+  .md-prose h3 { font-size: 1rem; }
+  .md-prose h4 { font-size: 0.95rem; }
+
+  .md-prose p {
+    margin: 0;
+  }
+
+  .md-prose strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .md-prose em {
+    font-style: italic;
+  }
+
+  .md-prose ul,
+  .md-prose ol {
+    padding-left: 1.25rem;
+    margin: 0;
+  }
+
+  .md-prose ul {
+    list-style-type: disc;
+  }
+
+  .md-prose ol {
+    list-style-type: decimal;
+  }
+
+  .md-prose li {
+    margin-top: 0.25rem;
+  }
+
+  .md-prose li:first-child {
+    margin-top: 0;
+  }
+
+  .md-prose li > ul,
+  .md-prose li > ol {
+    margin-top: 0.25rem;
+  }
+
+  .md-prose blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 0.75rem;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  .md-prose hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: var(--md-spacing) 0;
+  }
+
+  .md-prose a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .md-prose a:hover {
+    color: var(--accent-hover);
+  }
+
+  .md-prose code {
+    background: var(--md-code-bg);
+    border-radius: var(--radius-sm);
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    color: var(--accent);
+  }
+
+  .md-prose pre {
+    background: var(--md-code-bg);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    overflow-x: auto;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .md-prose pre code {
+    background: none;
+    padding: 0;
+    color: var(--text-primary);
+    font-size: 0.8em;
+  }
+
+  .md-prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85em;
+  }
+
+  .md-prose th,
+  .md-prose td {
+    border: 1px solid var(--border-subtle);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+  }
+
+  .md-prose th {
+    background: var(--surface-sunken);
+    font-weight: 600;
+  }
+
+  .md-prose del {
+    color: var(--text-tertiary);
+  }
+}
+
+/*
+ * Leaflet dark-mode overrides.
+ *
+ * The imported leaflet.css + markercluster CSS are light-only. In dark mode we
+ * invert the tile pane (zero external dependency) and recolour the chrome so the
+ * map isn't a blinding bright rectangle inside a dark UI.
+ */
+.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) saturate(0.6);
+}
+
+.dark .leaflet-container {
+  background: var(--canvas);
+}
+
+.dark .leaflet-control-attribution,
+.dark .leaflet-control-zoom a {
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+}
+
+.dark .leaflet-control-attribution a {
+  color: var(--accent);
+}
+
+/* Marker clusters: recolour the light-green default circles. */
+.dark .marker-cluster-small,
+.dark .marker-cluster-medium,
+.dark .marker-cluster-large {
+  background-color: color-mix(in oklch, var(--accent) 30%, transparent);
+}
+
+.dark .marker-cluster-small div,
+.dark .marker-cluster-medium div,
+.dark .marker-cluster-large div {
+  background-color: var(--accent);
+  color: var(--accent-text);
+}

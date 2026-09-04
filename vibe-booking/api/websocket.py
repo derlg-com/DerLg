@@ -7,6 +7,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 from agent.session.state import ConversationState
 from agent.session.manager import SessionManager
+from agent.session import archive
 from agent.core import run_agent_streaming
 from agent.prompts.templates import WELCOME_PROMPTS
 from agent.backend_client import get_backend_client
@@ -15,6 +16,31 @@ from utils.redis import check_rate_limit
 
 active_connections: dict[str, WebSocket] = {}
 session_manager = SessionManager()
+
+
+def _archive_in_background(coro, *, session_id: str, op: str) -> None:
+    """Run an archive call detached from the request path.
+
+    Persistence must never delay a token or break a conversation, so these are
+    fire-and-forget. `archive` already swallows its own errors; the done-callback
+    is the backstop for anything unexpected, so a failure surfaces in the log
+    instead of as an un-retrieved task exception.
+    """
+    task = asyncio.create_task(coro)
+
+    def _log_failure(finished: asyncio.Task) -> None:
+        if finished.cancelled():
+            return
+        exc = finished.exception()
+        if exc is not None:
+            logger.error(
+                "chat_archive_task_failed",
+                session_id=session_id,
+                op=op,
+                error=str(exc),
+            )
+
+    task.add_done_callback(_log_failure)
 
 
 async def _safe_close(websocket: WebSocket, code: int = 1000) -> None:
@@ -138,7 +164,27 @@ async def _stream_agent_response(
                 await websocket.send_json({"type": "typing_end"})
                 if event.get("requires_payment"):
                     await websocket.send_json({"type": "requires_payment", **event["requires_payment"]})
-                agent_msg: dict = {"type": "agent_message", "text": event["text"]}
+
+                # Server-minted id for this reply. The client previously had to
+                # invent its own, which meant a `feedback` frame named something
+                # the server had never heard of and could not store.
+                message_id = str(uuid.uuid4())
+                payloads = event.get("content_payloads") or (
+                    [event["content_payload"]] if event.get("content_payload") else None
+                )
+                archive.enqueue(
+                    session,
+                    "assistant",
+                    event["text"],
+                    payloads=payloads,
+                    message_id=message_id,
+                )
+
+                agent_msg: dict = {
+                    "type": "agent_message",
+                    "message_id": message_id,
+                    "text": event["text"],
+                }
                 if event.get("content_payload"):
                     agent_msg["content_payload"] = event["content_payload"]
                 if event.get("content_payloads"):
@@ -146,10 +192,25 @@ async def _stream_agent_response(
                 if event.get("suggestions"):
                     agent_msg["suggestions"] = event["suggestions"]
                 await websocket.send_json(agent_msg)
+
+                if archive.should_flush(session):
+                    _archive_in_background(
+                        archive.flush(session),
+                        session_id=session.session_id,
+                        op="flush",
+                    )
     except Exception as exc:
         logger.error("agent_error", session_id=session.session_id, error=str(exc))
         await websocket.send_json({"type": "typing_end"})
-        await websocket.send_json({"type": "error", "message": "Something went wrong. Please try again."})
+        # P6a: structured, machine-readable error frame (the frontend surfaces
+        # the message and offers a retry when `retryable` is true) instead of
+        # the old hardcoded catch-all string.
+        await websocket.send_json({
+            "type": "error",
+            "code": "AGENT_INTERNAL_ERROR",
+            "message": "Something went wrong while processing your message. Please try again.",
+            "retryable": True,
+        })
 
 
 async def websocket_endpoint(websocket: WebSocket) -> None:
@@ -200,12 +261,21 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     # session to the real user UUID and unlocks booking; otherwise stay a guest.
     msg_token = str(auth.get("token", "")).strip()
     verified_id = user_id_from_jwt or (_verify_jwt(msg_token) if msg_token else None)
+    was_authenticated = session.is_authenticated
+    previous_user_id = session.user_id
     if verified_id:
         session.user_id = verified_id
         session.is_authenticated = True
     else:
         session.user_id = user_id
         session.is_authenticated = False
+
+    #: A guest who signed in between connections needs the already-archived
+    #: transcript reattached, otherwise those turns stay anonymous and never
+    #: correlate to the booking they produced.
+    needs_rebind = session.is_authenticated and (
+        not was_authenticated or previous_user_id != session.user_id
+    )
 
     # Rate-limit on a key the client cannot freely rotate: the verified user id
     # when authenticated, else the client IP for guests (H2). Never the
@@ -226,6 +296,22 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         "session_id": session_id,
         "suggested_prompts": WELCOME_PROMPTS.get(session.preferred_language, WELCOME_PROMPTS["EN"]),
     })
+
+    # Create the archive row up front so the session is visible to admin AI
+    # monitoring from its first turn, not only once messages flush. Idempotent,
+    # so a reconnect refreshes rather than forks. Detached: a slow or down
+    # backend must not delay the welcome frame.
+    _archive_in_background(
+        archive.create_session(session),
+        session_id=session_id,
+        op="create_session",
+    )
+    if needs_rebind:
+        _archive_in_background(
+            archive.rebind_user(session),
+            session_id=session_id,
+            op="rebind_user",
+        )
 
     try:
         async for raw_msg in websocket.iter_text():
@@ -259,18 +345,29 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 # concierge tailor its answer to the page the user launched from.
                 page_context = _sanitize_input(str(msg.get("context", "")))[:80].strip()
                 agent_input = f"[Context: viewing {page_context}] {content}" if page_context else content
+                # Archive what the user actually typed, not the context-decorated
+                # prompt the model sees.
+                archive.enqueue(session, "user", content)
                 await _stream_agent_response(websocket, session, agent_input)
 
             elif msg.get("type") == "feedback":
-                # "Was this helpful?" — log the thumbs up/down for the message.
+                # "Was this helpful?" — log the thumbs up/down for the message and
+                # persist it against the archived turn. Previously this was only
+                # logged, so the vote was unrecoverable.
                 helpful = msg.get("helpful")
                 if not isinstance(helpful, bool):
                     continue
+                message_id = str(msg.get("message_id", ""))
                 logger.info(
                     "chat_feedback",
                     session_id=session_id,
-                    message_id=str(msg.get("message_id", "")),
+                    message_id=message_id,
                     helpful=helpful,
+                )
+                _archive_in_background(
+                    archive.record_feedback(session, message_id, helpful),
+                    session_id=session_id,
+                    op="feedback",
                 )
 
             elif msg.get("type") == "user_action":
@@ -294,7 +391,11 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 status_resp = await get_backend_client().request(
                     "GET", "ai-tools/payments/status",
                     language=session.preferred_language.lower(),
-                    params={"booking_id": booking_id},
+                    # user_id is REQUIRED by CheckPaymentStatusDto and is what the
+                    # backend scopes the lookup by, so a booking that is not this
+                    # user's simply is not found. Omitting it fails validation and
+                    # every verification would answer "not confirmed yet".
+                    params={"booking_id": booking_id, "user_id": session.user_id},
                 )
                 pay_status = str((status_resp.get("data") or {}).get("status", "")).lower()
                 if not status_resp.get("success") or pay_status != "succeeded":
@@ -313,4 +414,10 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     finally:
         active_connections.pop(session_id, None)
         if session:
+            # Final flush before the Redis save: this is the last chance to
+            # archive turns queued since the previous flush. Awaited rather than
+            # detached — the connection is already closing, so there is nothing
+            # left to block, and a detached task could be cancelled before it
+            # ran. `flush` never raises, so it cannot mask a disconnect.
+            await archive.flush(session)
             await session_manager.save(session)

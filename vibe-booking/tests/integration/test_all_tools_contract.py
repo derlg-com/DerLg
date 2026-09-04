@@ -33,10 +33,14 @@ BACKEND_ROUTES = {
     "get_user_loyalty":       ("GET",  "ai-tools/loyalty",            set()),  # user_id server-injected
     "get_trip_detail":        ("GET",  "trips/{trip_id}",             {"trip_id"}),
     "get_hotel_detail":       ("GET",  "hotels/{hotel_id}",           {"hotel_id"}),
+    "create_trip":            ("POST", "ai-tools/trips",              {"title", "duration_days"}),
 }
 
 # user_id is injected server-side for these, so it must NOT be a model-required param.
-_SERVER_INJECTED = {"create_booking_hold", "send_sos_alert", "get_user_loyalty"}
+# check_payment_status joined this set: the backend CheckPaymentStatusDto now
+# requires user_id (ownership scoping) and the agent injects it from the verified
+# session, exactly like get_user_loyalty — the model still supplies only booking_id.
+_SERVER_INJECTED = {"create_booking_hold", "send_sos_alert", "get_user_loyalty", "check_payment_status"}
 
 
 def _tool(name: str) -> dict:
@@ -181,7 +185,13 @@ def test_every_tool_dispatches_to_its_backend_route():
     kwarg (json for POST, params for GET), and injects user_id where required."""
     from agent.core import _execute_tool
 
-    session = ConversationState(session_id="s1", user_id="real-uuid", preferred_language="EN")
+    # Authenticated session: user-scoped POST tools (incl. the now safety-special-
+    # cased send_sos_alert, which only performs its best-effort backend write when
+    # authenticated — guests are served locally; see test_sos_safety.py) dispatch
+    # and inject user_id. Other tools don't branch on auth in _execute_tool.
+    session = ConversationState(
+        session_id="s1", user_id="real-uuid", preferred_language="EN", is_authenticated=True
+    )
     mock_backend = AsyncMock()
     mock_backend.request = AsyncMock(return_value={"success": True, "data": {}})
 

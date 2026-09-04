@@ -1,0 +1,35 @@
+import { DriverStatus } from '@prisma/client';
+
+export class DriverResponseDto {
+  id: string;
+  driverName: string;
+  driverId: string;
+  telegramId: bigint | null;
+  phone: string;
+  vehicleId: string | null;
+  status: DriverStatus;
+  preferredLanguage: string;
+  lastStatusUpdate: Date;
+  lastTelegramActivity: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  vehicle?: {
+    id: string;
+    name: string;
+    vehicleType: string;
+    capacity: number;
+    licensePlate: string | null;
+  } | null;
+  assignmentCount: number;
+  assignments?: Array<{
+    id: string;
+    bookingId: string;
+    status: string;
+    assignmentTimestamp: Date;
+    responseTimestamp: Date | null;
+    tripStartTime: Date | null;
+    completionTimestamp: Date | null;
+    rejectionReason: string | null;
+    telegramNotified: boolean;
+  }>;
+}

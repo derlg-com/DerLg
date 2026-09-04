@@ -30,16 +30,17 @@ def test_prompt_language_instruction(lang, expected):
 
 
 def test_prompt_is_info_first_concierge():
-    """The concierge must answer ANY Cambodia travel question info-first, not act
-    as a booking funnel that interrogates the user toward a sale."""
+    """The concierge must answer general Cambodia travel questions from knowledge,
+    but ALWAYS search with tools when the user wants to see or book real options."""
     session = ConversationState(session_id="x")
     prompt = build_system_prompt(session)
-    # Info-first identity
+    # Identity
     assert "concierge" in prompt.lower()
-    assert "NOT a booking funnel" in prompt
-    # Covers broad travel topics, not just bookings
-    for topic in ("Visa", "Weather", "Culture", "Food", "Safety", "Itinerar"):
-        assert topic in prompt, f"prompt should mention {topic}"
+    # Tool-calling is the default for seeing/booking options
+    assert "search tool" in prompt.lower()
+    # Covers broad travel topics (mentioned in knowledge-vs-tool guidance)
+    for topic in ("visa", "food", "safe", "cultural", "weather"):
+        assert topic in prompt.lower(), f"prompt should mention {topic}"
     # Booking is de-emphasized — only on explicit confirmation
     assert "explicit user confirmation" in prompt
 

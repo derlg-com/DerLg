@@ -37,9 +37,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     }
 
-    this.logger.error(
-      exception instanceof Error ? exception.stack : String(exception),
-    );
+    // Severity follows the status class. Logging a 429 or a 400 at ERROR with a
+    // full stack floods the log exactly when it matters most: under a brute-force
+    // or scraping run, every rejection the guard makes would emit a stack trace
+    // and bury the genuine 5xx signal. Client errors are expected outcomes, so
+    // they are recorded at WARN as a single line; only 5xx carries a stack.
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+    } else {
+      this.logger.warn(`${status} ${code}: ${message}`);
+    }
 
     response.status(status).json({
       success: false,

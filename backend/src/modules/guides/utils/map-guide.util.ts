@@ -1,6 +1,15 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma, TripCategory } from '@prisma/client';
 import type { GuideSummary } from '../interfaces/guide-summary.interface';
 import type { GuideDetail } from '../interfaces/guide-detail.interface';
+
+export type GuideTripRow = {
+  id: string;
+  durationDays: number;
+  basePriceUsd: Prisma.Decimal | number;
+  coverImage: string | null;
+  category: TripCategory;
+  translations: { title: string }[];
+};
 
 export type GuideRow = {
   id: string;
@@ -12,11 +21,24 @@ export type GuideRow = {
   provinces: string[];
   isVerified: boolean;
   languages: { language: string }[];
-  specialities: { speciality: string }[];
+  specialties: { specialty: string }[];
+  trips: GuideTripRow[];
 };
 
 function toNum(val: Prisma.Decimal | number): number {
   return typeof val === 'number' ? val : val.toNumber();
+}
+
+function mapPackages(row: GuideRow): GuideSummary['packages'] {
+  return row.trips.map((t) => ({
+    id: t.id,
+    name: t.translations[0]?.title ?? null,
+    coverImageUrl: t.coverImage ?? null,
+    durationDays: t.durationDays,
+    priceUsd: toNum(t.basePriceUsd),
+    category: t.category,
+    location: null, // Trip has no structured location column yet
+  }));
 }
 
 export function mapGuideSummary(row: GuideRow): GuideSummary {
@@ -27,7 +49,8 @@ export function mapGuideSummary(row: GuideRow): GuideSummary {
     province: row.province,
     provinces: row.provinces,
     languages: row.languages.map((l) => l.language),
-    specialities: row.specialities.map((s) => s.speciality),
+    specialties: row.specialties.map((s) => s.specialty),
+    packages: mapPackages(row),
     isVerified: row.isVerified,
   };
 }
@@ -42,7 +65,8 @@ export function mapGuideDetail(row: GuideRow): GuideDetail {
     province: row.province,
     provinces: row.provinces,
     languages: row.languages.map((l) => l.language),
-    specialities: row.specialities.map((s) => s.speciality),
+    specialties: row.specialties.map((s) => s.specialty),
+    packages: mapPackages(row),
     isVerified: row.isVerified,
   };
 }

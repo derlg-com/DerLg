@@ -5,6 +5,9 @@ const D = (n: string) => new Prisma.Decimal(n);
 
 function tripBookingRow(over: Partial<Record<string, unknown>> = {}) {
   const start = new Date('2026-10-01T00:00:00Z');
+  const { snapshotOverride, ...rowOver } = over as {
+    snapshotOverride?: Record<string, unknown>;
+  } & Record<string, unknown>;
   return {
     id: 'booking-1',
     userId: 'user-1',
@@ -39,14 +42,14 @@ function tripBookingRow(over: Partial<Record<string, unknown>> = {}) {
         quantity: 2,
         unitPriceUsd: D('150'),
         subtotalUsd: D('300'),
-        snapshot: {
+        snapshot: snapshotOverride ?? {
           name: 'Angkor Highlights',
           coverImageUrl: 'https://img/x.jpg',
           specialRequests: 'Vegetarian meals',
         },
       },
     ],
-    ...over,
+    ...rowOver,
   } as never;
 }
 
@@ -63,6 +66,32 @@ describe('mapBooking', () => {
     expect(dto.refundAmountUsd).toBeNull();
   });
 
+  it('returns null location when no location-ish snapshot key is present', () => {
+    expect(mapBooking(tripBookingRow()).location).toBeNull();
+  });
+
+  it('derives location from meetingPoint (trip), pickupLocation (transport) and province (guide)', () => {
+    const withSnapshot = (snapshot: Record<string, unknown>) =>
+      mapBooking(tripBookingRow({ snapshotOverride: snapshot })).location;
+
+    expect(
+      withSnapshot({ name: 'Trip', meetingPoint: 'Pub Street, Siem Reap' }),
+    ).toBe('Pub Street, Siem Reap');
+    expect(
+      withSnapshot({ name: 'Van', pickupLocation: 'Siem Reap Airport' }),
+    ).toBe('Siem Reap Airport');
+    expect(withSnapshot({ name: 'Guide', province: 'Kampot' })).toBe('Kampot');
+    // pickupLocation wins over the other keys when several are present.
+    expect(
+      withSnapshot({
+        name: 'X',
+        pickupLocation: 'A',
+        meetingPoint: 'B',
+        province: 'C',
+      }),
+    ).toBe('A');
+  });
+
   it('computes refundAmountUsd from refundPercentage when cancelled', () => {
     const dto = mapBooking(
       tripBookingRow({
@@ -77,9 +106,7 @@ describe('mapBooking', () => {
   });
 
   it('derives type from the item bookingType when singleResourceKind is null', () => {
-    const dto = mapBooking(
-      tripBookingRow({ singleResourceKind: null }),
-    );
+    const dto = mapBooking(tripBookingRow({ singleResourceKind: null }));
     expect(dto.type).toBe('trip');
   });
 });

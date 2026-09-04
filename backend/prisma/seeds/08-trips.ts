@@ -13,6 +13,8 @@ interface TripEntry {
   maxCapacity: number;
   coverImage: string;
   images: string[];
+  // Provinces whose guides run this package (P2 implicit m2m, populated below).
+  guideProvinces: string[];
   translations: {
     lang: SupportedLanguage;
     title: string;
@@ -42,6 +44,7 @@ const TRIPS: TripEntry[] = [
     maxCapacity: 12,
     coverImage: imageUrls['trips/angkor-classic.jpg'],
     images: [imageUrls['trips/angkor-classic.jpg']],
+    guideProvinces: ['Siem Reap'],
     translations: [
       {
         lang: 'en',
@@ -111,6 +114,7 @@ const TRIPS: TripEntry[] = [
     maxCapacity: 10,
     coverImage: imageUrls['trips/cambodia-highlights.jpg'],
     images: [imageUrls['trips/cambodia-highlights.jpg']],
+    guideProvinces: ['Siem Reap', 'Phnom Penh'],
     translations: [
       {
         lang: 'en',
@@ -198,6 +202,7 @@ const TRIPS: TripEntry[] = [
     maxCapacity: 8,
     coverImage: imageUrls['trips/adventure-north.jpg'],
     images: [imageUrls['trips/adventure-north.jpg']],
+    guideProvinces: [],
     translations: [
       {
         lang: 'en',
@@ -276,6 +281,7 @@ const TRIPS: TripEntry[] = [
     maxCapacity: 8,
     coverImage: imageUrls['trips/culinary-journey.jpg'],
     images: [imageUrls['trips/culinary-journey.jpg']],
+    guideProvinces: ['Phnom Penh'],
     translations: [
       {
         lang: 'en',
@@ -345,6 +351,7 @@ const TRIPS: TripEntry[] = [
     maxCapacity: 12,
     coverImage: imageUrls['trips/beach-escape.jpg'],
     images: [imageUrls['trips/beach-escape.jpg']],
+    guideProvinces: ['Kampot'],
     translations: [
       {
         lang: 'en',
@@ -466,6 +473,20 @@ export = async function seed(prisma: PrismaClient): Promise<void> {
           },
         },
       });
+    }
+
+    // P2: link this package to the guides that run it (implicit m2m by province).
+    if (t.guideProvinces.length > 0) {
+      const guides = await prisma.guide.findMany({
+        where: { province: { in: t.guideProvinces }, isActive: true },
+        select: { id: true },
+      });
+      if (guides.length > 0) {
+        await prisma.trip.update({
+          where: { id: trip.id },
+          data: { guides: { connect: guides.map((g) => ({ id: g.id })) } },
+        });
+      }
     }
   }
   console.log(`  ✅ Created ${TRIPS.length} trips with itineraries`);

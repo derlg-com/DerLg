@@ -83,13 +83,7 @@ export class GlobalSearchUseCase {
             isActive: true as const,
             OR: [
               { bio: { contains: q, mode: 'insensitive' as const } },
-              {
-                specialities: {
-                  some: {
-                    speciality: { contains: q, mode: 'insensitive' as const },
-                  },
-                },
-              },
+              { provinces: { has: q } },
             ],
           }
         : null;

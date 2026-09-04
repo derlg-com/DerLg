@@ -1,6 +1,6 @@
 # DerLg Backend — Agent Context Index
 
-> This file lives in the backend root to keep agent context **local to this directory**. When working on backend code, read the files listed here first. Do not rely on global project memory — these specs are the source of truth.
+> This file lives in the backend root to keep agent context **local to this directory**. When working on backend code, read the files listed here first.
 
 ---
 
@@ -8,144 +8,126 @@
 
 When starting work on the backend, read these files **in this order**:
 
-1. `context/guides/MISSION.md` — Why this backend exists and what success looks like
-2. `context/guides/CONSTITUTION.md` — Rules all backend code must follow
-3. `context/guides/CODE-STANDARD.md` — How we write code (formatting, patterns, NestJS conventions)
-4. `context/guides/TECH-STACK.md` — Exact package versions and configs
-5. `context/guides/SUPABASE-WORKFLOW.md` — Prisma + Supabase commands and workflows
-6. `context/plans/ROADMAP.md` — Current phase and what comes next
-7. `context/specs/SCHEMA.md` — Database schema (Prisma)
-8. `context/specs/API-CONTRACT.md` — All endpoints as TypeScript contracts
+1. `src/app.module.ts` — module dependency graph and imports
+2. `prisma/schema.prisma` — database schema (Prisma)
+3. `src/common/` — cross-cutting code (guards, interceptors, filters, errors, cache, i18n)
+4. The relevant module under `src/modules/<name>/`
 
 Then read the relevant domain specs for the task at hand.
 
 ---
 
-## Context Files
+## Module Index
 
-All spec files are in `backend/context/` organized by category.
+All implementation is under `src/modules/`:
 
-### `context/guides/` — How We Work (read first)
+| Module | Purpose | Key Files |
+|--------|---------|-----------|
+| `admin` | `/v1/admin/*` admin panel API — 20 controllers, 19 services. Includes trip-package CRUD (`admin-trips.*`), customer status/role management, and payment operations (`admin-payments.*`: ledger, ABA exception queue, manual settlement, refund payouts) | `admin.module.ts`, `controllers/`, `services/`, `interceptors/audit.interceptor.ts`, `websocket/admin.gateway.ts` |
+| `ai-tools` | `/v1/ai-tools/*` endpoints for the AI agent, including the chat-transcript archive (`chat-sessions*`) | `ai-tools.controller.ts`, `ai-tools.service.ts`, `ai-tools.dto.ts` |
+| `auth` | JWT access + refresh, Telegram OAuth | `auth.controller.ts`, `auth.service.ts` |
+| `bookings` | Booking creation, confirmation, cancellation, holds | `bookings.controller.ts`, `use-cases/`, `dto/` |
+| `guides` | Tour guide catalogue | `guides.controller.ts`, `list-guides.use-case.ts`, `utils/` |
+| `hotels` | Hotel catalogue (types, rooms, star ratings) | `hotels.controller.ts`, `list-hotels.use-case.ts`, `dto/` |
+| `payments` | Stripe cards + ABA dynamic KHQR. Webhook settlement, Telegram userbot, tiered refunds | `payments.controller.ts`, `stripe-webhook.controller.ts`, `services/{payments,stripe,aba-khqr}.service.ts`, `aba-telegram.listener.ts` — see `docs/payments.md` |
+| `places` | Points of interest | `places.controller.ts`, `list-places.use-case.ts` |
+| `prisma` | Prisma service + client | `prisma.service.ts` |
+| `redis` | Redis connection, cache, rate limiting | `redis.service.ts` |
+| `search` | Global search across all catalogues | `search.controller.ts`, `global-search.use-case.ts` |
+| `storage` | MinIO presigned URLs for admin media | `minio.service.ts`, `storage.controller.ts` |
+| `telegram` | `/v1/telegram/*` driver bot: webhook, commands, BullMQ queues | `telegram.controller.ts`, `telegram.service.ts`, `handlers/`, `jobs/` |
+| `transportation` | Vehicle catalogue | `transportation.controller.ts`, `list-vehicles.use-case.ts` |
+| `trips` | Trip packages (incl. custom trips). Public read-only; admin CRUD lives in `admin` | `trips.controller.ts`, `list-trips.use-case.ts` |
+| `users` | User profiles, loyalty points | `users.controller.ts`, `users.service.ts` |
 
-| File | Purpose | When to Read |
-|------|---------|-------------|
-| `guides/MISSION.md` | Purpose, success criteria, scope vs. out-of-scope, definition of done, target state | Before any implementation — understand the "why" |
-| `guides/CONSTITUTION.md` | Immutable rules: module structure, dependency DAG, API envelope, auth strategy, naming conventions, testing gates | Before any implementation |
-| `guides/CODE-STANDARD.md` | Code style: Prettier/ESLint config, import order, TypeScript patterns, NestJS patterns, DTO rules, git practices, PR checklist, security checklist | Before writing code, during code review |
-| `guides/TECH-STACK.md` | Exact versions for every package, env var list, Docker images, external services, version pinning policy | Before installing packages, debugging version issues |
-| `guides/SUPABASE-WORKFLOW.md` | Prisma + Supabase commands: migrate, seed, studio, troubleshooting, daily workflow | When running any Prisma command against Supabase |
+Cross-cutting code lives in `src/common/`:
 
-### `context/specs/` — What We Build (domain specs)
-
-| File | Purpose | When to Read |
-|------|---------|-------------|
-| `specs/SCHEMA.md` | Complete Prisma schema: 20 models, 18 enums, all relations, indexes, soft delete conventions | When writing database queries, migrations, or DTOs |
-| `specs/API-CONTRACT.md` | All ~80 endpoints: request DTOs, response types, auth requirements, error codes per endpoint | When implementing or modifying endpoints |
-| `specs/ERROR-REGISTRY.md` | ~100 error codes by domain: code format, HTTP status, message template, module assignment | When adding new errors, writing exception handling |
-| `specs/EVENT-CATALOG.md` | 18 domain events: payload TypeScript interfaces, producers, consumers, priority, implementation examples | When emitting or handling events, adding cross-module communication |
-
-### `context/plans/` — Planning & Operations
-
-| File | Purpose | When to Read |
-|------|---------|-------------|
-| `plans/IMPLEMENTATION-ROADMAP.md` | **Primary task index:** 7 tracks, ~60 tasks, dependency graph, week-by-week execution, spec references per task | **Start here** when picking next work |
-| `plans/ROADMAP.md` | 13 sequential phases with deliverables, milestone summary, dependency graph, decision log, risk register | When planning work, estimating timelines |
-| `plans/TEST-PLAN.md` | Test strategy: levels, coverage gates, 9 critical E2E flows, unit/integration patterns, property-based tests, CI pipeline | When writing tests, estimating test effort |
-| `plans/SEED-SPEC.md` | Seed data: 5 users, 5 guides, 3 hotels, 8 places, 5 trips, vehicles, discount codes, festivals, seed order | When setting up local dev, writing E2E tests, demo prep |
-
----
-
-## Directory Layout
-
-```
-backend/
-  AGENTS.md              <-- you are here
-  context/               <-- all spec files live here
-    guides/              <-- how we work (read first)
-      CONSTITUTION.md
-      CODE-STANDARD.md
-      TECH-STACK.md
-    specs/               <-- what we build (domain specs)
-      SCHEMA.md
-      API-CONTRACT.md
-      ERROR-REGISTRY.md
-      EVENT-CATALOG.md
-    plans/               <-- planning & operations
-      ROADMAP.md
-      TEST-PLAN.md
-      SEED-SPEC.md
-  src/                   <-- implementation code
-  prisma/                <-- schema.prisma, migrations, seed.ts
-  test/                  <-- E2E tests
-  docker-compose.yml     <-- local services
-  Dockerfile             <-- production build
-```
+| Directory | Purpose |
+|-----------|---------|
+| `guards/` | JWT guard, roles guard, admin-role guard, service-key guard, throttler guard |
+| `interceptors/` | Logging interceptor |
+| `filters/` | Prisma filter, all-exceptions filter |
+| `decorators/` | Public, current-user, roles, admin-roles, current-admin |
+| `dto/` | List query DTO, base DTOs |
+| `errors/` | Error codes, custom exceptions |
+| `cache/` | Cached service base, cache keys |
+| `i18n/` | Language types, translation helpers |
+| `types/` | Paginated response type |
 
 ---
 
-## How to Use This Index
+## API Conventions
 
-### Starting a new feature
-1. Read `plans/ROADMAP.md` — identify the phase and milestone
-2. Read `guides/CONSTITUTION.md` — verify module structure and dependency rules
-3. Read `specs/SCHEMA.md` — understand the data model
-4. Read `specs/API-CONTRACT.md` — implement the endpoint contracts
-5. Read `plans/TEST-PLAN.md` — write tests to the specified level
-
-### Fixing a bug
-1. Read `specs/ERROR-REGISTRY.md` — check if the error code exists
-2. Read `guides/CODE-STANDARD.md` — ensure the fix follows patterns
-3. Read relevant section of `specs/API-CONTRACT.md` — verify expected behavior
-
-### Adding a new error code
-1. Read `specs/ERROR-REGISTRY.md` — check for duplicates
-2. Add to `specs/ERROR-REGISTRY.md` first
-3. Add to `src/common/errors/error-codes.ts`
-4. Update `specs/API-CONTRACT.md` if endpoint behavior changes
-
-### Modifying the database schema
-1. Read `specs/SCHEMA.md` — understand current state
-2. Edit `specs/SCHEMA.md` to reflect the change
-3. Edit `prisma/schema.prisma` to match
-4. Run migration: `npx prisma migrate dev`
-5. Update `specs/API-CONTRACT.md` if response shapes change
-6. Update `plans/SEED-SPEC.md` if new required fields are added
+- Prefix: `/v1/` (user-facing), `/v1/ai-tools/*` (AI agent, X-Service-Key auth), `/v1/admin/*` (admin panel, JWT + admin role), `/v1/telegram/*` (driver bot, webhook secret / PIN)
+- **Do not write `v1/` inside `@Controller()`** — `main.ts` calls `setGlobalPrefix('v1')`. Doing both gives `/v1/v1/...`, which silently 404s.
+- Envelope: `{ success, data, message, error }`
+- Auth: Bearer JWT in `Authorization` header; service-to-service via `X-Service-Key`
+- `forbidNonWhitelisted: true` — every new query param **must** be declared in the DTO or requests return 400
+- Naming: NestJS controllers `feature.controller.ts`, services `feature.service.ts`, DTOs `feature.dto.ts`
 
 ---
 
-## Change Process
+## Database
 
-When a spec file changes, update **all affected files**:
+- Schema: `prisma/schema.prisma`
+- Dev: local Supabase on port 54322
+- VPS (Coolify): point `DATABASE_URL` at Coolify-managed Postgres
+- Migrations: write the SQL by hand, then `npx prisma migrate deploy`.
+  Generate a candidate with:
+  `npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script`
+  and review it before applying. Prefer `migrate deploy` over `migrate dev`.
+- Seed: `npm run prisma:seed` (idempotent, dependency-ordered)
 
-| Change In | Also Update |
-|-----------|-------------|
-| `specs/SCHEMA.md` | `prisma/schema.prisma`, `specs/API-CONTRACT.md` (if shapes change), `plans/SEED-SPEC.md` |
-| `specs/API-CONTRACT.md` | Implementation code, `specs/ERROR-REGISTRY.md` (if new errors) |
-| `specs/ERROR-REGISTRY.md` | `src/common/errors/error-codes.ts` |
-| `specs/EVENT-CATALOG.md` | Event producer/consumer implementations |
-| `guides/CONSTITUTION.md` | All implementation code that may be affected (amendment process) |
-| `plans/ROADMAP.md` | Nothing — this is planning-only |
+---
+
+## Dev Gotchas
+
+- **NVIDIA_API_KEY shadowing** (affects AI agent, not backend directly): unset before launching the agent
+- **DB drift**: as of the admin-panel merge (2026-08-19) there is **none** — replaying all migrations into a shadow database produced SQL byte-identical to a diff against the live database. The earlier warning here predates `20260805090000_baseline_sync`, which fixed it. Still prefer `migrate deploy` and reviewed SQL.
+- **Guards are global**: `JwtAuthGuard`, `RolesGuard` and `AdminRoleGuard` are registered as `APP_GUARD` in `common.module.ts`. Do not add `@UseGuards(JwtAuthGuard)` to controllers. Use `@Public()` to opt out, `@Roles()` for the JWT claim, `@AdminRoles()` for the `admin_users` grant. **A route with no `@AdminRoles()` is not admin-protected** — the guard passes it through.
+- **Compiled entrypoint is `dist/src/main.js`**, not `dist/main.js`, because `debug_e2e.ts` at the project root shifts the TypeScript rootDir. `package.json`'s `start:prod` script still has the old path and fails with MODULE_NOT_FOUND.
+- **forbidNonWhitelisted**: every new query param must be in the DTO
+- **`@CurrentUser('sub')` returns a claim, not the payload.** The decorator honours
+  its argument; passing none yields the whole `JwtPayload`. It used to ignore the
+  argument entirely, so all 41 call sites silently received an object where a
+  string was annotated — which made every explicit `createAuditLog` fail Prisma
+  validation inside a swallowing try/catch.
+- **Refresh tokens live only in Redis** at `session:{userId}:{tokenId}`. The
+  `refresh_tokens` table is never written to, so `refreshToken.updateMany` matches
+  nothing. To revoke a session you must delete the Redis keys — see
+  `RedisService.delByPattern`.
+- **Paginated admin handlers must return the service result directly** so
+  `TransformInterceptor` wraps it as `{ success, data: { data, meta } }`. Building
+  an envelope by hand puts `meta` outside `data`, and the admin panel's axios
+  interceptor (which replaces the body with `body.data`) then drops pagination.
+- **`SEED_ADMIN_PASSWORD` is often present-but-empty.** Use a length check, not
+  `??`, when falling back to the dev default — an empty string is not nullish.
+- **`rawBody: true` in `main.ts` is load-bearing.** Stripe signs the exact bytes it
+  sent, so `StripeWebhookController` verifies against `request.rawBody`. Remove the
+  option and every webhook returns 400 with an invalid signature — meaning no card
+  payment can ever settle.
+- **Rate limiting is enforced by `CustomThrottlerGuard`, registered FIRST in
+  `common.module.ts`.** It bypasses itself under Jest (detected via
+  `JEST_WORKER_ID`) so e2e suites can sign in repeatedly; set
+  `THROTTLE_IN_TESTS=true` to exercise it. Only ONE throttler may be registered in
+  `ThrottlerModule` — the guard evaluates every registered throttler and requires
+  all to pass, so adding a second named limiter caps the whole API at the strictest
+  one. Use `@RateLimit('AUTH' | 'PAYMENT' | ...)` from `common/throttler/rate-limit.ts`.
+- **BigInt columns need the `json replacer` in `main.ts`.** `drivers.telegram_id` is
+  a bigint and `JSON.stringify` throws on BigInt rather than skipping it, so
+  `GET /v1/admin/drivers` 500s for any Telegram-linked driver without it.
+- **ABA payments settle out-of-band.** Nothing in the request/response cycle marks
+  an ABA booking paid; `AbaTelegramListener` does, from a Telegram credit alert.
+  Matching is by amount, and an ambiguous match deliberately settles NOTHING —
+  see `docs/payments.md` §4 before "fixing" that.
 
 ---
 
 ## External References
 
-These files live outside `backend/` but are relevant:
-
 | File | Purpose |
 |------|---------|
-| `docs/modules/*/api.yaml` | Original OpenAPI specs (source for `API-CONTRACT.md`) |
-| `docs/platform/backend/*.md` | Architecture deep-dives: security, async, AI integration, operations |
-| `.kiro/specs/backend-nestjs-supabase/*.md` | Detailed requirements, design, and task breakdown |
-| `CLAUDE.md` | Project-wide conventions (frontend + backend) |
-
----
-
-## Agent Reminders
-
-- **Do not use global memory** for backend decisions — check these files first
-- **Do not guess error codes** — use `specs/ERROR-REGISTRY.md`
-- **Do not guess schema fields** — use `specs/SCHEMA.md`
-- **Do not skip tests** — follow `plans/TEST-PLAN.md` coverage gates
-- **Do not add cross-module imports** — follow `guides/CONSTITUTION.md` dependency rules
-- **Run lint and format before finishing** — per `guides/CODE-STANDARD.md`
+| `RAYU.md` | RAYU project-wide conventions |
+| `AGENTS.md` | Agent routing (root level) |
+| `CLAUDE.md` | Claude Code project-wide conventions |
+| `docs/admin-merge/` | Admin-panel merge: baseline, port inventory, deliberate behaviour changes |
