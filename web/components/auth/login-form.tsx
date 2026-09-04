@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 
 import { Button, Card, Field, Input } from '@/components/ui'
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { authErrorKey, useAuth } from '@/hooks/use-auth'
 import { useRouter } from '@/lib/i18n/navigation'
 import { loginSchema, type LoginFormValues } from '@/schemas/auth'
@@ -76,6 +77,19 @@ export function LoginForm() {
           {t('signIn.submit')}
         </Button>
       </form>
+
+      <div className="relative my-2">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-[var(--border-subtle)]" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-[var(--surface)] px-2 text-[var(--text-tertiary)]">
+            {t('or')}
+          </span>
+        </div>
+      </div>
+
+      <GoogleSignInButton next={searchParams.get('next') ?? undefined} />
 
       <p className="text-sm text-[var(--text-secondary)]">
         {t('signIn.noAccount')}{' '}

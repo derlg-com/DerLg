@@ -47,7 +47,6 @@ describe('BFF allowlist', () => {
         'emergency-contacts',
         'festivals',
         'loyalty',
-        'payments/status',
         'places',
         'sos',
         'weather',
@@ -56,7 +55,16 @@ describe('BFF allowlist', () => {
   })
 
   it('rejects any path outside the allowlist', () => {
-    for (const path of ['ai-tools/bookings', 'bookings', 'payments/qr', '../secrets', '']) {
+    // `payments/status` is intentionally excluded: the browser reaches the
+    // first-class /v1/payments/status directly with its JWT, not via this proxy.
+    for (const path of [
+      'ai-tools/bookings',
+      'bookings',
+      'payments/qr',
+      'payments/status',
+      '../secrets',
+      '',
+    ]) {
       expect(isBffRoute(path)).toBe(false)
     }
   })

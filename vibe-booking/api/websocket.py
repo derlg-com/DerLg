@@ -391,7 +391,11 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 status_resp = await get_backend_client().request(
                     "GET", "ai-tools/payments/status",
                     language=session.preferred_language.lower(),
-                    params={"booking_id": booking_id},
+                    # user_id is REQUIRED by CheckPaymentStatusDto and is what the
+                    # backend scopes the lookup by, so a booking that is not this
+                    # user's simply is not found. Omitting it fails validation and
+                    # every verification would answer "not confirmed yet".
+                    params={"booking_id": booking_id, "user_id": session.user_id},
                 )
                 pay_status = str((status_resp.get("data") or {}).get("status", "")).lower()
                 if not status_resp.get("success") or pay_status != "succeeded":

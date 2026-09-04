@@ -2,7 +2,7 @@
 
 > **Layer:** Python AI Agent Service
 > **Directory:** `vibe-booking/`
-> **Framework:** FastAPI + hand-rolled async tool loop + NVIDIA gpt-oss-120b
+> **Framework:** FastAPI + hand-rolled async tool loop + OpenAI-compatible Gateway (RayuCode longcat-2.0)
 > **Port:** 8001
 > **Protocol:** WebSocket (`/ws/chat`) + HTTP tools to backend
 
@@ -46,9 +46,9 @@ The Vibe Booking AI Agent is a **stateful, purpose-built conversational booking 
   ┌──────────┐     ┌──────────┐     ┌──────────┐
   │  Model   │     │  Tool    │     │ Session  │
   │  Layer   │     │  Layer   │     │  Layer   │
-  │(NVIDIA   │     │ 15 tools │     │(Redis   │
-  │ gpt-oss- │     │ → NestJS)│     │ checkpt) │
-  │ 120b)    │     │          │     │          │
+  │(Gateway  │     │ 15 tools │     │(Redis   │
+  │ longcat- │     │ → NestJS)│     │ checkpt) │
+  │ 2.0)     │     │          │     │          │
   └──────────┘     └──────────┘     └──────────┘
 ```
 
@@ -64,7 +64,8 @@ vibe-booking/
 │   ├── suggestions.py       # Follow-up suggestion generation
 │   ├── models/
 │   │   ├── client.py        # ModelClient abstract interface
-│   │   ├── nvidia.py        # NvidiaClient — default LLM client (gpt-oss-120b)
+│   │   ├── gateway.py       # GatewayClient — OpenAI-compatible LLM client (RayuCode longcat-2.0)
+│   │   ├── nvidia.py        # Legacy compatibility shim
 │   │   ├── ollama.py        # OllamaClient — local model fallback
 │   │   └── factory.py       # Model client factory
 │   ├── tools/
@@ -230,8 +231,8 @@ class ConversationState(BaseModel):
 | Language | Code | Behavior |
 |----------|------|----------|
 | English | `EN` | Default |
-| Khmer | `KM` | Always uses NVIDIA (best Khmer support) |
-| Chinese (Simplified) | `ZH` | NVIDIA gpt-oss-120b responds in Simplified Chinese |
+| Khmer | `KM` | Always uses Gateway (best Khmer support) |
+| Chinese (Simplified) | `ZH` | Gateway longcat-2.0 responds in Simplified Chinese |
 
 - `preferred_language` set via WebSocket auth message
 - Passed to backend in `Accept-Language` header
@@ -270,9 +271,10 @@ class ConversationState(BaseModel):
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `NVIDIA_API_KEY` | yes | NVIDIA NIM API key |
-| `MODEL_LLM` | no | Default: `openai/gpt-oss-120b` |
-| `MODEL_TIMEOUT_S` | no | Default: 90 (gpt-oss-120b is slow on free tier) |
+| `LLM_API_KEY` | yes | LLM Gateway API key (e.g. RayuCode `rayu_sk_live_...`) |
+| `LLM_BASE_URL` | no | Default: `https://gateway.rayucode.com/v1` |
+| `MODEL_LLM` | no | Default: `longcat-2.0` |
+| `MODEL_TIMEOUT_S` | no | Default: 90 |
 | `BACKEND_URL` | yes | NestJS backend base URL |
 | `AI_SERVICE_KEY` | yes | 32+ char secret for backend auth |
 | `REDIS_URL` | yes | Redis connection string |
@@ -288,11 +290,10 @@ class ConversationState(BaseModel):
 cd vibe-booking
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8001
+uvicorn main:app --host 0.0.0.0 --port 8001
 ```
 
 > **Run without `--reload`** — the reloader hangs on slow in-flight LLM calls.
-> **Unset NVIDIA_API_KEY** — a shell-exported key shadows `.env` and causes 403s.
 
 ### Running tests
 ```bash
@@ -329,7 +330,7 @@ pytest --cov=agent --cov-report=html  # With coverage
 
 1. **Never invent data.** All facts come from backend tool calls.
 2. **Always confirm before booking.** `create_booking_hold` only after explicit user confirmation.
-3. **Khmer = NVIDIA.** When `preferred_language == "KM"`, always use NvidiaClient.
+3. **Khmer = Gateway.** When `preferred_language == "KM"`, always use GatewayClient.
 4. **JSON only to frontend.** Never send HTML/JSX. Send structured `content_payload`.
 5. **Parallel tools.** Execute multiple tool calls concurrently with `asyncio.gather`.
 6. **Limit context window.** Pass last 20 messages to model; max 5 tool call loops.

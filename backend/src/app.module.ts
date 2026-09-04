@@ -4,6 +4,7 @@ import { ConfigModule } from './config/config.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { CommonModule } from './common/common.module';
+import { RATE_LIMITS } from './common/throttler/rate-limit';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AiToolsModule } from './modules/ai-tools/ai-tools.module';
@@ -14,6 +15,7 @@ import { GuidesModule } from './modules/guides/guides.module';
 import { TransportationModule } from './modules/transportation/transportation.module';
 import { SearchModule } from './modules/search/search.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { StorageModule } from './modules/storage/storage.module';
@@ -42,6 +44,7 @@ import { ConfigService } from '@nestjs/config';
     TransportationModule,
     SearchModule,
     BookingsModule,
+    PaymentsModule,
     // Admin panel, Telegram driver bot and object storage, merged in from the
     // former standalone derlg-system-admin service.
     StorageModule,
@@ -62,15 +65,13 @@ import { ConfigService } from '@nestjs/config';
         signOptions: { expiresIn: '15m' },
       }),
     }),
-    ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: () => [
-        { name: 'default', ttl: 60000, limit: 10 },
-        { name: 'auth', ttl: 300000, limit: 5 },
-        { name: 'payment', ttl: 60000, limit: 3 },
-      ],
-    }),
+    // ONE throttler only. `ThrottlerGuard` evaluates every registered
+    // throttler and requires all of them to pass, so adding named `auth` and
+    // `payment` limiters here capped the entire API at the strictest of them
+    // (3 requests/minute) rather than applying them to auth and payment routes.
+    // Per-route intent is expressed with `@RateLimit('AUTH')` etc. from
+    // `common/throttler/rate-limit.ts`, which overrides this one.
+    ThrottlerModule.forRoot([{ name: 'default', ...RATE_LIMITS.DEFAULT }]),
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

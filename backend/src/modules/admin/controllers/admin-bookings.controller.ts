@@ -4,17 +4,20 @@ import {
   Patch,
   Post,
   Param,
+  ParseUUIDPipe,
   Query,
   Body,
   UseInterceptors,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { AuditInterceptor } from '../interceptors/audit.interceptor';
 import { AdminRoles } from '../../../common/decorators/admin-roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RateLimit } from '../../../common/throttler/rate-limit';
 import { AdminBookingsService } from '../services/admin-bookings.service';
 import { AdminRole } from '@prisma/client';
 import { UpdateBookingDto } from '../dto/update-booking.dto';
+import { AdminCancelBookingDto } from '../dto/admin-cancel-booking.dto';
+import { ListAdminBookingsDto } from '../dto/list-fleet.dto';
 
 @Controller('admin/bookings')
 @AdminRoles(
@@ -22,48 +25,42 @@ import { UpdateBookingDto } from '../dto/update-booking.dto';
   AdminRole.OPERATIONS_MANAGER,
   AdminRole.SUPER_ADMIN,
 )
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@RateLimit('ADMIN')
 @UseInterceptors(AuditInterceptor)
 export class AdminBookingsController {
   constructor(private readonly service: AdminBookingsService) {}
 
   @Get()
-  async getAllBookings(
-    @Query('booking_type') bookingType?: string,
-    @Query('status') status?: string,
-    @Query('start_date') startDate?: string,
-    @Query('end_date') endDate?: string,
-    @Query('search') search?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  async getAllBookings(@Query() query: ListAdminBookingsDto) {
     return this.service.getAllBookings({
-      bookingType,
-      status,
-      startDate,
-      endDate,
-      search,
-      page,
-      limit,
+      bookingType: query.booking_type,
+      status: query.status,
+      startDate: query.start_date,
+      endDate: query.end_date,
+      search: query.search,
+      aiAssisted: query.aiAssistedBool,
+      guideId: query.guide_id,
+      page: query.page?.toString(),
+      limit: query.limit?.toString(),
     });
   }
 
   @Get('unassigned')
-  async getUnassignedBookings(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.service.getUnassignedBookings({ page, limit });
+  async getUnassignedBookings(@Query() query: ListAdminBookingsDto) {
+    return this.service.getUnassignedBookings({
+      page: query.page?.toString(),
+      limit: query.limit?.toString(),
+    });
   }
 
   @Get(':id')
-  async getBookingById(@Param('id') id: string) {
+  async getBookingById(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.getBookingById(id);
   }
 
   @Patch(':id')
   async updateBooking(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateBookingDto,
     @CurrentUser('sub') userId?: string,
   ) {
@@ -88,12 +85,21 @@ export class AdminBookingsController {
     };
   }
 
+  /**
+   * Admin-initiated cancellation.
+   *
+   * Distinct from `POST /v1/bookings/:id/cancel`, which enforces
+   * `booking.userId === caller.sub` and therefore 403s for every admin acting on
+   * a customer's booking. The admin panel was calling that customer route, so
+   * cancellation was impossible from the panel and produced no audit trail.
+   */
   @Post(':id/cancel')
   async cancelBooking(
-    @Param('id') id: string,
-    @Body('cancel_reason') cancelReason?: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AdminCancelBookingDto,
     @CurrentUser('sub') userId?: string,
   ) {
+    const cancelReason = dto.resolvedReason;
     const existing = await this.service.getBookingById(id);
     const previousStatus = existing.status;
     const booking = await this.service.cancelBooking(id, cancelReason);

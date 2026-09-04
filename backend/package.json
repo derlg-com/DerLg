@@ -25,7 +25,8 @@
     "prisma:seed": "ts-node prisma/seeds/run.ts",
     "prisma:studio": "prisma studio",
     "prisma:validate": "prisma validate",
-    "prisma:format": "prisma format"
+    "prisma:format": "prisma format",
+    "telegram:login": "ts-node -r tsconfig-paths/register scripts/telegram-login.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "11.0.2",
@@ -55,10 +56,13 @@
     "passport-jwt": "^4.0.1",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
+    "qrcode": "1.5.4",
     "reflect-metadata": "^0.2.2",
     "resend": "^6.12.3",
     "rxjs": "^7.8.1",
     "socket.io": "4.8.1",
+    "stripe": "19.2.0",
+    "telegram": "2.26.22",
     "zod": "^4.4.3"
   },
   "prisma": {
@@ -77,7 +81,9 @@
     "@types/node": "^24.0.0",
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/passport-jwt": "^4.0.1",
+    "@types/qrcode": "1.5.5",
     "@types/supertest": "^7.0.0",
+    "dotenv": "17.2.3",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

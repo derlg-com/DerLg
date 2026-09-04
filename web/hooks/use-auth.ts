@@ -52,6 +52,22 @@ export function useAuth() {
     },
   })
 
+  const loginWithGoogle = useMutation({
+    mutationFn: ({
+      code,
+      redirectUri,
+      state,
+    }: {
+      code: string
+      redirectUri?: string
+      state?: string
+    }) => authApi.googleCallback(code, redirectUri, state),
+    onSuccess: (result) => {
+      setSession({ token: result.accessToken, user: result.user ?? null, ready: true })
+      void queryClient.invalidateQueries()
+    },
+  })
+
   const logout = useMutation({
     mutationFn: () => authApi.logout(session.token),
     // Clear locally even if the call fails: the user asked to sign out, and the
@@ -66,6 +82,7 @@ export function useAuth() {
     ...session,
     isAuthenticated: Boolean(session.token),
     login,
+    loginWithGoogle,
     register,
     logout,
   }

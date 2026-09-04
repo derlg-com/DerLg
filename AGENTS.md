@@ -94,7 +94,7 @@ These rules apply to **all** layers regardless of which agent is working:
 | Frontend | Next.js 16 + React 19 + Tailwind v4 | `3002` | `web/` |
 | Backend | NestJS 11 + Prisma + PostgreSQL | `3003` | `backend/` |
 | Admin panel | Next.js 16 + React 19 + Tailwind v4 | `5000` | `derlg-system-admin/frontend_admin/` |
-| AI Agent | Python + FastAPI + NVIDIA gpt-oss-120b | `8001` | `vibe-booking/` |
+| AI Agent | Python + FastAPI + RayuCode longcat-2.0 | `8001` | `vibe-booking/` |
 | Cache | Redis (Upstash prod / Docker dev) | `6379` | — |
 | Storage | MinIO (self-hosted Docker) | `9000` | — |
 | DB | PostgreSQL (local Supabase stack in dev) | `54322` | — |

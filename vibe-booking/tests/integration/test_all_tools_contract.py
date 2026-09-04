@@ -37,7 +37,10 @@ BACKEND_ROUTES = {
 }
 
 # user_id is injected server-side for these, so it must NOT be a model-required param.
-_SERVER_INJECTED = {"create_booking_hold", "send_sos_alert", "get_user_loyalty"}
+# check_payment_status joined this set: the backend CheckPaymentStatusDto now
+# requires user_id (ownership scoping) and the agent injects it from the verified
+# session, exactly like get_user_loyalty — the model still supplies only booking_id.
+_SERVER_INJECTED = {"create_booking_hold", "send_sos_alert", "get_user_loyalty", "check_payment_status"}
 
 
 def _tool(name: str) -> dict:

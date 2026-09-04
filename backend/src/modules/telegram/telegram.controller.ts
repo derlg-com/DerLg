@@ -9,8 +9,11 @@ import {
   Headers,
   UseGuards,
   UnauthorizedException,
+  ServiceUnavailableException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { RateLimit, NoRateLimit } from '../../common/throttler/rate-limit';
 import { TelegramService } from './telegram.service';
 import { CommandHandler } from './handlers/command.handler';
 import { CallbackHandler } from './handlers/callback.handler';
@@ -39,13 +42,25 @@ export class TelegramController {
     private readonly locationHandler: LocationHandler,
     private readonly messageHandler: MessageHandler,
     private readonly botSender: BotSenderService,
+    private readonly configService: ConfigService,
   ) {
-    this.webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET || '';
+    // `TELEGRAM_SECRET_TOKEN` is the validated variable (see env.validation.ts).
+    // Read through ConfigService rather than process.env so a typo surfaces as a
+    // schema failure at boot instead of a silently empty secret at runtime.
+    this.webhookSecret =
+      this.configService.get<string>('TELEGRAM_SECRET_TOKEN') ?? '';
   }
 
   // ─── Webhook ───
 
+  /**
+   * Not rate-limited: Telegram treats a non-2xx as a delivery failure and
+   * eventually drops the update, so a 429 here loses driver messages outright.
+   * `WebhookSecretGuard` fails closed, so the endpoint is not open — the shared
+   * secret is what bounds abuse rather than a request counter.
+   */
   @Post('webhook')
+  @NoRateLimit()
   @UseGuards(WebhookSecretGuard)
   async handleWebhook(@Body() dto: WebhookUpdateDto) {
     const result = await this.telegramService.handleWebhook(dto);
@@ -385,18 +400,36 @@ export class TelegramController {
   // GET /v1/admin/telegram/broadcasts serves broadcast history to admins.
 
   // ─── Legacy Driver Status Webhook (B21) ───
-
+  //
+  // Signature verification is MANDATORY here. It previously ran only
+  // `if (this.webhookSecret && signature)`, which failed open twice over:
+  //
+  //  1. `this.webhookSecret` read `TELEGRAM_WEBHOOK_SECRET`, a variable this
+  //     project does not define (the real one is `TELEGRAM_SECRET_TOKEN`), so it
+  //     was always '' and the whole branch was dead code.
+  //  2. Even with a secret configured, omitting the `x-telegram-signature`
+  //     header skipped the check entirely.
+  //
+  // The handler creates and mutates `drivers` rows, so an unverified caller
+  // could flip any driver online/offline or register new ones.
   @Post('driver-status')
+  @RateLimit('WRITE')
   async handleDriverStatusWebhook(
     @Body() dto: DriverStatusWebhookDto,
     @Headers('x-telegram-signature') signature?: string,
   ) {
-    if (this.webhookSecret && signature) {
-      const isValid = this.verifySignature(dto, signature);
-      if (!isValid) {
-        this.logger.warn('Invalid webhook signature');
-        throw new UnauthorizedException('Invalid webhook signature');
-      }
+    if (!this.webhookSecret) {
+      this.logger.error(
+        'TELEGRAM_SECRET_TOKEN is not configured; rejecting driver-status webhook',
+      );
+      throw new ServiceUnavailableException(
+        'Driver status webhook is not configured',
+      );
+    }
+
+    if (!signature || !this.verifySignature(dto, signature)) {
+      this.logger.warn('Rejected driver-status webhook: invalid signature');
+      throw new UnauthorizedException('Invalid webhook signature');
     }
 
     const result = await this.telegramService.handleDriverStatusUpdate({

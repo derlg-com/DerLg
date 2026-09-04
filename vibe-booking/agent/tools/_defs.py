@@ -111,7 +111,10 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "check_payment_status",
-            "description": "Check payment status for a booking.",
+            "description": (
+                "Check payment status for one of the current user's bookings. "
+                "The user_id is supplied automatically by the server — do not include it."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -187,12 +190,20 @@ ALL_TOOLS = [
         "type": "function",
         "function": {
             "name": "generate_payment_qr",
-            "description": "Generate a Bakong/ABA QR code for payment after a booking hold is created.",
+            "description": (
+                "Generate an ABA KHQR code to pay for a booking hold you already created. "
+                "The amount and a 10-minute expiry are pre-filled, so the traveller only "
+                "scans and confirms in ABA Mobile. The user_id is supplied automatically by "
+                "the server — do not include it."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "booking_id": {"type": "string"},
-                    "provider": {"type": "string", "enum": ["BAKONG", "ABA"]},
+                    # ABA is the only implemented KHQR provider. BAKONG is still
+                    # accepted so a conversation started before this change does
+                    # not fail mid-checkout; the backend routes both to ABA.
+                    "provider": {"type": "string", "enum": ["ABA", "BAKONG"], "default": "ABA"},
                 },
                 "required": ["booking_id", "provider"],
             },

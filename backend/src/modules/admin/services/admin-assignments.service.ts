@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   ConflictException,
   NotFoundException,
@@ -108,10 +109,19 @@ export class AdminAssignmentsService {
     };
   }
 
+  /**
+   * Assigns a driver (and a vehicle) to a booking.
+   *
+   * `vehicleId` is optional. Drivers already carry the vehicle they operate, and
+   * the admin panel's assign dialog only ever picks a driver — it had no vehicle
+   * field, so it sent an empty string and the request failed DTO validation
+   * before reaching this method. Falling back to the driver's own vehicle makes
+   * the common case work while still allowing an explicit override.
+   */
   async assignDriver(dto: {
     driverId: string;
     bookingId: string;
-    vehicleId: string;
+    vehicleId?: string;
   }) {
     const driver = await this.prisma.driver.findUnique({
       where: { id: dto.driverId },
@@ -127,6 +137,14 @@ export class AdminAssignmentsService {
       );
     }
 
+    const vehicleId = dto.vehicleId ?? driver.vehicleId;
+    if (!vehicleId) {
+      throw new BadRequestException(
+        `Driver ${driver.driverId} has no vehicle assigned. ` +
+          'Assign a vehicle to the driver, or specify vehicleId explicitly.',
+      );
+    }
+
     const booking = await this.prisma.booking.findUnique({
       where: { id: dto.bookingId },
     });
@@ -136,11 +154,11 @@ export class AdminAssignmentsService {
     }
 
     const vehicle = await this.prisma.transportationVehicle.findUnique({
-      where: { id: dto.vehicleId },
+      where: { id: vehicleId },
     });
 
     if (!vehicle) {
-      throw new NotFoundException(`Vehicle with id ${dto.vehicleId} not found`);
+      throw new NotFoundException(`Vehicle with id ${vehicleId} not found`);
     }
 
     if (vehicle.capacity < booking.passengerCount) {
@@ -151,7 +169,7 @@ export class AdminAssignmentsService {
 
     const inMaintenance = await this.prisma.vehicleMaintenance.findFirst({
       where: {
-        vehicleId: dto.vehicleId,
+        vehicleId: vehicleId,
         status: { in: ['SCHEDULED', 'IN_MAINTENANCE'] },
       },
     });
@@ -166,7 +184,7 @@ export class AdminAssignmentsService {
       data: {
         driverId: dto.driverId,
         bookingId: dto.bookingId,
-        vehicleId: dto.vehicleId,
+        vehicleId: vehicleId,
         status: AssignmentStatus.PENDING,
       },
     });
@@ -181,7 +199,7 @@ export class AdminAssignmentsService {
       assignmentId: assignment.id,
       driverId: dto.driverId,
       bookingId: dto.bookingId,
-      vehicleId: dto.vehicleId,
+      vehicleId: vehicleId,
       timestamp: new Date().toISOString(),
     });
 

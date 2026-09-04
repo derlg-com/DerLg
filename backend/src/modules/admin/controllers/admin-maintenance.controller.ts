@@ -8,14 +8,15 @@ import {
   Body,
   UseInterceptors,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { AuditInterceptor } from '../interceptors/audit.interceptor';
 import { AdminRoles } from '../../../common/decorators/admin-roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RateLimit } from '../../../common/throttler/rate-limit';
 import { AdminMaintenanceService } from '../services/admin-maintenance.service';
 import { AdminRole } from '@prisma/client';
 import { ScheduleMaintenanceDto } from '../dto/schedule-maintenance.dto';
 import { UpdateMaintenanceDto } from '../dto/update-maintenance.dto';
+import { ListMaintenanceDto } from '../dto/list-fleet.dto';
 
 @Controller('admin/maintenance')
 @AdminRoles(
@@ -23,25 +24,20 @@ import { UpdateMaintenanceDto } from '../dto/update-maintenance.dto';
   AdminRole.OPERATIONS_MANAGER,
   AdminRole.SUPER_ADMIN,
 )
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@RateLimit('ADMIN')
 @UseInterceptors(AuditInterceptor)
 export class AdminMaintenanceController {
   constructor(private readonly service: AdminMaintenanceService) {}
 
   @Get()
-  async getMaintenanceSchedule(
-    @Query('vehicle_id') vehicleId?: string,
-    @Query('start_date') startDate?: string,
-    @Query('end_date') endDate?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  async getMaintenanceSchedule(@Query() query: ListMaintenanceDto) {
     return this.service.getMaintenanceSchedule({
-      vehicleId,
-      startDate,
-      endDate,
-      page,
-      limit,
+      vehicleId: query.vehicle_id,
+      status: query.status,
+      startDate: query.start_date,
+      endDate: query.end_date,
+      page: query.page?.toString(),
+      limit: query.limit?.toString(),
     });
   }
 

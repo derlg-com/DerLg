@@ -18,7 +18,7 @@
 ┌──────────────┐     WebSocket      ┌─────────────────────────────┐
 │   Next.js    │ ◄───────────────►  │  Python AI Agent (FastAPI)  │
 │  (web/)      │   ws://agent:8001  │  hand-rolled async tool loop │
-│   Port 3002  │                    │  NVIDIA gpt-oss-120b        │
+│   Port 3002  │                    │  LLM Gateway (RayuCode)     │
 └──────────────┘                    └──────────────┬──────────────┘
        ▲                                           │ HTTP + X-Service-Key
        │                                           ▼
@@ -45,7 +45,7 @@
 ### 1. AI Agent Service (Python)
 - **Framework:** FastAPI with async WebSocket support
 - **Pattern:** Hand-rolled async tool loop (not LangGraph) — `run_agent()` / `run_agent_streaming()`
-- **LLM:** NVIDIA gpt-oss-120b (default) with Ollama as local fallback
+- **LLM:** OpenAI-compatible Gateway (RayuCode `longcat-2.0` default) with Ollama as local fallback
 - **Session Store:** Redis (7-day TTL)
 - **Tool System:** 15 tools with parallel execution via `asyncio.gather`
 - **Custom Trips:** Composes and saves bespoke trips with server-side pricing
@@ -103,7 +103,7 @@
 
 | Layer | Technology |
 |-------|-----------|
-| AI Service | Python 3.12, FastAPI, NVIDIA gpt-oss-120b, httpx, Pydantic, structlog |
+| AI Service | Python 3.12, FastAPI, OpenAI-compatible Gateway (RayuCode longcat-2.0), httpx, Pydantic, structlog |
 | Frontend | Next.js 16, React 19, TypeScript 5, Tailwind CSS v4, Zustand, react-markdown |
 | Backend Integration | NestJS `/v1/ai-tools/*`, `X-Service-Key` auth |
 | Session & Events | Redis (session persistence, 7-day TTL) |
@@ -117,10 +117,8 @@
 cd vibe-booking
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-env -u NVIDIA_API_KEY uvicorn main:app --host 0.0.0.0 --port 8001  # no --reload
+uvicorn main:app --host 0.0.0.0 --port 8001  # no --reload
 ```
-
-> **NVIDIA_API_KEY gotcha:** Unset the shell variable before launching, or it shadows `.env` and causes 403s on every turn.
 
 ---
 

@@ -193,18 +193,18 @@
     "method": {
       "title": "Payment method",
       "card": "Credit / debit card",
-      "bakong_qr": "Bakong QR",
       "aba_qr": "ABA QR"
     },
     "title": "Checkout",
     "subtotal": "Subtotal",
     "total": "Total",
-    "mockNotice": "Demo mode — payments are simulated. No card is charged.",
     "card": {
       "number": "Card number",
       "expiry": "Expiry",
       "cvc": "CVC",
-      "pay": "Pay now"
+      "pay": "Pay now",
+      "unavailable": "Card payments are unavailable right now. Please choose another method.",
+      "processing": "Confirming your payment…"
     },
     "qr": {
       "scan": "Scan to pay with your banking app",
@@ -292,8 +292,24 @@
       "expiredDesc": "Holds last 15 minutes. Nothing was charged — start again to check availability.",
       "startOver": "Browse trips"
     },
-    "demoDisabledTitle": "Payments are not enabled",
-    "demoDisabledDesc": "This server has payment confirmation switched off, so this booking cannot be paid here. Your hold is unaffected.",
+    "proceed": "Continue to payment",
+    "changeMethod": "Change payment method",
+    "confirming": "Payment received — confirming your booking…",
+    "completing": "Completing your payment…",
+    "errors": {
+      "methodUnavailable": "This payment method isn't available on this server. Please choose another.",
+      "rateLimited": "Too many attempts. Please wait a moment, then try again.",
+      "startFailed": "We couldn't start your payment. Please try again."
+    },
+    "aba": {
+      "title": "Pay with ABA",
+      "instructions": "Open the ABA Mobile app, tap “Scan QR”, and scan the code below to pay.",
+      "amount": "Amount to pay",
+      "expiresIn": "Code expires in {minutes}m {seconds}s",
+      "expired": "This QR code has expired.",
+      "regenerate": "Generate a new code",
+      "autoConfirm": "Keep this screen open — your booking confirms automatically once the payment arrives."
+    },
     "qrPending": "Waiting for your payment to clear…"
   },
   "bookings": {
@@ -643,6 +659,13 @@
       "forgot": "Forgot password?",
       "noAccount": "Don't have an account?",
       "cta": "Sign up"
+    },
+    "googleSignIn": "Continue with Google",
+    "or": "or",
+    "callback": {
+      "signingIn": "Completing Google sign in...",
+      "failed": "Google sign in failed. Please try again.",
+      "backToLogin": "Back to sign in"
     },
     "signUp": {
       "title": "Create your account",
@@ -1004,7 +1027,9 @@
     "emptyHint": "Ask anything about travelling in Cambodia — trips, hotels, guides, or transport.",
     "toolsLabel": "Working on it",
     "sendFailed": "Not connected yet — your message is queued.",
-    "blockUnavailable": "These results cannot be shown here yet."
+    "blockUnavailable": "These results cannot be shown here yet.",
+    "jumpToLatest": "Jump to latest",
+    "charactersLeft": "{count, plural, one {# character left} other {# characters left}}"
   },
   "content": {
     "trips": "Trips",
@@ -1030,7 +1055,12 @@
     "customTripItems": "What's included",
     "customTripExtras": "Extras",
     "customTripBook": "Book this trip",
-    "customTripQuantity": "×{count}"
+    "customTripQuantity": "×{count}",
+    "galleryPosition": "Photo {index} of {total}",
+    "galleryPrevious": "Previous photo",
+    "galleryNext": "Next photo",
+    "galleryOpen": "Open photo {index} of {total}",
+    "imageUnavailable": "This photo could not be shown."
   },
   "booking": {
     "summary": "Booking Summary",
@@ -1051,6 +1081,7 @@
     "downloadReceipt": "Download Receipt",
     "stripeNotConfigured": "Card payments are unavailable right now. Please use QR payment instead.",
     "sandboxTitle": "Sandbox payment",
+    "sandboxNotice": "Demo mode — payments are simulated. No card is charged.",
     "sandboxDesc": "Card payments are not connected yet, so nothing is charged. Confirming here marks the booking as paid for testing.",
     "signInToPay": "Sign in to confirm payment",
     "signInToPayDesc": "Payment can only be confirmed on a signed-in account, so it can be verified against your booking.",
@@ -1417,6 +1448,99 @@
       "selectRoom": "Select",
       "selected": "Selected",
       "sleeps": "Sleeps {count}"
+    }
+  },
+  "workspace": {
+    "title": "Trip workspace",
+    "openSheet": "Open trip workspace",
+    "emptyTitle": "Nothing selected yet",
+    "emptyDesc": "Tell the concierge what you're after and your trip, map and booking will collect here.",
+    "footnote": "Prices, availability and payment status come from DerLg — the concierge never estimates them.",
+    "subject": {
+      "trip": "Selected trip",
+      "hotel": "Selected hotel",
+      "custom_trip": "Your custom trip"
+    },
+    "mapTitle": "Location",
+    "itineraryTitle": "Day by day",
+    "galleryTitle": "Photos",
+    "optionsTitle": "Options on the table",
+    "optionsCount": {
+      "trip": "{count, plural, one {# trip to choose from} other {# trips to choose from}}",
+      "hotel": "{count, plural, one {# hotel to choose from} other {# hotels to choose from}}",
+      "guide": "{count, plural, one {# guide to choose from} other {# guides to choose from}}",
+      "transport": "{count, plural, one {# transport option} other {# transport options}}"
+    },
+    "compare": "Compare them",
+    "cheapest": "Which is cheapest?",
+    "askCompare": "Compare these options for me",
+    "askCheapest": "Which of these is the cheapest?",
+    "askBook": "I want to book \"{name}\"",
+    "askPay": "How do I pay for {name}?",
+    "askRetryPayment": "My payment failed — can I try again?",
+    "payNow": "Pay now",
+    "watchingPayment": "Checking for your payment…",
+    "openInGoogleMaps": "Google Maps",
+    "directions": "Directions",
+    "opensNewTab": "opens in a new tab"
+  },
+  "comparison": {
+    "attribute": "Attribute",
+    "price": "Price",
+    "duration": "Duration",
+    "rating": "Rating",
+    "location": "Location",
+    "highlights": "Highlights",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "cheapest": "Cheapest",
+    "topRated": "Top rated",
+    "askRecommendation": "Which one do you recommend?",
+    "askWhich": "Between {names}, which do you recommend and why?"
+  },
+  "starter": {
+    "title": "Start with your vibe",
+    "moodLabel": "The vibe",
+    "daysLabel": "How long",
+    "partyLabel": "Who's coming",
+    "budgetLabel": "Budget per person",
+    "mood": {
+      "peaceful": "Peaceful",
+      "temples": "Temples",
+      "beach": "Beach",
+      "nature": "Nature",
+      "food": "Food",
+      "nightlife": "Nightlife"
+    },
+    "daysOption": "{count, plural, one {# day} other {# days}}",
+    "party": {
+      "solo": "Just me",
+      "couple": "Couple",
+      "family": "Family",
+      "friends": "Friends"
+    },
+    "budgetOption": "Around ${amount}",
+    "previewLabel": "We'll ask",
+    "send": "Ask the concierge",
+    "reset": "Clear",
+    "prompt": {
+      "moodLeadDefault": "I'd like a trip somewhere in Cambodia",
+      "moodLead": {
+        "peaceful": "I'd like a peaceful, relaxing trip in Cambodia",
+        "temples": "I'd like a trip in Cambodia focused on temples and history",
+        "beach": "I'd like a beach trip in Cambodia",
+        "nature": "I'd like a nature trip in Cambodia with mountains or jungle",
+        "food": "I'd like a trip in Cambodia built around great food",
+        "nightlife": "I'd like a lively trip in Cambodia with good nightlife"
+      },
+      "days": "for {count, plural, one {# day} other {# days}}",
+      "party": {
+        "solo": "travelling on my own",
+        "couple": "with my partner",
+        "family": "with my family",
+        "friends": "with friends"
+      },
+      "budget": "and a budget of around ${amount} per person",
+      "tail": "— what do you recommend?"
     }
   }
 }

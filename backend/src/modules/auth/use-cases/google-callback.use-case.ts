@@ -5,10 +5,15 @@ import { ErrorCode } from '../../../common/errors/error-codes';
 import { GenerateTokensUseCase } from './generate-tokens.use-case';
 import { randomUUID } from 'crypto';
 import type { AuthResponse } from '../interfaces';
+import { AuthProvider, Prisma, type User } from '@prisma/client';
 
 interface GoogleTokenResponse {
   access_token: string;
   id_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  token_type?: string;
+  scope?: string;
 }
 
 interface GoogleUserInfo {
@@ -16,6 +21,7 @@ interface GoogleUserInfo {
   email: string;
   name?: string;
   picture?: string;
+  email_verified?: boolean;
 }
 
 @Injectable()
@@ -26,21 +32,31 @@ export class GoogleCallbackUseCase {
     private readonly generateTokens: GenerateTokensUseCase,
   ) {}
 
-  async execute(code: string): Promise<AuthResponse> {
-    const tokenResponse = await this.exchangeCodeForTokens(code);
+  async execute(
+    code: string,
+    redirectUriOverride?: string,
+  ): Promise<AuthResponse> {
+    const tokenResponse = await this.exchangeCodeForTokens(
+      code,
+      redirectUriOverride,
+    );
     const userInfo = await this.fetchUserInfo(tokenResponse.access_token);
 
-    const user = await this.findOrCreateUser(userInfo);
+    const user = await this.findOrCreateOAuthUser(userInfo, tokenResponse);
 
     return this.generateTokens.execute(user);
   }
 
   private async exchangeCodeForTokens(
     code: string,
+    redirectUriOverride?: string,
   ): Promise<GoogleTokenResponse> {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
-    const redirectUri = `${this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000')}/auth/google/callback`;
+    const redirectUri =
+      redirectUriOverride ??
+      this.configService.get<string>('GOOGLE_REDIRECT_URI') ??
+      `${this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000')}/auth/google/callback`;
 
     const params = new URLSearchParams({
       code,
@@ -81,23 +97,114 @@ export class GoogleCallbackUseCase {
     return res.json() as Promise<GoogleUserInfo>;
   }
 
-  private async findOrCreateUser(userInfo: GoogleUserInfo) {
-    const existing = await this.prisma.user.findUnique({
+  private async findOrCreateOAuthUser(
+    userInfo: GoogleUserInfo,
+    tokens: GoogleTokenResponse,
+  ): Promise<User> {
+    // 1. Look up existing OAuth identity for (google, sub)
+    const existingOAuth = await this.prisma.oAuthAccount.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: AuthProvider.google,
+          providerAccountId: userInfo.sub,
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    const tokenExpiresAt = tokens.expires_in
+      ? new Date(Date.now() + tokens.expires_in * 1000)
+      : null;
+
+    if (existingOAuth) {
+      // Refresh identity metadata and tokens
+      await this.prisma.oAuthAccount.update({
+        where: { id: existingOAuth.id },
+        data: {
+          email: userInfo.email,
+          displayName: userInfo.name ?? existingOAuth.displayName,
+          avatarUrl: userInfo.picture ?? existingOAuth.avatarUrl,
+          profileData: userInfo as unknown as Prisma.InputJsonValue,
+          accessToken: tokens.access_token ?? existingOAuth.accessToken,
+          refreshToken: tokens.refresh_token ?? existingOAuth.refreshToken,
+          tokenExpiresAt: tokenExpiresAt ?? existingOAuth.tokenExpiresAt,
+        },
+      });
+
+      // Fill in user details if not present
+      if (!existingOAuth.user.avatarUrl && userInfo.picture) {
+        return this.prisma.user.update({
+          where: { id: existingOAuth.userId },
+          data: { avatarUrl: userInfo.picture },
+        });
+      }
+
+      return existingOAuth.user;
+    }
+
+    // 2. Not found by OAuth identity: check if an existing user matches the email
+    const existingUser = await this.prisma.user.findUnique({
       where: { email: userInfo.email },
     });
 
-    if (existing) {
-      return existing;
+    if (existingUser) {
+      // Link the Google OAuth account to the existing user
+      await this.prisma.oAuthAccount.create({
+        data: {
+          userId: existingUser.id,
+          provider: AuthProvider.google,
+          providerAccountId: userInfo.sub,
+          email: userInfo.email,
+          displayName: userInfo.name ?? null,
+          avatarUrl: userInfo.picture ?? null,
+          profileData: userInfo as unknown as Prisma.InputJsonValue,
+          accessToken: tokens.access_token ?? null,
+          refreshToken: tokens.refresh_token ?? null,
+          tokenExpiresAt,
+        },
+      });
+
+      if (!existingUser.avatarUrl && userInfo.picture) {
+        return this.prisma.user.update({
+          where: { id: existingUser.id },
+          data: { avatarUrl: userInfo.picture },
+        });
+      }
+
+      return existingUser;
     }
 
-    return this.prisma.user.create({
-      data: {
-        email: userInfo.email,
-        fullName: userInfo.name ?? null,
-        avatarUrl: userInfo.picture ?? null,
-        supabaseUid: randomUUID(),
-        passwordHash: null,
-      },
+    // 3. Brand new user: create both User and OAuthAccount atomically
+    return this.prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email: userInfo.email,
+          fullName: userInfo.name ?? null,
+          avatarUrl: userInfo.picture ?? null,
+          supabaseUid: randomUUID(),
+          passwordHash: null,
+        },
+      });
+
+      await tx.oAuthAccount.create({
+        data: {
+          userId: newUser.id,
+          provider: AuthProvider.google,
+          providerAccountId: userInfo.sub,
+          email: userInfo.email,
+          displayName: userInfo.name ?? null,
+          avatarUrl: userInfo.picture ?? null,
+          profileData: userInfo as unknown as Prisma.InputJsonValue,
+          accessToken: tokens.access_token ?? null,
+          refreshToken: tokens.refresh_token ?? null,
+          tokenExpiresAt,
+        },
+      });
+
+      return newUser;
     });
   }
 }
+

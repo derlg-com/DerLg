@@ -8,14 +8,15 @@ import {
   Body,
   UseInterceptors,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { AuditInterceptor } from '../interceptors/audit.interceptor';
 import { AdminRoles } from '../../../common/decorators/admin-roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RateLimit } from '../../../common/throttler/rate-limit';
 import { AdminDriversService } from '../services/admin-drivers.service';
 import { AdminRole } from '@prisma/client';
 import { CreateDriverDto } from '../dto/create-driver.dto';
 import { UpdateDriverDto } from '../dto/update-driver.dto';
+import { ListDriversDto } from '../dto/list-fleet.dto';
 
 @Controller('admin/drivers')
 @AdminRoles(
@@ -23,19 +24,20 @@ import { UpdateDriverDto } from '../dto/update-driver.dto';
   AdminRole.OPERATIONS_MANAGER,
   AdminRole.SUPER_ADMIN,
 )
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@RateLimit('ADMIN')
 @UseInterceptors(AuditInterceptor)
 export class AdminDriversController {
   constructor(private readonly service: AdminDriversService) {}
 
   @Get()
-  async getAllDrivers(
-    @Query('status') status?: string,
-    @Query('search') search?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.service.getAllDrivers({ status, search, page, limit });
+  async getAllDrivers(@Query() query: ListDriversDto) {
+    return this.service.getAllDrivers({
+      status: query.status,
+      search: query.search,
+      hasTelegram: query.hasTelegramBool,
+      page: query.page?.toString(),
+      limit: query.limit?.toString(),
+    });
   }
 
   @Get(':id')

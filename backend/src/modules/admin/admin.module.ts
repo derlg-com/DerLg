@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
@@ -27,7 +28,12 @@ import {
 import { AdminAnalyticsController } from './controllers/admin-analytics.controller';
 import { AdminUsersController } from './controllers/admin-users.controller';
 import { AdminAuditController } from './controllers/admin-audit.controller';
+import { PaymentsModule } from '../payments/payments.module';
 import { AdminExportController } from './controllers/admin-export.controller';
+import {
+  AdminPaymentsController,
+  AdminRefundsController,
+} from './controllers/admin-payments.controller';
 import { AdminAIMonitoringController } from './controllers/admin-ai-monitoring.controller';
 import { AdminTelegramController } from './controllers/admin-telegram.controller';
 
@@ -48,6 +54,7 @@ import { AdminAnalyticsService } from './services/admin-analytics.service';
 import { AdminUsersService } from './services/admin-users.service';
 import { AdminAuditService } from './services/admin-audit.service';
 import { AdminExportService } from './services/admin-export.service';
+import { AdminPaymentsService } from './services/admin-payments.service';
 import { AdminAIMonitoringService } from './services/admin-ai-monitoring.service';
 import { AdminTelegramService } from './services/admin-telegram.service';
 
@@ -71,7 +78,16 @@ import { AdminEventsService } from './websocket/admin-events.service';
  * not exist in the `user_role` enum, so it could never have passed.
  */
 @Module({
-  imports: [PrismaModule, RedisModule, StorageModule, TelegramModule],
+  imports: [
+    // Supplies PaymentsService. The admin controllers never write to `payments`
+    // themselves — settlement and refund totals have exactly one owner.
+    PaymentsModule,
+    PrismaModule,
+    RedisModule,
+    StorageModule,
+    TelegramModule,
+    JwtModule.register({}),
+  ],
   controllers: [
     AdminDashboardController,
     AdminDriversController,
@@ -91,6 +107,8 @@ import { AdminEventsService } from './websocket/admin-events.service';
     AdminUsersController,
     AdminAuditController,
     AdminExportController,
+    AdminPaymentsController,
+    AdminRefundsController,
     AdminAIMonitoringController,
     AdminTelegramController,
   ],
@@ -111,6 +129,7 @@ import { AdminEventsService } from './websocket/admin-events.service';
     AdminUsersService,
     AdminAuditService,
     AdminExportService,
+    AdminPaymentsService,
     AdminAIMonitoringService,
     AdminTelegramService,
     CacheInvalidationService,

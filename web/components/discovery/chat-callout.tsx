@@ -19,7 +19,15 @@ export async function ChatCallout() {
     <section className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-6 sm:p-8">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 space-y-2">
-          <p className="inline-flex items-center gap-2 text-xs font-medium tracking-wide text-[var(--accent)] uppercase">
+          {/*
+           * `--accent-subtle-text` (accent-800), not `--accent` (accent-600).
+           * At 12px normal weight, accent-600 on the sunken surface measures
+           * 4.22:1 — below the 4.5:1 WCAG AA minimum for small text. The subtle
+           * token is the one meant for accent text ON a tinted surface, and it
+           * inverts correctly in dark mode; the vivid accent stays on the button,
+           * where it is a large-target background rather than small text.
+           */}
+          <p className="inline-flex items-center gap-2 text-xs font-medium tracking-wide text-[var(--accent-subtle-text)] uppercase">
             <Sparkles aria-hidden="true" className="size-3.5" />
             {chat('title')}
           </p>

@@ -1,17 +1,28 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import * as React from 'react'
 
+import { AbaQrPanel } from '@/components/booking/aba-qr-panel'
+import { StripeCardForm } from '@/components/booking/stripe-card-form'
 import { Price } from '@/components/shared/price'
 import { Badge, Button, EmptyState, LoadingRegion, Skeleton, buttonVariants } from '@/components/ui'
 import { useSession } from '@/hooks/use-auth'
-import { useBooking, useConfirmBooking, isDemoPaymentsDisabled } from '@/hooks/use-bookings'
+import { useBooking } from '@/hooks/use-bookings'
 import { useCountdown } from '@/hooks/use-countdown'
 import { useHydrated } from '@/hooks/use-hydrated'
+import { usePaymentStatus } from '@/hooks/use-payment-status'
+import { useStartPayment } from '@/hooks/use-payments'
+import { ApiError, ApiErrorCode } from '@/lib/api/errors'
+import {
+  PAYMENT_INTENT_METHODS,
+  type PaymentIntentMethod,
+  type StartPaymentResult,
+} from '@/lib/api/payments'
 import { cn } from '@/lib/cn'
 import { Link } from '@/lib/i18n/navigation'
-import { isAwaitingPayment, type Booking, type PaymentMethod } from '@/schemas/booking'
+import { isAwaitingPayment, type Booking } from '@/schemas/booking'
 
 /**
  * Booking review and payment.
@@ -29,6 +40,8 @@ export function CheckoutView({ bookingId }: { bookingId: string }) {
   const { user, ready } = useSession()
   const booking = useBooking(bookingId)
 
+  const tAuth = useTranslations('auth')
+
   if (!hydrated || !ready) {
     return (
       <LoadingRegion label={tCommon('loading')}>
@@ -40,11 +53,14 @@ export function CheckoutView({ bookingId }: { bookingId: string }) {
   if (!user) {
     return (
       <EmptyState
-        title={t('confirmation.notFoundTitle')}
-        description={t('confirmation.notFoundDesc')}
+        title={tAuth('title')}
+        description={t('confirmation.pendingDesc')}
         action={
-          <Link href="/login" className={cn(buttonVariants({ size: 'sm' }))}>
-            {tBookings('list.explore')}
+          <Link
+            href={`/login?next=/bookings/${bookingId}`}
+            className={cn(buttonVariants({ size: 'sm' }))}
+          >
+            {tAuth('login')}
           </Link>
         }
       />
@@ -78,19 +94,82 @@ export function CheckoutView({ bookingId }: { bookingId: string }) {
 
 function CheckoutBody({ booking }: { booking: Booking }) {
   const t = useTranslations('checkout')
-  const tBookings = useTranslations('bookings')
   const tBooking = useTranslations('booking')
 
-  const confirm = useConfirmBooking()
-  const [method, setMethod] = React.useState<PaymentMethod>('card')
+  const queryClient = useQueryClient()
+  const startPayment = useStartPayment()
+  const [method, setMethod] = React.useState<PaymentIntentMethod>('card')
+  const [intent, setIntent] = React.useState<StartPaymentResult | null>(null)
+
+  /*
+   * A 3DS card challenge leaves the page and returns with Stripe's query params.
+   * Read once, on mount, and SSR-safe (guests and the server see `false`): on a
+   * redirect return the local `intent` state is gone, so this keeps the poll alive
+   * and shows a "completing" state instead of dropping the user back onto method
+   * selection for a payment that may already be settling.
+   */
+  const [returnedFromStripe] = React.useState(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).has('redirect_status')
+  })
+
+  const paymentStarted = Boolean(intent) || returnedFromStripe
+
+  const paymentStatus = usePaymentStatus({
+    bookingId: booking.id,
+    enabled: paymentStarted,
+  })
+  const state = paymentStatus.data?.state
+  const succeeded = state === 'SUCCEEDED'
+  const failed = state === 'FAILED' || state === 'CANCELLED'
 
   const countdown = useCountdown(booking.holdExpiresAt ?? undefined)
   const holdExpired = countdown?.expired ?? false
   const awaitingPayment = isAwaitingPayment(booking.status)
 
-  // Already paid: show the confirmation rather than a payment form.
+  /*
+   * Once the webhook (card) or credit alert (ABA) settles the payment, pull the
+   * fresh — now confirmed — booking so the confirmation view replaces the payment
+   * controls. The browser never marks it paid; it only reacts to the server's word.
+   */
+  React.useEffect(() => {
+    if (succeeded) queryClient.invalidateQueries({ queryKey: ['bookings'] })
+  }, [succeeded, queryClient])
+
+  function start(nextMethod: PaymentIntentMethod) {
+    startPayment.mutate(
+      { bookingId: booking.id, method: nextMethod },
+      { onSuccess: (result) => setIntent(result) },
+    )
+  }
+
+  function changeMethod() {
+    setIntent(null)
+    startPayment.reset()
+  }
+
+  // Already settled server-side: show the outcome, not a payment form.
   if (!awaitingPayment) {
     return <SettledBooking booking={booking} />
+  }
+
+  /*
+   * Payment cleared but the booking refetch is still in flight: announce it rather
+   * than briefly re-show a pay button for a booking that is already paid.
+   */
+  if (succeeded) {
+    return (
+      <div className="flex flex-col gap-4">
+        <BookingSummary booking={booking} />
+        <div
+          className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--tone-success-bg)] p-4"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="text-sm font-medium text-[var(--tone-success-text)]">{t('confirming')}</p>
+        </div>
+      </div>
+    )
   }
 
   if (holdExpired) {
@@ -135,13 +214,84 @@ function CheckoutBody({ booking }: { booking: Booking }) {
 
       <BookingSummary booking={booking} />
 
+      {startPayment.isError ? (
+        <div
+          className="rounded-[var(--radius-md)] bg-[var(--tone-danger-bg)] px-3 py-2 text-sm text-[var(--tone-danger-text)]"
+          role="alert"
+        >
+          {t(`errors.${startErrorKey(startPayment.error)}`)}
+        </div>
+      ) : null}
+
+      {/* A payment that failed after a redirect return has no local form to own
+          its own error, so surface it here and fall back to method selection. */}
+      {!intent && failed ? (
+        <div
+          className="rounded-[var(--radius-md)] bg-[var(--tone-danger-bg)] px-3 py-2 text-sm text-[var(--tone-danger-text)]"
+          role="alert"
+        >
+          {t('failed')}
+        </div>
+      ) : null}
+
+      {intent ? (
+        <PaymentInstrument
+          intent={intent}
+          onRegenerate={() => start('aba_qr')}
+          regenerating={startPayment.isPending}
+        />
+      ) : returnedFromStripe && !failed ? (
+        <div
+          className="rounded-[var(--radius-md)] bg-[var(--surface-sunken)] px-3 py-2 text-sm text-[var(--text-secondary)]"
+          role="status"
+          aria-live="polite"
+        >
+          {t('completing')}
+        </div>
+      ) : (
+        <MethodPicker
+          method={method}
+          onMethod={setMethod}
+          onProceed={() => start(method)}
+          starting={startPayment.isPending}
+        />
+      )}
+
+      {intent ? (
+        <Button variant="link" size="sm" className="self-start" onClick={changeMethod}>
+          {t('changeMethod')}
+        </Button>
+      ) : null}
+
+      <p className="text-xs text-[var(--text-tertiary)]">{t('review.holdNotice')}</p>
+    </div>
+  )
+}
+
+/** Method radios plus the button that starts the payment. */
+function MethodPicker({
+  method,
+  onMethod,
+  onProceed,
+  starting,
+}: {
+  method: PaymentIntentMethod
+  onMethod: (next: PaymentIntentMethod) => void
+  onProceed: () => void
+  starting: boolean
+}) {
+  const t = useTranslations('checkout')
+  const tBookings = useTranslations('bookings')
+
+  return (
+    <div className="flex flex-col gap-3">
       <fieldset className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface)] p-3">
         <legend className="px-1 text-sm font-semibold text-[var(--text-primary)]">
           {t('method.title')}
         </legend>
 
         <div className="mt-1 flex flex-col gap-1.5">
-          {(['card', 'bakong_qr', 'aba_qr'] as const).map((option) => (
+          {PAYMENT_INTENT_METHODS.map((option) => (
             <label
               key={option}
               className="flex min-h-10 cursor-pointer items-center gap-2 rounded-[var(--radius-md)] px-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] pointer-coarse:min-h-11"
@@ -151,7 +301,7 @@ function CheckoutBody({ booking }: { booking: Booking }) {
                 name="paymentMethod"
                 value={option}
                 checked={method === option}
-                onChange={() => setMethod(option)}
+                onChange={() => onMethod(option)}
                 className="size-4 accent-[var(--accent)]"
               />
               {t(`method.${option}`)}
@@ -160,49 +310,57 @@ function CheckoutBody({ booking }: { booking: Booking }) {
         </div>
       </fieldset>
 
-      {/*
-       * Stated up front, before the pay button: no card is charged. Every method
-       * routes through the same sandbox confirmation because the backend has no
-       * PaymentIntent endpoint and no live Bakong integration.
-       */}
-      <p className="rounded-[var(--radius-md)] bg-[var(--tone-warning-bg)] px-3 py-2 text-xs text-[var(--tone-warning-text)]">
-        {t('mockNotice')}
-      </p>
-
-      {confirm.isError ? (
-        <div
-          className="rounded-[var(--radius-md)] bg-[var(--tone-danger-bg)] px-3 py-2 text-sm text-[var(--tone-danger-text)]"
-          role="alert"
-        >
-          {isDemoPaymentsDisabled(confirm.error) ? (
-            <>
-              <p className="font-medium">{t('demoDisabledTitle')}</p>
-              <p>{t('demoDisabledDesc')}</p>
-            </>
-          ) : (
-            <p>{t('failed')}</p>
-          )}
-        </div>
-      ) : null}
-
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          loading={confirm.isPending}
-          onClick={() => confirm.mutate({ id: booking.id, method })}
-        >
-          {t('card.pay')}
+        <Button loading={starting} onClick={onProceed}>
+          {t('proceed')}
         </Button>
-        <Link
-          href="/bookings"
-          className={cn(buttonVariants({ variant: 'ghost' }))}
-        >
+        <Link href="/bookings" className={cn(buttonVariants({ variant: 'ghost' }))}>
           {tBookings('detail.cancel')}
         </Link>
       </div>
-
-      <p className="text-xs text-[var(--text-tertiary)]">{t('review.holdNotice')}</p>
     </div>
   )
+}
+
+/** Renders the method-specific instrument once a payment has been started. */
+function PaymentInstrument({
+  intent,
+  onRegenerate,
+  regenerating,
+}: {
+  intent: StartPaymentResult
+  onRegenerate: () => void
+  regenerating: boolean
+}) {
+  if (intent.method === 'aba_qr') {
+    return (
+      <AbaQrPanel
+        qrImageDataUrl={intent.qrImageDataUrl ?? undefined}
+        amountUsd={intent.amountUsd}
+        expiresAt={intent.expiresAt ?? undefined}
+        onRegenerate={onRegenerate}
+        regenerating={regenerating}
+      />
+    )
+  }
+
+  return <StripeCardForm clientSecret={intent.clientSecret ?? undefined} />
+}
+
+/**
+ * Maps a start-payment failure to a message key.
+ *
+ * `PAY_METHOD_NOT_SUPPORTED` means the provider is not configured on this server
+ * (Stripe returns it as 503, ABA as 400) — a deployment state, not user error, so
+ * it earns its own message. A 429 is the payment rate limit, worth its own "wait a
+ * moment" rather than a generic failure.
+ */
+function startErrorKey(error: unknown): 'methodUnavailable' | 'rateLimited' | 'startFailed' {
+  if (error instanceof ApiError) {
+    if (error.code === ApiErrorCode.PAY_METHOD_NOT_SUPPORTED) return 'methodUnavailable'
+    if (error.isRateLimited) return 'rateLimited'
+  }
+  return 'startFailed'
 }
 
 /** Shared summary of what is being paid for. */

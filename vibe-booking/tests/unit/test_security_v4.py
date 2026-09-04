@@ -60,10 +60,47 @@ def test_sanitize_input_strips_injection_keeps_prose():
 
 @pytest.mark.asyncio
 async def test_get_user_loyalty_user_id_is_server_injected():
-    session = ConversationState(session_id="s1", user_id="real-uuid")
+    # Authenticated: the loyalty tool is gated on a verified session, so injection
+    # is only reachable once that gate has passed.
+    session = ConversationState(session_id="s1", user_id="real-uuid", is_authenticated=True)
     mock_backend = AsyncMock()
     mock_backend.request = AsyncMock(return_value={"success": True})
     with patch("agent.core.get_backend_client", return_value=mock_backend):
         await _execute_tool("get_user_loyalty", {"user_id": "victim-uuid"}, session)
     _, kwargs = mock_backend.request.call_args
     assert kwargs["params"]["user_id"] == "real-uuid"
+
+
+# --- Guest sessions must NOT reach the backend for account-scoped tools ------
+# The security property behind _AUTH_REQUIRED_TOOLS: a guest (is_authenticated
+# defaults to False) asking for loyalty points or a payment status is refused by
+# _execute_tool BEFORE any backend call. `session.user_id` on a guest is only
+# what their WebSocket auth frame claimed — unverified — so injecting it and
+# querying the backend would let a guest read another account's loyalty balance
+# or payment history simply by naming its uuid. The tool must fail closed instead.
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tool,inp",
+    [
+        ("get_user_loyalty", {}),
+        ("check_payment_status", {"booking_id": "someone-elses-booking"}),
+    ],
+)
+async def test_guest_cannot_reach_backend_for_account_scoped_tools(tool, inp):
+    # A guest never had a signature checked, so is_authenticated is the default.
+    session = ConversationState(session_id="s1", user_id="unverified-claimed-uuid")
+    assert session.is_authenticated is False
+
+    mock_backend = AsyncMock()
+    mock_backend.request = AsyncMock(return_value={"success": True, "data": {"points": 9999}})
+    with patch("agent.core.get_backend_client", return_value=mock_backend):
+        result = await _execute_tool(tool, inp, session)
+
+    # Fails closed with the exact contract the streaming loop's requires_login gate
+    # and the frontend key on.
+    assert result["success"] is False
+    assert result["error"] == "authentication_required"
+    # The property that matters: the backend was never consulted, so no account
+    # data could leak and no unverified user_id was ever sent upstream.
+    mock_backend.request.assert_not_called()

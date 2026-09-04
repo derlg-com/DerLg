@@ -6,6 +6,7 @@ import {
   AuditEventType,
   Prisma,
   VehicleType,
+  VehicleTier,
 } from '@prisma/client';
 
 @Injectable()
@@ -21,13 +22,14 @@ export class AdminVehiclesService {
     page?: string;
     limit?: string;
   }) {
-    const { category, search, page, limit } = filters;
+    const { category, tier, search, page, limit } = filters;
     const currentPage = Math.max(1, parseInt(page || '1', 10));
     const take = Math.min(100, Math.max(1, parseInt(limit || '20', 10)));
     const skip = (currentPage - 1) * take;
 
     const where: Prisma.TransportationVehicleWhereInput = {};
     if (category) where.vehicleType = category as VehicleType;
+    if (tier) where.tier = tier as VehicleTier;
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -41,12 +43,25 @@ export class AdminVehiclesService {
         skip,
         take,
         orderBy: { createdAt: 'desc' },
+        include: {
+          drivers: {
+            select: { id: true, driverName: true, status: true },
+            take: 1,
+          },
+        },
       }),
       this.prisma.transportationVehicle.count({ where }),
     ]);
 
+    const mapped = data.map((v) => ({
+      ...v,
+      assignedDriver: v.drivers?.[0]
+        ? { id: v.drivers[0].id, driverName: v.drivers[0].driverName }
+        : null,
+    }));
+
     return {
-      data,
+      data: mapped,
       meta: {
         page: currentPage,
         limit: take,
@@ -192,6 +207,30 @@ export class AdminVehiclesService {
     }
 
     return vehicle;
+  }
+
+  /**
+   * Soft-deletes a vehicle by clearing `isActive`.
+   *
+   * There is deliberately no hard delete. `transportation_vehicles` is
+   * referenced by historical `booking_items`, so a real DELETE would either be
+   * rejected by the foreign key or orphan completed bookings and break revenue
+   * reporting. The admin panel's "delete" action maps here.
+   */
+  async deactivateVehicle(id: string) {
+    const existing = await this.prisma.transportationVehicle.findUnique({
+      where: { id },
+      select: { id: true, isActive: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException(`Vehicle with id ${id} not found`);
+    }
+
+    return this.prisma.transportationVehicle.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   async getVehicleAvailability(id: string) {

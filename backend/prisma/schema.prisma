@@ -94,6 +94,12 @@ enum SingleResourceKind {
 enum PaymentProvider {
   stripe
   bakong
+  // ABA Bank KHQR. Distinct from `bakong` even though both ride the KHQR rail:
+  // ABA payments are confirmed out-of-band from a Telegram credit alert rather
+  // than by polling a provider API, so every lookup has to be able to tell them
+  // apart. Treating them as one value made an ABA alert able to settle a Bakong
+  // row that happened to share an amount.
+  aba
 
   @@map("payment_provider")
 }
@@ -344,6 +350,15 @@ enum BroadcastStatus {
   @@map("broadcast_status")
 }
 
+enum AuthProvider {
+  google
+  telegram
+  apple
+  facebook
+
+  @@map("auth_provider")
+}
+
 // =============================================================================
 // USERS & AUTH
 // =============================================================================
@@ -395,6 +410,7 @@ model User {
   auditLogs            AuditLog[]
   favorites            Favorite[]
   payments             Payment[]
+  oauthAccounts        OAuthAccount[]
 
   // Admin panel relations (F110–F118)
   adminProfile    AdminUser?
@@ -416,6 +432,33 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+model OAuthAccount {
+  id                String       @id @default(uuid()) @db.Uuid
+  userId            String       @map("user_id") @db.Uuid
+  provider          AuthProvider @map("provider")
+  providerAccountId String       @map("provider_account_id")
+
+  email             String?      @map("email")
+  displayName       String?      @map("display_name")
+  avatarUrl         String?      @map("avatar_url")
+
+  profileData       Json?        @map("profile_data") @db.JsonB
+
+  accessToken       String?      @map("access_token") @db.Text
+  refreshToken      String?      @map("refresh_token") @db.Text
+  tokenExpiresAt    DateTime?    @map("token_expires_at") @db.Timestamptz()
+
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([provider, email])
+  @@map("oauth_accounts")
 }
 
 // =============================================================================
@@ -877,8 +920,16 @@ model Payment {
   id                String          @id @default(uuid()) @db.Uuid
   bookingId         String          @map("booking_id") @db.Uuid
   userId            String          @map("user_id") @db.Uuid
-  provider          PaymentProvider
-  providerPaymentId String?         @map("provider_payment_id")
+  provider PaymentProvider
+  /// Provider-side settlement id: a Stripe charge id, or an ABA transaction id
+  /// from the Telegram credit alert.
+  ///
+  /// Unique, and that uniqueness is the idempotency guarantee for settlement.
+  /// Stripe redelivers webhooks and Telegram can replay a message on reconnect;
+  /// without a DB-level constraint, a replayed event would settle a payment
+  /// twice. Postgres allows unlimited NULLs in a unique index, so unsettled rows
+  /// are unaffected.
+  providerPaymentId String? @unique @map("provider_payment_id")
 
   // Amounts
   amountUsd    Decimal  @map("amount_usd") @db.Decimal(10, 2)
@@ -893,7 +944,13 @@ model Payment {
   stripePaymentIntentId String? @map("stripe_payment_intent_id")
   clientSecret          String? @map("client_secret")
 
-  // QR (Bakong)
+  // QR (KHQR — Bakong and ABA)
+  //
+  // `qrPayload` is the EMVCo/KHQR string the customer's banking app decodes. It
+  // is the payment instrument, so it is persisted: re-deriving it would mint a
+  // new expiry and silently invalidate the code already on the customer's screen.
+  // The PNG is rendered on demand from this string and never stored.
+  qrPayload   String?   @map("qr_payload")
   qrCodeUrl   String?   @map("qr_code_url")
   qrExpiresAt DateTime? @map("qr_expires_at") @db.Timestamptz()
 
@@ -915,6 +972,10 @@ model Payment {
   @@index([provider])
   @@index([status])
   @@index([stripePaymentIntentId])
+  // The ABA Telegram listener's hot path: find the pending payment for an exact
+  // amount from a specific provider. Without this it is a full scan of `payments`
+  // on every credit alert, and it runs while a customer waits at a QR code.
+  @@index([provider, status, amountUsd])
   @@map("payments")
 }
 

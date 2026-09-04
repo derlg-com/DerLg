@@ -1,7 +1,13 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaymentsService } from '../payments/services/payments.service';
 import { AiToolsService } from './ai-tools.service';
+
+/** Minimal PaymentsService double: only `startPayment` is reachable from here. */
+function paymentsStub() {
+  return { startPayment: jest.fn() };
+}
 
 describe('AiToolsService.searchTrips (budget/duration relaxation)', () => {
   let service: AiToolsService;
@@ -10,7 +16,14 @@ describe('AiToolsService.searchTrips (budget/duration relaxation)', () => {
   beforeEach(async () => {
     prisma = { trip: { findMany: jest.fn().mockResolvedValue([]) } };
     const mod = await Test.createTestingModule({
-      providers: [AiToolsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AiToolsService,
+        { provide: PrismaService, useValue: prisma },
+        // The QR tool delegates to PaymentsService; these specs cover the
+        // catalogue and archive tools, so a stub keeps the module resolvable
+        // without dragging Stripe and Redis into scope.
+        { provide: PaymentsService, useValue: paymentsStub() },
+      ],
     }).compile();
     service = mod.get(AiToolsService);
   });
@@ -49,7 +62,14 @@ describe('AiToolsService.searchGuides (card-ready shape)', () => {
       user: { findMany: jest.fn() },
     };
     const mod = await Test.createTestingModule({
-      providers: [AiToolsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AiToolsService,
+        { provide: PrismaService, useValue: prisma },
+        // The QR tool delegates to PaymentsService; these specs cover the
+        // catalogue and archive tools, so a stub keeps the module resolvable
+        // without dragging Stripe and Redis into scope.
+        { provide: PaymentsService, useValue: paymentsStub() },
+      ],
     }).compile();
     service = mod.get(AiToolsService);
   });
@@ -132,7 +152,14 @@ describe('AiToolsService.createCustomTrip (P6b server-side pricing)', () => {
       trip: { create: jest.fn() },
     };
     const mod = await Test.createTestingModule({
-      providers: [AiToolsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AiToolsService,
+        { provide: PrismaService, useValue: prisma },
+        // The QR tool delegates to PaymentsService; these specs cover the
+        // catalogue and archive tools, so a stub keeps the module resolvable
+        // without dragging Stripe and Redis into scope.
+        { provide: PaymentsService, useValue: paymentsStub() },
+      ],
     }).compile();
     service = mod.get(AiToolsService);
   });
@@ -222,7 +249,14 @@ describe('AiToolsService.sendSosAlert (user existence gate)', () => {
       emergencyAlert: { create: jest.fn() },
     };
     const mod = await Test.createTestingModule({
-      providers: [AiToolsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AiToolsService,
+        { provide: PrismaService, useValue: prisma },
+        // The QR tool delegates to PaymentsService; these specs cover the
+        // catalogue and archive tools, so a stub keeps the module resolvable
+        // without dragging Stripe and Redis into scope.
+        { provide: PaymentsService, useValue: paymentsStub() },
+      ],
     }).compile();
     service = mod.get(AiToolsService);
   });
@@ -317,7 +351,14 @@ describe('AiToolsService — chat archive', () => {
         .mockResolvedValue([{ count: 3 }, { id: 'sess-1' }]),
     };
     const mod = await Test.createTestingModule({
-      providers: [AiToolsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AiToolsService,
+        { provide: PrismaService, useValue: prisma },
+        // The QR tool delegates to PaymentsService; these specs cover the
+        // catalogue and archive tools, so a stub keeps the module resolvable
+        // without dragging Stripe and Redis into scope.
+        { provide: PaymentsService, useValue: paymentsStub() },
+      ],
     }).compile();
     service = mod.get(AiToolsService);
   });

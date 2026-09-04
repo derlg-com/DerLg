@@ -193,18 +193,18 @@
     "method": {
       "title": "支付方式",
       "card": "信用卡 / 借记卡",
-      "bakong_qr": "Bakong 二维码",
       "aba_qr": "ABA 二维码"
     },
     "title": "结账",
     "subtotal": "小计",
     "total": "总计",
-    "mockNotice": "演示模式 — 支付为模拟，不会真实扣款。",
     "card": {
       "number": "卡号",
       "expiry": "有效期",
       "cvc": "CVC",
-      "pay": "立即支付"
+      "pay": "立即支付",
+      "unavailable": "银行卡支付当前不可用。请选择其他方式。",
+      "processing": "正在确认您的付款…"
     },
     "qr": {
       "scan": "使用银行 App 扫码支付",
@@ -292,8 +292,24 @@
       "expiredDesc": "预留有效期为 15 分钟。未产生任何费用 — 请重新查询可订情况。",
       "startOver": "浏览行程"
     },
-    "demoDisabledTitle": "支付功能未启用",
-    "demoDisabledDesc": "此服务器已关闭支付确认功能，因此无法在此完成支付。您的预留不受影响。",
+    "proceed": "继续支付",
+    "changeMethod": "更改支付方式",
+    "confirming": "已收到付款 — 正在确认您的预订…",
+    "completing": "正在完成支付…",
+    "errors": {
+      "methodUnavailable": "此服务器暂不支持该支付方式。请选择其他方式。",
+      "rateLimited": "尝试次数过多。请稍候片刻再试。",
+      "startFailed": "无法开始支付。请重试。"
+    },
+    "aba": {
+      "title": "使用 ABA 支付",
+      "instructions": "打开 ABA Mobile 应用，点按“扫码 (Scan QR)”，扫描下方二维码完成支付。",
+      "amount": "应付金额",
+      "expiresIn": "二维码将于 {minutes}分 {seconds}秒 后过期",
+      "expired": "此二维码已过期。",
+      "regenerate": "生成新的二维码",
+      "autoConfirm": "请保持此页面开启 — 付款到账后将自动确认您的预订。"
+    },
     "qrPending": "正在等待支付到账…"
   },
   "bookings": {
@@ -643,6 +659,13 @@
       "forgot": "忘记密码？",
       "noAccount": "还没有账户？",
       "cta": "注册"
+    },
+    "googleSignIn": "使用 Google 登录",
+    "or": "或",
+    "callback": {
+      "signingIn": "正在完成 Google 登录...",
+      "failed": "Google 登录失败，请重试。",
+      "backToLogin": "返回登录"
     },
     "signUp": {
       "title": "创建账户",
@@ -1004,7 +1027,9 @@
     "emptyHint": "关于柬埔寨旅行的任何问题都可以问 — 行程、酒店、导游或交通。",
     "toolsLabel": "正在处理",
     "sendFailed": "尚未连接 — 您的消息已排队。",
-    "blockUnavailable": "这些结果暂时无法在此显示。"
+    "blockUnavailable": "这些结果暂时无法在此显示。",
+    "jumpToLatest": "跳到最新",
+    "charactersLeft": "{count, plural, other {还可输入 # 个字符}}"
   },
   "content": {
     "trips": "行程",
@@ -1030,7 +1055,12 @@
     "customTripItems": "包含项目",
     "customTripExtras": "附加项目",
     "customTripBook": "预订此行程",
-    "customTripQuantity": "×{count}"
+    "customTripQuantity": "×{count}",
+    "galleryPosition": "第 {index} 张，共 {total} 张",
+    "galleryPrevious": "上一张",
+    "galleryNext": "下一张",
+    "galleryOpen": "打开第 {index} 张，共 {total} 张",
+    "imageUnavailable": "此照片无法显示。"
   },
   "booking": {
     "summary": "预订摘要",
@@ -1051,6 +1081,7 @@
     "downloadReceipt": "下载收据",
     "stripeNotConfigured": "银行卡支付目前不可用。请改用二维码支付。",
     "sandboxTitle": "沙盒支付",
+    "sandboxNotice": "演示模式 — 支付为模拟，不会真实扣款。",
     "sandboxDesc": "尚未接入银行卡支付，因此不会产生任何费用。在此确认仅为测试目的将预订标记为已支付。",
     "signInToPay": "登录以确认支付",
     "signInToPayDesc": "只有登录账户才能确认支付，以便与您的预订进行核对。",
@@ -1417,6 +1448,99 @@
       "selectRoom": "选择",
       "selected": "已选择",
       "sleeps": "可住 {count} 人"
+    }
+  },
+  "workspace": {
+    "title": "行程工作区",
+    "openSheet": "打开行程工作区",
+    "emptyTitle": "尚未选择任何内容",
+    "emptyDesc": "告诉管家你想要什么，你的行程、地图和预订都会集中显示在这里。",
+    "footnote": "价格、可订状态与支付状态均来自 DerLg —— 管家绝不会自行估算。",
+    "subject": {
+      "trip": "已选行程",
+      "hotel": "已选酒店",
+      "custom_trip": "你的定制行程"
+    },
+    "mapTitle": "位置",
+    "itineraryTitle": "每日安排",
+    "galleryTitle": "照片",
+    "optionsTitle": "可选方案",
+    "optionsCount": {
+      "trip": "{count, plural, other {# 个行程可选}}",
+      "hotel": "{count, plural, other {# 家酒店可选}}",
+      "guide": "{count, plural, other {# 位导游可选}}",
+      "transport": "{count, plural, other {# 个交通方案}}"
+    },
+    "compare": "帮我对比",
+    "cheapest": "哪个最便宜？",
+    "askCompare": "帮我对比这些方案",
+    "askCheapest": "这些里面哪个最便宜？",
+    "askBook": "我想预订「{name}」",
+    "askPay": "{name} 要怎么付款？",
+    "askRetryPayment": "我的付款失败了，可以再试一次吗？",
+    "payNow": "立即付款",
+    "watchingPayment": "正在确认你的付款…",
+    "openInGoogleMaps": "谷歌地图",
+    "directions": "路线导航",
+    "opensNewTab": "将在新标签页打开"
+  },
+  "comparison": {
+    "attribute": "对比项",
+    "price": "价格",
+    "duration": "天数",
+    "rating": "评分",
+    "location": "地点",
+    "highlights": "亮点",
+    "days": "{count, plural, other {# 天}}",
+    "cheapest": "最便宜",
+    "topRated": "评分最高",
+    "askRecommendation": "你推荐哪一个？",
+    "askWhich": "在 {names} 之间，你推荐哪个？为什么？"
+  },
+  "starter": {
+    "title": "从你的心情开始",
+    "moodLabel": "想要的感觉",
+    "daysLabel": "行程天数",
+    "partyLabel": "同行的人",
+    "budgetLabel": "每人预算",
+    "mood": {
+      "peaceful": "宁静",
+      "temples": "寺庙古迹",
+      "beach": "海滨",
+      "nature": "自然",
+      "food": "美食",
+      "nightlife": "夜生活"
+    },
+    "daysOption": "{count, plural, other {# 天}}",
+    "party": {
+      "solo": "我一个人",
+      "couple": "情侣两人",
+      "family": "家庭出游",
+      "friends": "朋友同行"
+    },
+    "budgetOption": "约 {amount} 美元",
+    "previewLabel": "我们会这样问",
+    "send": "问问管家",
+    "reset": "清空",
+    "prompt": {
+      "moodLeadDefault": "我想在柬埔寨安排一趟旅行",
+      "moodLead": {
+        "peaceful": "我想在柬埔寨安排一趟宁静放松的旅行",
+        "temples": "我想在柬埔寨安排一趟以寺庙和历史为主的旅行",
+        "beach": "我想在柬埔寨安排一趟海滨旅行",
+        "nature": "我想在柬埔寨安排一趟有山林自然风光的旅行",
+        "food": "我想在柬埔寨安排一趟以美食为主的旅行",
+        "nightlife": "我想在柬埔寨安排一趟热闹、夜生活丰富的旅行"
+      },
+      "days": "为期 {count, plural, other {# 天}}",
+      "party": {
+        "solo": "我一个人出行",
+        "couple": "和伴侣一起",
+        "family": "和家人一起",
+        "friends": "和朋友一起"
+      },
+      "budget": "每人预算大约 {amount} 美元",
+      "tail": "有什么推荐吗？"
     }
   }
 }

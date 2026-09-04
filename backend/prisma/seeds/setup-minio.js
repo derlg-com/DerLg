@@ -44,11 +44,25 @@ async function setupBucket() {
   console.log('  ✅ Set bucket policy to public-read');
 }
 
+function escapeXml(unsafe) {
+  return String(unsafe).replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
+
 async function uploadPlaceholderImage(objectName, color, label) {
   // Create a simple SVG placeholder
+  const safeLabel = escapeXml(label);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
     <rect width="800" height="600" fill="${color}"/>
-    <text x="400" y="300" font-family="Arial" font-size="32" fill="white" text-anchor="middle" dy=".3em">${label}</text>
+    <text x="400" y="300" font-family="Arial" font-size="32" fill="white" text-anchor="middle" dy=".3em">${safeLabel}</text>
   </svg>`;
 
   const buffer = Buffer.from(svg);

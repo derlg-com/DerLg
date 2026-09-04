@@ -17,7 +17,35 @@ MAX_MESSAGES = 20
 MAX_TOKENS = 2048
 
 # Mutations/reads whose user_id must come from the verified session, never the model.
-_USER_SCOPED_TOOLS = ("create_booking_hold", "send_sos_alert", "get_user_loyalty")
+_USER_SCOPED_TOOLS = (
+    "create_booking_hold",
+    "send_sos_alert",
+    "get_user_loyalty",
+    "check_payment_status",
+    "generate_payment_qr",
+)
+
+# Tools that read or write another person's account data and therefore require a
+# JWT-verified session, not merely a session that carries a user_id.
+#
+# `session.user_id` is NOT proof of identity on its own: a guest's WebSocket auth
+# frame supplies it verbatim (api/websocket.py), and only `is_authenticated`
+# records whether a signature was actually checked. Injecting an unverified
+# user_id into these calls would let a guest read any account's loyalty balance
+# or payment history simply by naming its uuid.
+#
+# `generate_payment_qr` is here because it mints a payable QR against a specific
+# booking; a guest must not be able to produce one for someone else's booking.
+#
+# `send_sos_alert` is intentionally absent: it is safety-critical and must always
+# return emergency numbers. `_handle_sos_alert` gates the *write* on
+# `is_authenticated` separately and never posts a guest's id to the backend.
+_AUTH_REQUIRED_TOOLS = (
+    "create_booking_hold",
+    "get_user_loyalty",
+    "check_payment_status",
+    "generate_payment_qr",
+)
 
 # SAFETY NET — Cambodia national emergency numbers. A user reporting an emergency
 # must ALWAYS receive these actionable numbers, even if the backend is
@@ -184,7 +212,7 @@ def _norm_guide(g: dict) -> dict:
         "name": g.get("name") or "Local Guide",
         "pricePerDayUsd": g.get("price_per_day_usd") or g.get("pricePerDayUsd") or 0,
         "languages": g.get("languages") or None,
-        "specialities": g.get("specialities") or None,
+        "specialities": g.get("specialties") or g.get("specialities") or None,
         "province": g.get("province"),
         "avatarUrl": g.get("avatar_url") or g.get("avatarUrl"),
         "isVerified": is_verified,
@@ -302,6 +330,46 @@ def _extract_booking_hold(tool_results: list[tuple[str, dict]]) -> dict | None:
     return None
 
 
+def _resolve_item_name(
+    payloads: list[dict], item_id: object, reference: object
+) -> str:
+    """Find the display name for a held item among the blocks already built.
+
+    The held id came from a card or detail this same turn produced, so its name is
+    almost always right here — no extra backend round-trip needed. Falls back to
+    the booking reference, which is at least a real identifier the user can quote
+    to support, and finally to "" rather than inventing a name.
+    """
+    if not item_id:
+        return str(reference or "")
+
+    wanted = str(item_id)
+
+    for payload in payloads:
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            continue
+
+        # Detail blocks are a single entity keyed at the top level.
+        if data.get("id") == wanted:
+            name = data.get("name") or data.get("title")
+            if name:
+                return str(name)
+
+        # Card blocks hold their entities under a type-specific key.
+        for key in ("trips", "items", "hotels", "guides", "options"):
+            entries = data.get(key)
+            if not isinstance(entries, list):
+                continue
+            for entry in entries:
+                if isinstance(entry, dict) and entry.get("id") == wanted:
+                    name = entry.get("name") or entry.get("title") or entry.get("operator")
+                    if name:
+                        return str(name)
+
+    return str(reference or "")
+
+
 def _collect_map_markers(payloads: list[dict]) -> list[dict]:
     """Pull mappable points (lat/lng) out of already-built card/detail payloads
     so a map_view can be derived to sit alongside the cards (TripAdvisor-style)."""
@@ -366,6 +434,7 @@ def build_content_payloads(
     tool_results: list[tuple[str, dict]],
     search_destination: str | None = None,
     query: str | None = None,
+    tool_args: dict[str, list[dict]] | None = None,
 ) -> list[dict]:
     """Map ALL tool results to a list of typed ContentPayloads for the frontend.
 
@@ -375,9 +444,28 @@ def build_content_payloads(
     UI can auto-render a rich, multi-section result like TripAdvisor's
     "Plan with AI". Handles both array responses (backend returns list directly)
     and object responses, mapping snake_case backend fields to camelCase.
+
+    `tool_args` maps a tool name to the ARGUMENTS of each call to it, in call
+    order. Some backend responses omit fields the caller already supplied — most
+    importantly create_booking_hold, which returns only ids and money, so the item
+    type, travel date and traveller count have to come from the request side or the
+    booking summary renders with blank fields. A list rather than a single dict
+    because a turn may call the same tool twice, and pairing the second call's
+    result with the first call's arguments would misreport a real booking.
     """
+    args = tool_args or {}
+    # How many results for each tool name have been consumed, so the Nth result
+    # is matched with the Nth call's arguments.
+    seen: dict[str, int] = {}
     payloads: list[dict] = []
     for tool_name, result in tool_results:
+        # Consume this tool's next set of call arguments regardless of whether the
+        # result is usable, so a failed call cannot shift the pairing for later ones.
+        call_index = seen.get(tool_name, 0)
+        seen[tool_name] = call_index + 1
+        call_args_list = args.get(tool_name) or []
+        call_args = call_args_list[call_index] if call_index < len(call_args_list) else {}
+
         if not result.get("success"):
             continue
         raw = result.get("data")
@@ -476,16 +564,31 @@ def build_content_payloads(
 
         elif tool_name == "create_booking_hold":
             if isinstance(raw, dict) and raw.get("booking_id"):
+                # The backend hold response carries only ids and money, so the
+                # human-facing facts come from this call's arguments plus whatever
+                # this turn already showed the user.
+                hold_args = call_args
+                item_type = hold_args.get("item_type") or "trip"
+                if item_type not in ("trip", "hotel", "transport", "guide"):
+                    item_type = "trip"
+                people = hold_args.get("people_count")
+                try:
+                    people = max(1, int(people))
+                except (TypeError, ValueError):
+                    people = 1
+                amount = raw.get("amount_usd", 0)
                 payloads.append({
                     "type": "booking_summary",
                     "data": {
                         "bookingId": raw["booking_id"],
-                        "itemType": "trip",
-                        "itemName": "",
-                        "travelDate": "",
-                        "peopleCount": 1,
-                        "priceBreakdown": [{"label": "Total", "amountUsd": raw.get("amount_usd", 0)}],
-                        "totalUsd": raw.get("amount_usd", 0),
+                        "itemType": item_type,
+                        "itemName": _resolve_item_name(
+                            payloads, hold_args.get("item_id"), raw.get("reference")
+                        ),
+                        "travelDate": hold_args.get("travel_date") or "",
+                        "peopleCount": people,
+                        "priceBreakdown": [{"label": "Total", "amountUsd": amount}],
+                        "totalUsd": amount,
                         "holdExpiresAt": raw.get("hold_expires_at") or raw.get("expires_at"),
                     },
                     "actions": [],
@@ -522,11 +625,13 @@ def build_content_payloads(
 
 
 def _build_content_payload(
-    tool_results: list[tuple[str, dict]], search_destination: str | None = None
+    tool_results: list[tuple[str, dict]],
+    search_destination: str | None = None,
+    tool_args: dict[str, list[dict]] | None = None,
 ) -> dict | None:
     """Back-compat: the FIRST meaningful payload (legacy single-payload field).
     New code should use build_content_payloads(...) for the full list."""
-    payloads = build_content_payloads(tool_results, search_destination)
+    payloads = build_content_payloads(tool_results, search_destination, tool_args=tool_args)
     return payloads[0] if payloads else None
 
 
@@ -629,6 +734,22 @@ async def _execute_tool(name: str, inp: dict, session: ConversationState) -> dic
     dispatch = TOOL_DISPATCH.get(name)
     if not dispatch:
         return {"success": False, "error": f"Unknown tool: {name}"}
+
+    # Defence in depth. The streaming loop refuses these tools for guests before
+    # reaching here (emitting `requires_login`), but this check is what makes the
+    # invariant hold for every caller of `_execute_tool` — including tests and any
+    # future non-streaming path. Without it, a guest's unverified `session.user_id`
+    # would be injected below and sent to the backend as if it were proven.
+    if name in _AUTH_REQUIRED_TOOLS and not session.is_authenticated:
+        logger.warning(
+            "auth_required_tool_blocked", tool=name, session_id=session.session_id
+        )
+        return {
+            "success": False,
+            "error": "authentication_required",
+            "message": "Please sign in to use this feature.",
+        }
+
     # Server-side inject the verified session user id; never trust a model-supplied
     # user_id for user-scoped mutations (Issue 10).
     if name in _USER_SCOPED_TOOLS:
@@ -653,6 +774,7 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
     client = get_model_client(session)
     messages = session.messages[-MAX_MESSAGES:]
     all_tool_results: list[tuple[str, dict]] = []
+    all_tool_args: dict[str, list[dict]] = {}
     search_destination: str | None = None
     last_error: BaseException | None = None
 
@@ -669,7 +791,9 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
             text = next((b.text for b in response.content if b.type == "text"), "")
             text = _sanitize_assistant_text(text)
             session.messages.append({"role": "assistant", "content": text})
-            return text, _build_content_payload(all_tool_results, search_destination)
+            return text, _build_content_payload(
+                all_tool_results, search_destination, tool_args=all_tool_args
+            )
 
         tool_calls = [b for b in response.content if b.type == "tool_use"]
         if not tool_calls:
@@ -702,6 +826,20 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
             break
         for tc, result in zip(tool_calls, results):
             all_tool_results.append((tc.name, result))
+            # Keep the arguments too: several backend responses omit fields the
+            # caller supplied (item type, travel date, traveller count), and the
+            # payload builder needs them to render a complete booking summary.
+            #
+            # Appended UNCONDITIONALLY, one entry per call, so the Nth result is
+            # always paired with the Nth call's arguments. A conditional append
+            # would silently shift that pairing and report one booking's date
+            # against another. `user_id` is dropped: it is server-injected and
+            # never displayed.
+            all_tool_args.setdefault(tc.name, []).append(
+                {k: v for k, v in tc.input.items() if k != "user_id"}
+                if isinstance(tc.input, dict)
+                else {}
+            )
 
         # OpenAI-compatible format: one role=tool message per tool call
         for tc, result in zip(tool_calls, results):
@@ -725,6 +863,7 @@ async def run_agent_streaming(
     client = get_model_client(session)
     messages = session.messages[-MAX_MESSAGES:]
     all_tool_results: list[tuple[str, dict]] = []
+    all_tool_args: dict[str, list[dict]] = {}
     search_destination: str | None = None
     search_label: str | None = None
     last_error: BaseException | None = None
@@ -770,7 +909,9 @@ async def run_agent_streaming(
             if not streamed and full_text:
                 yield {"type": "agent_stream_chunk", "delta": full_text}
             session.messages.append({"role": "assistant", "content": full_text})
-            payloads = build_content_payloads(all_tool_results, search_destination, query=search_label)
+            payloads = build_content_payloads(
+                all_tool_results, search_destination, query=search_label, tool_args=all_tool_args
+            )
             # Follow-up chips + per-card blurbs run concurrently (same client) so
             # the post-answer enrichment adds ~one round-trip, not two. With a
             # slow reasoning model (gpt-oss-120b, 60-90s/call) that round-trip
@@ -828,14 +969,18 @@ async def run_agent_streaming(
                 if label:
                     search_label = str(label)
 
-        # Deferred-auth gate: a guest cannot create a booking hold. Emit
-        # requires_login instead of calling the tool with an invalid user_id.
+        # Deferred-auth gate: a guest cannot reach account-scoped tools. Emit
+        # requires_login instead of calling them with an unverified user_id.
+        #
+        # This previously listed only `create_booking_hold`, so a guest asking
+        # about loyalty points or a payment status still reached the backend with
+        # whatever user_id their auth frame claimed.
         if not session.is_authenticated and any(
-            b.name == "create_booking_hold" for b in tool_calls
+            b.name in _AUTH_REQUIRED_TOOLS for b in tool_calls
         ):
             yield {
                 "type": "requires_login",
-                "text": "Please log in or create an account to complete your booking. Your chat will continue right here.",
+                "text": "Please log in or create an account to continue. Your chat will continue right here.",
             }
             return
 
@@ -865,6 +1010,20 @@ async def run_agent_streaming(
             status = "completed" if result.get("success") else "failed"
             yield {"type": "agent_tool_status", "tool_use_id": tc.id, "name": tc.name, "status": status}
             all_tool_results.append((tc.name, result))
+            # Keep the arguments too: several backend responses omit fields the
+            # caller supplied (item type, travel date, traveller count), and the
+            # payload builder needs them to render a complete booking summary.
+            #
+            # Appended UNCONDITIONALLY, one entry per call, so the Nth result is
+            # always paired with the Nth call's arguments. A conditional append
+            # would silently shift that pairing and report one booking's date
+            # against another. `user_id` is dropped: it is server-injected and
+            # never displayed.
+            all_tool_args.setdefault(tc.name, []).append(
+                {k: v for k, v in tc.input.items() if k != "user_id"}
+                if isinstance(tc.input, dict)
+                else {}
+            )
 
         # OpenAI-compatible format: one role=tool message per tool call
         for tc, result in zip(tool_calls, results):

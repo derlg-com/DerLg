@@ -18,7 +18,6 @@ export const BFF_ROUTES = {
   weather: { path: 'ai-tools/weather', method: 'GET', auth: 'public' },
   'emergency-contacts': { path: 'ai-tools/emergency-contacts', method: 'GET', auth: 'public' },
   places: { path: 'ai-tools/places', method: 'GET', auth: 'public' },
-  'payments/status': { path: 'ai-tools/payments/status', method: 'GET', auth: 'public' },
   'budget/estimate': { path: 'ai-tools/budget/estimate', method: 'POST', auth: 'public' },
 
   /*
@@ -47,6 +46,12 @@ export function isBffRoute(key: string): key is BffRouteKey {
  *  - ai-tools/availability    duplicates the public availability endpoints.
  *  - ai-tools/payments/qr     generates a payable QR; only the agent should mint
  *                             these, against a hold it created.
+ *  - ai-tools/payments/status superseded by the first-class GET /v1/payments/status,
+ *                             which the browser calls directly with the user's JWT
+ *                             (see lib/api/payments.ts + hooks/use-payment-status.ts).
+ *                             Proxying it behind the service key only widened the
+ *                             surface; the first-class endpoint already scopes the
+ *                             record to the JWT subject.
  */
 export const BFF_EXCLUDED = [
   'ai-tools/bookings',
@@ -56,6 +61,7 @@ export const BFF_EXCLUDED = [
   'ai-tools/guides',
   'ai-tools/availability',
   'ai-tools/payments/qr',
+  'ai-tools/payments/status',
 ] as const
 
 const DEFAULT_TIMEOUT_MS = 10_000

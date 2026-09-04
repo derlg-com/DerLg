@@ -9,7 +9,9 @@ import {
   HttpCode,
   HttpStatus,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Response, Request } from 'express';
 import {
   RegisterUseCase,
@@ -25,11 +27,14 @@ import {
 } from './use-cases';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RateLimit } from '../../common/throttler/rate-limit';
 import {
   RegisterDto,
   LoginDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  GoogleAuthDto,
+  GoogleCallbackDto,
 } from './dto';
 import type { JwtPayload } from './strategies/jwt.strategy';
 
@@ -54,6 +59,7 @@ export class AuthController {
     private readonly googleAuthUseCase: GoogleAuthUseCase,
     private readonly googleCallbackUseCase: GoogleCallbackUseCase,
     private readonly getMeUseCase: GetMeUseCase,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -69,6 +75,7 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit('AUTH')
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(
@@ -83,7 +90,12 @@ export class AuthController {
     };
   }
 
+  /**
+   * Rate-limited to 5 attempts per 5 minutes per IP. Without this, an attacker
+   * can test passwords as fast as the network allows.
+   */
   @Public()
+  @RateLimit('AUTH')
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -98,7 +110,13 @@ export class AuthController {
     };
   }
 
+  /**
+   * Deliberately looser than login: the SPA refreshes proactively on a timer and
+   * replays its queued requests after a 401, so a legitimate client can hit this
+   * several times in quick succession. Rotation is still bounded per IP.
+   */
   @Public()
+  @RateLimit('WRITE')
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
@@ -143,7 +161,13 @@ export class AuthController {
     return { message: 'Logged out from all devices' };
   }
 
+  /**
+   * Account-recovery endpoints are throttled harder than login: each call sends
+   * an email, so an unbounded endpoint is both a user-enumeration oracle and a
+   * way to have our domain used to mail-bomb a third party.
+   */
   @Public()
+  @RateLimit('SENSITIVE')
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -152,6 +176,7 @@ export class AuthController {
   }
 
   @Public()
+  @RateLimit('SENSITIVE')
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {
@@ -160,20 +185,114 @@ export class AuthController {
   }
 
   @Public()
-  @Post('google')
+  @RateLimit('AUTH')
+  @Get('google')
   @HttpCode(HttpStatus.OK)
-  googleAuth() {
-    return this.googleAuthUseCase.execute();
+  googleAuthGet(
+    @Query('redirect_uri') redirectUri?: string,
+    @Query('state') state?: string,
+  ) {
+    return this.googleAuthUseCase.execute(redirectUri, state);
   }
 
   @Public()
-  @Get('google/callback')
+  @RateLimit('AUTH')
+  @Post('google')
   @HttpCode(HttpStatus.OK)
+  googleAuthPost(@Body() dto?: GoogleAuthDto) {
+    return this.googleAuthUseCase.execute(dto?.redirectUri, dto?.state);
+  }
+
+  @Public()
+  @RateLimit('AUTH')
+  @Get('google/callback')
   async googleCallback(
     @Query('code') code: string,
+    @Query('state') state: string | undefined,
+    @Query('redirect_uri') redirectUri: string | undefined,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    if (!code) {
+      throw new BadRequestException('Authorization code is required');
+    }
+
+    const result = await this.googleCallbackUseCase.execute(code, redirectUri);
+    res.cookie(REFRESH_COOKIE, result.refreshToken, COOKIE_OPTIONS);
+
+    const acceptHeader = req.headers['accept'] ?? '';
+    const isHtmlNavigation =
+      typeof acceptHeader === 'string' && acceptHeader.includes('text/html');
+
+    if (isHtmlNavigation) {
+      const frontendUrl = this.configService.get<string>(
+        'FRONTEND_URL',
+        'http://localhost:3000',
+      );
+      const configuredOrigins = (
+        this.configService.get<string>('CORS_ORIGINS') ?? ''
+      )
+        .split(',')
+        .map((o) => o.trim().replace(/\/$/, ''))
+        .filter(Boolean);
+
+      const allowedOrigins = new Set([
+        frontendUrl.replace(/\/$/, ''),
+        ...configuredOrigins,
+      ]);
+
+      let targetOrigin = frontendUrl.replace(/\/$/, '');
+      let returnPath = '/';
+
+      if (state) {
+        try {
+          const parsed = JSON.parse(
+            Buffer.from(state, 'base64url').toString('utf8'),
+          );
+          if (
+            parsed.origin &&
+            typeof parsed.origin === 'string' &&
+            allowedOrigins.has(parsed.origin.replace(/\/$/, ''))
+          ) {
+            targetOrigin = parsed.origin.replace(/\/$/, '');
+          }
+          if (
+            parsed.next &&
+            typeof parsed.next === 'string' &&
+            parsed.next.startsWith('/') &&
+            !parsed.next.startsWith('//') &&
+            !parsed.next.includes('\\')
+          ) {
+            returnPath = parsed.next;
+          }
+        } catch {
+          // Fallback to default
+        }
+      }
+
+      return res.redirect(
+        `${targetOrigin}/auth/callback?token=${result.accessToken}&next=${encodeURIComponent(returnPath)}`,
+      );
+    }
+
+    return res.status(HttpStatus.OK).json({
+      accessToken: result.accessToken,
+      user: result.user,
+    });
+  }
+
+  @Public()
+  @RateLimit('AUTH')
+  @Post('google/callback')
+  @HttpCode(HttpStatus.OK)
+  async googleCallbackPost(
+    @Body() dto: GoogleCallbackDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.googleCallbackUseCase.execute(code);
+    const result = await this.googleCallbackUseCase.execute(
+      dto.code,
+      dto.redirectUri,
+    );
     res.cookie(REFRESH_COOKIE, result.refreshToken, COOKIE_OPTIONS);
     return {
       accessToken: result.accessToken,

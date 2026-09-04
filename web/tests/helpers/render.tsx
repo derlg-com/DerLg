@@ -50,7 +50,22 @@ export function renderWithProviders(
 
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <NextIntlClientProvider locale={locale} messages={messagesFor(locale)}>
+      <NextIntlClientProvider
+        locale={locale}
+        messages={messagesFor(locale)}
+        /*
+         * A missing key is a FAILURE here, not a warning.
+         *
+         * next-intl's default behaviour is to log and render the key path, so a
+         * deleted translation still renders something and every test keeps
+         * passing while the UI shows `checkout.mockNotice` to a user. Throwing
+         * turns every component test into a key-existence check — which is how a
+         * real deletion of four `checkout.*` keys was caught.
+         */
+        onError={(error) => {
+          throw error
+        }}
+      >
         <QueryClientProvider client={client}>{children}</QueryClientProvider>
       </NextIntlClientProvider>
     )

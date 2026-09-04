@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsUUID,
   Length,
+  ValidateIf,
 } from 'class-validator';
 
 import { DriverStatus } from '@prisma/client';
@@ -42,9 +43,10 @@ export class UpdateDriverDto {
   @IsOptional()
   phone?: string;
 
+  @ValidateIf((_, val) => val !== null && val !== undefined)
   @IsUUID()
   @IsOptional()
-  vehicleId?: string;
+  vehicleId?: string | null;
 
   @IsEnum(DriverStatus)
   @IsOptional()

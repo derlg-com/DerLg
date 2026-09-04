@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
 import {
   AuditEventType,
   Prisma,
@@ -23,10 +28,11 @@ export class AdminGuidesService {
   async getAllGuides(filters: {
     languages?: string;
     specialties?: string;
+    search?: string;
     page?: string;
     limit?: string;
   }) {
-    const { languages, specialties, page, limit } = filters;
+    const { languages, specialties, search, page, limit } = filters;
     const currentPage = Math.max(1, parseInt(page || '1', 10));
     const take = Math.min(100, Math.max(1, parseInt(limit || '20', 10)));
     const skip = (currentPage - 1) * take;
@@ -46,6 +52,28 @@ export class AdminGuidesService {
       where.specialties = { some: { specialty: { in: specialtyList } } };
     }
 
+    if (search && search.trim() !== '') {
+      const term = search.trim();
+      const matchingUsers = await this.prisma.user.findMany({
+        where: {
+          OR: [
+            { fullName: { contains: term, mode: 'insensitive' } },
+            { email: { contains: term, mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      });
+      const matchingUserIds = matchingUsers.map((u) => u.id);
+
+      where.OR = [
+        { bio: { contains: term, mode: 'insensitive' } },
+        { province: { contains: term, mode: 'insensitive' } },
+        ...(matchingUserIds.length > 0
+          ? [{ userId: { in: matchingUserIds } }]
+          : []),
+      ];
+    }
+
     const [data, total] = await Promise.all([
       this.prisma.guide.findMany({
         where,
@@ -61,24 +89,45 @@ export class AdminGuidesService {
       this.prisma.guide.count({ where }),
     ]);
 
-    const mapped = data.map((guide) => ({
-      id: guide.id,
-      userId: guide.userId,
-      bio: guide.bio,
-      avatarUrl: guide.avatarUrl,
-      images: guide.images,
-      pricePerDayUsd: Number(guide.pricePerDayUsd),
-      isVerified: guide.isVerified,
-      province: guide.province,
-      provinces: guide.provinces,
-      isActive: guide.isActive,
-      languages: guide.languages.map((l) => l.language),
-      specialties: guide.specialties.map((s) => s.specialty),
-      assignmentCount: guide._count.bookingItems,
-      reviewCount: guide._count.reviews,
-      createdAt: guide.createdAt,
-      updatedAt: guide.updatedAt,
-    }));
+    const userIds = data.map((g) => g.userId);
+    const users = userIds.length > 0
+      ? await this.prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, fullName: true, email: true, phone: true },
+        })
+      : [];
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    const mapped = data.map((guide) => {
+      const user = userMap.get(guide.userId);
+      return {
+        id: guide.id,
+        userId: guide.userId,
+        user: user
+          ? {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
+              phone: user.phone,
+            }
+          : null,
+        name: user?.fullName ?? null,
+        bio: guide.bio,
+        avatarUrl: guide.avatarUrl,
+        images: guide.images,
+        pricePerDayUsd: Number(guide.pricePerDayUsd),
+        isVerified: guide.isVerified,
+        province: guide.province,
+        provinces: guide.provinces,
+        isActive: guide.isActive,
+        languages: guide.languages.map((l) => l.language),
+        specialties: guide.specialties.map((s) => s.specialty),
+        assignmentCount: guide._count.bookingItems,
+        reviewCount: guide._count.reviews,
+        createdAt: guide.createdAt,
+        updatedAt: guide.updatedAt,
+      };
+    });
 
     return {
       data: mapped,
@@ -195,7 +244,7 @@ export class AdminGuidesService {
     });
 
     if (existingGuide) {
-      throw new NotFoundException(
+      throw new ConflictException(
         `Guide profile already exists for user ${dto.userId}`,
       );
     }

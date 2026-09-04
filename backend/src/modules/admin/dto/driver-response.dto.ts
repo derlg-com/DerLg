@@ -21,4 +21,15 @@ export class DriverResponseDto {
     licensePlate: string | null;
   } | null;
   assignmentCount: number;
+  assignments?: Array<{
+    id: string;
+    bookingId: string;
+    status: string;
+    assignmentTimestamp: Date;
+    responseTimestamp: Date | null;
+    tripStartTime: Date | null;
+    completionTimestamp: Date | null;
+    rejectionReason: string | null;
+    telegramNotified: boolean;
+  }>;
 }

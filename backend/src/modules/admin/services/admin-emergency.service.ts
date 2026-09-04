@@ -19,8 +19,8 @@ export class AdminEmergencyService {
   ) {}
 
   async getAllEmergencyAlerts(filters: {
-    status?: string;
-    alertType?: string;
+    status?: EmergencyAlertStatus;
+    alertType?: EmergencyAlertType;
     page?: string;
     limit?: string;
   }) {
@@ -31,12 +31,15 @@ export class AdminEmergencyService {
 
     const where: Prisma.EmergencyAlertWhereInput = {};
 
+    // Typed, not cast. These used to be `status as EmergencyAlertStatus` on a raw
+    // query string, so `?status=open` reached Prisma as an invalid enum value and
+    // surfaced as a 500 instead of a 400 naming the bad parameter.
     if (status) {
-      where.status = status as EmergencyAlertStatus;
+      where.status = status;
     }
 
     if (alertType) {
-      where.alertType = alertType as EmergencyAlertType;
+      where.alertType = alertType;
     }
 
     const [data, total] = await Promise.all([

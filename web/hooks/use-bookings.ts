@@ -6,7 +6,6 @@ import * as React from 'react'
 
 import { useAccessToken } from '@/hooks/use-auth'
 import { bookingsApi, newIdempotencyKey, type BookingFilters } from '@/lib/api/bookings'
-import { ApiError } from '@/lib/api/errors'
 import type { Locale } from '@/lib/i18n/config'
 import type {
   Booking,
@@ -14,7 +13,6 @@ import type {
   CreateHotelBookingBody,
   CreateTransportBookingBody,
   CreateTripBookingBody,
-  PaymentMethod,
 } from '@/schemas/booking'
 
 /**
@@ -109,24 +107,6 @@ export type CreateBookingInput =
   | { type: 'guide'; id: string; body: CreateGuideBookingBody }
   | { type: 'transport'; body: CreateTransportBookingBody }
 
-/** Sandbox payment confirmation. */
-export function useConfirmBooking() {
-  const token = useAccessToken()
-  const locale = useLocale() as Locale
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ id, method }: { id: string; method: PaymentMethod }) => {
-      if (!token) throw new Error('not authenticated')
-      return bookingsApi.confirm(token, locale, id, method)
-    },
-    onSuccess: (booking) => {
-      queryClient.setQueryData(bookingKeys(token).detail(booking.id), booking)
-      queryClient.invalidateQueries({ queryKey: bookingKeys(token).all })
-    },
-  })
-}
-
 export function useCancelBooking() {
   const token = useAccessToken()
   const locale = useLocale() as Locale
@@ -147,14 +127,4 @@ export function useCancelBooking() {
       queryClient.invalidateQueries({ queryKey: bookingKeys(token).all })
     },
   })
-}
-
-/**
- * True when confirmation failed because the server has demo payments switched off.
- *
- * Worth distinguishing: it is a deployment state, not something the user did wrong,
- * so it deserves its own message rather than a generic failure.
- */
-export function isDemoPaymentsDisabled(error: unknown): boolean {
-  return error instanceof ApiError && error.isForbidden
 }

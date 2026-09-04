@@ -66,6 +66,34 @@ const EVENT_AUDIENCE: Record<string, AdminRole[]> = {
 };
 
 /**
+ * Reads the CORS allowlist at handshake time.
+ *
+ * `@WebSocketGateway` options are evaluated when the class is defined, before
+ * Nest has built the DI container, so `ConfigService` is not available here. A
+ * callback defers the lookup to the actual request, which is also what makes the
+ * value reloadable rather than frozen at import.
+ *
+ * The previous `origin: []` was a literal empty allowlist: socket.io rejected
+ * every browser origin, so no admin client could ever complete the handshake.
+ * `afterInit` tried to patch it by assigning `server._corsOrigins`, which is not
+ * a property socket.io reads.
+ */
+function corsOriginCheck(
+  origin: string | undefined,
+  callback: (err: Error | null, allow?: boolean) => void,
+): void {
+  const allowed = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  // Same-origin and non-browser clients send no Origin header.
+  if (!origin) return callback(null, true);
+
+  return callback(null, allowed.includes(origin));
+}
+
+/**
  * Real-time admin channel.
  *
  * Authentication happens in `handleConnection`, not via `@UseGuards`: Nest's
@@ -75,7 +103,7 @@ const EVENT_AUDIENCE: Record<string, AdminRole[]> = {
  */
 @WebSocketGateway({
   namespace: 'v1/admin/ws',
-  cors: { origin: [], credentials: true },
+  cors: { origin: corsOriginCheck, credentials: true },
 })
 export class AdminGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -94,23 +122,25 @@ export class AdminGateway
     private readonly configService: ConfigService,
   ) {}
 
-  afterInit(server: Server): void {
-    // socket.io needs its allowed origins at runtime; take them from the same
-    // CORS_ORIGINS the HTTP layer uses rather than a separate wildcard.
-    const origins =
-      this.configService
-        .get<string>('CORS_ORIGINS')
-        ?.split(',')
-        .map((o) => o.trim())
-        .filter(Boolean) ?? [];
-
-    server.engine?.on?.('initial_headers', () => undefined);
-
-    (server as unknown as { _corsOrigins?: string[] })._corsOrigins = origins;
+  afterInit(): void {
+    // Origins are resolved per handshake by `corsOriginCheck` above, so there is
+    // nothing to configure here.
+    const origins = (this.configService.get<string>('CORS_ORIGINS') ?? '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
 
     this.logger.log(
-      `Admin WebSocket gateway initialised (allowed origins: ${origins.join(', ') || 'none configured'})`,
+      `Admin WebSocket gateway initialised on namespace /v1/admin/ws ` +
+        `(allowed origins: ${origins.join(', ') || 'none configured'})`,
     );
+
+    if (origins.length === 0) {
+      this.logger.warn(
+        'CORS_ORIGINS is empty; every browser socket handshake will be rejected',
+      );
+    }
+
     this.subscribeToRedis();
   }
 
@@ -256,12 +286,21 @@ export class AdminGateway
   }
 
   private broadcastEvent(channel: string, payload: unknown): void {
+    // Channel names must match what the publishers actually use.
+    //
+    // This map was keyed in camelCase (`adminEvents`, `emergencyAlerts`,
+    // `driverAssignments`) while every publisher — `AdminEventsService`,
+    // `AdminAssignmentsService`, `AdminEmergencyService` and the Telegram
+    // handlers — publishes snake_case (`admin_events`, `emergency_alerts`,
+    // `driver_assignments`). Nothing matched, so all three fell through to
+    // 'UNKNOWN' and were dropped by the audience check below. Emergency alerts in
+    // particular were subscribed to, received, and then silently discarded.
     const event = channel.startsWith('driver_status_changed:')
       ? 'DRIVER_STATUS_UPDATE'
       : ({
-          adminEvents: 'ADMIN_EVENT',
-          emergencyAlerts: 'EMERGENCY_ALERT',
-          driverAssignments: 'DRIVER_ASSIGNMENT',
+          admin_events: 'ADMIN_EVENT',
+          emergency_alerts: 'EMERGENCY_ALERT',
+          driver_assignments: 'DRIVER_ASSIGNMENT',
         }[channel] ?? 'UNKNOWN');
 
     const envelope: AdminEventEnvelope = {

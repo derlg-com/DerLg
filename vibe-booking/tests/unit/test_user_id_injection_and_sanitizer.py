@@ -8,7 +8,15 @@ from agent.session.state import ConversationState
 
 @pytest.fixture
 def session():
-    return ConversationState(session_id="s1", user_id="real-uuid", preferred_language="EN")
+    # `is_authenticated` matters: _execute_tool gates the account-scoped tools on a
+    # JWT-verified session, so an unauthenticated state is rejected before any
+    # user_id injection can happen and this test would assert an unreachable path.
+    return ConversationState(
+        session_id="s1",
+        user_id="real-uuid",
+        is_authenticated=True,
+        preferred_language="EN",
+    )
 
 
 @pytest.mark.asyncio

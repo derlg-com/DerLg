@@ -18,10 +18,12 @@ async def lifespan(app: FastAPI):
     # P6a: log the resolved model + provider so a stale .env (e.g. a shell-
     # exported NVIDIA_API_KEY or wrong MODEL_LLM) is visible at boot, not after
     # the first 403.
+    backend_name = "ollama" if settings.use_ollama else ("rayucode" if "rayucode" in settings.effective_base_url else "gateway")
     logger.info(
         "model_configured",
-        model=settings.model_llm,
-        backend="ollama" if settings.use_ollama else "nvidia",
+        model=settings.effective_model,
+        backend=backend_name,
+        base_url=settings.effective_base_url,
         timeout_s=settings.model_timeout_s,
     )
     await init_redis()
@@ -30,9 +32,11 @@ async def lifespan(app: FastAPI):
     yield
     await close_redis()
     # Close singleton HTTP clients
-    from agent.models.factory import _nvidia_client, _ollama_client
+    from agent.models.factory import _gateway_client, _nvidia_client, _ollama_client
     from agent.backend_client import get_backend_client
-    if _nvidia_client is not None:
+    if _gateway_client is not None:
+        await _gateway_client.aclose()
+    elif _nvidia_client is not None:
         await _nvidia_client.aclose()
     if _ollama_client is not None:
         await _ollama_client.aclose()
@@ -40,8 +44,8 @@ async def lifespan(app: FastAPI):
 
 
 def _validate_startup() -> None:
-    if not settings.use_ollama and not settings.nvidia_api_key:
-        raise RuntimeError("NVIDIA_API_KEY is required")
+    if not settings.use_ollama and not settings.effective_api_key:
+        raise RuntimeError("LLM API key is required (set LLM_API_KEY in .env)")
     if settings.use_ollama and not settings.ollama_base_url:
         raise RuntimeError("OLLAMA_BASE_URL is required when USE_OLLAMA=true")
 

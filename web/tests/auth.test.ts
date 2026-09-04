@@ -157,6 +157,48 @@ describe('authApi', () => {
     const user = await authApi.me('token', 'en')
     expect(user).toMatchObject({ id: 'u1', name: 'Sokha', isStudent: false })
   })
+
+  it('requests Google OAuth URL from backend', async () => {
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          success: true,
+          data: { url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=123' },
+        }),
+      ),
+    )
+
+    const result = await authApi.getGoogleAuthUrl('http://localhost:3000/auth/google/callback', 'state123')
+    expect(result.url).toContain('https://accounts.google.com')
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
+    expect(body).toEqual({
+      redirectUri: 'http://localhost:3000/auth/google/callback',
+      state: 'state123',
+    })
+  })
+
+  it('exchanges Google code for token and user via callback', async () => {
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          success: true,
+          data: {
+            accessToken: 'google-jwt-access',
+            user: {
+              id: 'u-google',
+              email: 'google@derlg.com',
+              name: 'Google User',
+              role: 'user',
+            },
+          },
+        }),
+      ),
+    )
+
+    const result = await authApi.googleCallback('code-abc', 'http://localhost:3000/auth/google/callback')
+    expect(result.accessToken).toBe('google-jwt-access')
+    expect(result.user?.email).toBe('google@derlg.com')
+  })
 })
 
 describe('authErrorKey', () => {

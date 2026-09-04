@@ -1,12 +1,17 @@
 'use client'
 
+import { Compass } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import * as React from 'react'
 
+import { DirectionsLink, GoogleMapsLink } from '@/components/chat/maps-links'
+import { GalleryRail } from '@/components/chat/payloads/lightbox'
 import { Price } from '@/components/shared/price'
 import { Badge, Button } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { Link } from '@/lib/i18n/navigation'
+import { googleMapsDirectionsUrl, googleMapsPlaceUrl } from '@/lib/maps/google'
+import { normalizeImageUrl, safeImageSrc } from '@/lib/url-safety'
 import type { ContentPayload } from '@/schemas/vibe-payloads'
 
 /**
@@ -46,7 +51,8 @@ function Panel({ children }: { children: React.ReactNode }) {
  * Agent-supplied image.
  *
  * Plain <img> for the same reason as the cards: the URL arrives at runtime and is
- * not in the image optimiser's allowlist.
+ * not in the image optimiser's allowlist. Scheme-checked because the URL is
+ * untrusted; a rejected source renders nothing rather than a broken request.
  */
 function BlockImage({
   src,
@@ -57,14 +63,34 @@ function BlockImage({
   alt: string
   className?: string
 }) {
+  const [hasError, setHasError] = React.useState(false)
+  const [isLoaded, setIsLoaded] = React.useState(false)
+  const safe = normalizeImageUrl(src)
+  if (!safe) return null
+
+  if (hasError) {
+    return (
+      <div className={cn('flex flex-col items-center justify-center bg-[var(--surface-sunken)] p-4 text-center', className)}>
+        <Compass className="size-8 text-[var(--accent)] mb-1" />
+        <span className="text-xs text-[var(--text-tertiary)]">{alt}</span>
+      </div>
+    )
+  }
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={safe}
       alt={alt}
       loading="lazy"
       decoding="async"
-      className={cn('size-full object-cover', className)}
+      onLoad={() => setIsLoaded(true)}
+      onError={() => setHasError(true)}
+      className={cn(
+        'size-full object-cover transition-opacity duration-300',
+        isLoaded ? 'opacity-100' : 'opacity-0',
+        className,
+      )}
     />
   )
 }
@@ -85,6 +111,24 @@ export function TripDetailBlock({
   const tCatalog = useTranslations('catalog')
   const tTrips = useTranslations('trips')
 
+  /*
+   * Spec §6 lets the user ask "can I see photos?" and §7 "where is this place?".
+   * A trip detail already carries both, so surface them here instead of requiring
+   * a second and third round-trip to the agent.
+   */
+  const galleryImages = React.useMemo(() => {
+    const urls = data.images ?? []
+    // The hero is already shown above; repeating it as thumbnail one is noise.
+    const rest = data.imageUrl ? urls.filter((url) => url !== data.imageUrl) : urls
+    return rest.map((url) => ({ url }))
+  }, [data.images, data.imageUrl])
+
+  const mapsUrl = googleMapsPlaceUrl({ lat: data.lat, lng: data.lng }, data.name)
+  const directionsUrl = googleMapsDirectionsUrl(
+    { lat: data.lat, lng: data.lng },
+    { destinationName: data.name },
+  )
+
   return (
     <Panel>
       <div className="flex flex-col gap-3">
@@ -104,6 +148,11 @@ export function TripDetailBlock({
             {data.durationDays !== undefined ? (
               <span className="text-xs text-[var(--text-tertiary)]">· {data.durationDays}d</span>
             ) : null}
+            {data.rating !== undefined ? (
+              <span className="text-xs text-[var(--text-tertiary)]">
+                · ★ {data.rating.toFixed(1)}
+              </span>
+            ) : null}
           </p>
         </div>
 
@@ -111,6 +160,15 @@ export function TripDetailBlock({
           <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
             {data.description}
           </p>
+        ) : null}
+
+        {galleryImages.length > 0 ? (
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+              {t('gallery')}
+            </p>
+            <GalleryRail images={galleryImages} title={`${data.name} — ${t('gallery')}`} />
+          </div>
         ) : null}
 
         {data.itinerary && data.itinerary.length > 0 ? (
@@ -143,9 +201,11 @@ export function TripDetailBlock({
         ) : null}
 
         <div className="flex flex-wrap gap-1.5">
-          <Button variant="secondary" size="sm" onClick={() => onAsk(`Book "${data.name}"`)}>
+          <Button size="sm" onClick={() => onAsk(`Book "${data.name}"`)}>
             {t('bookNow')}
           </Button>
+          {mapsUrl ? <GoogleMapsLink href={mapsUrl} /> : null}
+          {directionsUrl ? <DirectionsLink href={directionsUrl} /> : null}
           <Link
             href={`/trips/${data.id}`}
             className="inline-flex min-h-9 items-center rounded-[var(--radius-md)] px-2.5 text-xs font-medium text-[var(--accent-subtle-text)] underline-offset-2 hover:underline pointer-coarse:min-h-11"
@@ -198,6 +258,19 @@ export function HotelDetailBlock({
   const t = useTranslations('content')
   const tCatalog = useTranslations('catalog')
 
+  const galleryImages = React.useMemo(() => {
+    const urls = data.images ?? []
+    const rest = data.imageUrl ? urls.filter((url) => url !== data.imageUrl) : urls
+    return rest.map((url) => ({ url }))
+  }, [data.images, data.imageUrl])
+
+  // "Where is the hotel?" (§7) — answered with a real map handoff, not coordinates.
+  const mapsUrl = googleMapsPlaceUrl({ lat: data.lat, lng: data.lng }, data.name)
+  const directionsUrl = googleMapsDirectionsUrl(
+    { lat: data.lat, lng: data.lng },
+    { destinationName: data.name },
+  )
+
   return (
     <Panel>
       <div className="flex flex-col gap-3">
@@ -217,6 +290,11 @@ export function HotelDetailBlock({
               <Price amountUsd={data.priceUsd} />
             </span>
             <span className="text-xs text-[var(--text-tertiary)]">{t('perNight')}</span>
+            {data.rating !== undefined ? (
+              <span className="text-xs text-[var(--text-tertiary)]">
+                · ★ {data.rating.toFixed(1)}
+              </span>
+            ) : null}
           </p>
         </div>
 
@@ -224,6 +302,15 @@ export function HotelDetailBlock({
           <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
             {data.description}
           </p>
+        ) : null}
+
+        {galleryImages.length > 0 ? (
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+              {t('gallery')}
+            </p>
+            <GalleryRail images={galleryImages} title={`${data.name} — ${t('gallery')}`} />
+          </div>
         ) : null}
 
         {data.amenities && data.amenities.length > 0 ? (
@@ -244,6 +331,8 @@ export function HotelDetailBlock({
           >
             {t('checkAvailability')}
           </Button>
+          {mapsUrl ? <GoogleMapsLink href={mapsUrl} /> : null}
+          {directionsUrl ? <DirectionsLink href={directionsUrl} /> : null}
           <Link
             href={`/hotels/${data.id}`}
             className="inline-flex min-h-9 items-center rounded-[var(--radius-md)] px-2.5 text-xs font-medium text-[var(--accent-subtle-text)] underline-offset-2 hover:underline pointer-coarse:min-h-11"
@@ -313,31 +402,14 @@ export function ImageGalleryBlock({ data }: { data: GalleryData }) {
 
   if (data.images.length === 0) return null
 
+  /*
+   * The rail is only the index — tapping a thumbnail opens a full-size, keyboard
+   * navigable viewer. Judging a room or a temple from a 160px crop is not really
+   * "seeing photos", which is what the user asked for.
+   */
   return (
     <BlockSection title={t('gallery')}>
-      <ul
-        aria-label={t('gallery')}
-        className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0"
-      >
-        {data.images.map((image, index) => (
-          <li key={image.url} className="w-40 shrink-0 snap-start sm:w-auto">
-            <figure className="flex flex-col gap-1">
-              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius-md)] bg-[var(--surface-sunken)]">
-                {/*
-                 * Falls back to a positional description rather than an empty alt:
-                 * these are content images, so they are not decorative.
-                 */}
-                <BlockImage src={image.url} alt={image.caption ?? `${t('gallery')} ${index + 1}`} />
-              </div>
-              {image.caption ? (
-                <figcaption className="text-xs text-[var(--text-tertiary)]">
-                  {image.caption}
-                </figcaption>
-              ) : null}
-            </figure>
-          </li>
-        ))}
-      </ul>
+      <GalleryRail images={data.images} title={t('gallery')} />
     </BlockSection>
   )
 }

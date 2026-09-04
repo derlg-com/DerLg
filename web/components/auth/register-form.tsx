@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useForm, useWatch } from 'react-hook-form'
 
 import { Button, Card, Field, Input } from '@/components/ui'
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { authErrorKey, useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/cn'
 import { useRouter } from '@/lib/i18n/navigation'
@@ -137,6 +138,19 @@ export function RegisterForm() {
           {t('signUp.submit')}
         </Button>
       </form>
+
+      <div className="relative my-2">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-[var(--border-subtle)]" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-[var(--surface)] px-2 text-[var(--text-tertiary)]">
+            {t('or')}
+          </span>
+        </div>
+      </div>
+
+      <GoogleSignInButton />
 
       <p className="text-sm text-[var(--text-secondary)]">
         {t('signUp.haveAccount')}{' '}

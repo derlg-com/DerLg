@@ -204,6 +204,135 @@ def test_build_content_payloads_no_query_leaves_metadata_empty():
     assert card["metadata"] == {}
 
 
+# ── booking_summary is completed from the tool ARGUMENTS ────────────────────
+# The backend hold response carries only ids and money (booking_id, reference,
+# amount_usd, hold_expires_at). Everything the summary card shows a human —
+# what was held, for when, for how many — is only on the request side, so the
+# builder has to read it from there or render blank fields.
+
+_HOLD_RESULT = {
+    "success": True,
+    "data": {
+        "booking_id": "b-1",
+        "reference": "DLG-2026-45678",
+        "amount_usd": 378.0,
+        "hold_expires_at": "2026-02-01T10:15:00.000Z",
+    },
+}
+
+
+def test_booking_summary_fills_item_type_date_and_people_from_tool_args():
+    payloads = build_content_payloads(
+        [("create_booking_hold", _HOLD_RESULT)],
+        tool_args={
+            "create_booking_hold": [
+                {
+                    "item_type": "hotel",
+                    "item_id": "h-9",
+                    "travel_date": "2026-02-14",
+                    "people_count": 2,
+                }
+            ]
+        },
+    )
+
+    summary = next(p for p in payloads if p["type"] == "booking_summary")
+    assert summary["data"]["itemType"] == "hotel"
+    assert summary["data"]["travelDate"] == "2026-02-14"
+    assert summary["data"]["peopleCount"] == 2
+    assert summary["data"]["totalUsd"] == 378.0
+    assert summary["data"]["holdExpiresAt"] == "2026-02-01T10:15:00.000Z"
+
+
+def test_booking_summary_resolves_item_name_from_cards_shown_this_turn():
+    """The held id came from a card this same turn produced, so its name is
+    already in hand — no extra backend round-trip needed."""
+    payloads = build_content_payloads(
+        [_trip_search_result(), ("create_booking_hold", _HOLD_RESULT)],
+        tool_args={"create_booking_hold": [{"item_type": "trip", "item_id": "t1"}]},
+    )
+
+    summary = next(p for p in payloads if p["type"] == "booking_summary")
+    assert summary["data"]["itemName"] == "Angkor Sunrise"
+
+
+def test_booking_summary_falls_back_to_reference_rather_than_inventing_a_name():
+    payloads = build_content_payloads(
+        [("create_booking_hold", _HOLD_RESULT)],
+        tool_args={"create_booking_hold": [{"item_type": "trip", "item_id": "unknown-id"}]},
+    )
+
+    summary = next(p for p in payloads if p["type"] == "booking_summary")
+    # A real identifier the user can quote to support beats a fabricated title.
+    assert summary["data"]["itemName"] == "DLG-2026-45678"
+
+
+def test_booking_summary_survives_missing_or_junk_tool_args():
+    """No args at all, and a nonsense item_type/people_count, must still yield a
+    schema-valid block rather than raising or emitting an invalid itemType."""
+    for args in (None, {"create_booking_hold": [{"item_type": "spaceship", "people_count": "many"}]}):
+        payloads = build_content_payloads(
+            [("create_booking_hold", _HOLD_RESULT)], tool_args=args
+        )
+        summary = next(p for p in payloads if p["type"] == "booking_summary")
+        assert summary["data"]["itemType"] in ("trip", "hotel", "transport", "guide")
+        assert summary["data"]["peopleCount"] >= 1
+        assert summary["data"]["travelDate"] == ""
+
+
+def test_two_holds_in_one_turn_each_get_their_own_arguments():
+    """Args are recorded per CALL, not per tool name. Keyed by name alone, the
+    second hold's date and party size would be reported against the first
+    booking — a wrong travel date on a real reservation."""
+    second = {
+        "success": True,
+        "data": {
+            "booking_id": "b-2",
+            "reference": "DLG-2026-99999",
+            "amount_usd": 120.0,
+            "hold_expires_at": "2026-02-01T10:15:00.000Z",
+        },
+    }
+
+    payloads = build_content_payloads(
+        [("create_booking_hold", _HOLD_RESULT), ("create_booking_hold", second)],
+        tool_args={
+            "create_booking_hold": [
+                {"item_type": "hotel", "travel_date": "2026-02-14", "people_count": 2},
+                {"item_type": "trip", "travel_date": "2026-03-01", "people_count": 4},
+            ]
+        },
+    )
+
+    summaries = [p for p in payloads if p["type"] == "booking_summary"]
+    assert len(summaries) == 2
+    assert summaries[0]["data"]["travelDate"] == "2026-02-14"
+    assert summaries[0]["data"]["peopleCount"] == 2
+    assert summaries[1]["data"]["travelDate"] == "2026-03-01"
+    assert summaries[1]["data"]["peopleCount"] == 4
+
+
+def test_failed_call_does_not_shift_argument_pairing():
+    """A failed first call is skipped for output but must still consume its slot,
+    or the successful second hold would inherit the first one's arguments."""
+    failed = {"success": False, "error": "fully booked"}
+
+    payloads = build_content_payloads(
+        [("create_booking_hold", failed), ("create_booking_hold", _HOLD_RESULT)],
+        tool_args={
+            "create_booking_hold": [
+                {"item_type": "hotel", "travel_date": "2026-02-14", "people_count": 2},
+                {"item_type": "trip", "travel_date": "2026-03-01", "people_count": 4},
+            ]
+        },
+    )
+
+    summaries = [p for p in payloads if p["type"] == "booking_summary"]
+    assert len(summaries) == 1
+    assert summaries[0]["data"]["travelDate"] == "2026-03-01"
+    assert summaries[0]["data"]["peopleCount"] == 4
+
+
 # ── Task 5: trips catalog contract (new backend TripDetail shape) ───────────
 
 def test_norm_trip_detail_reads_new_backend_shape():

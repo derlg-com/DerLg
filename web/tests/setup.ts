@@ -50,6 +50,16 @@ if (!Element.prototype.scrollTo) {
 }
 
 /**
+ * jsdom implements no scrolling at all, so `scrollIntoView` is simply absent.
+ * The chat transcript calls it to follow a streaming reply, which made rendering
+ * ChatView in a test throw before it could assert anything.
+ */
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView =
+    vi.fn() as unknown as typeof Element.prototype.scrollIntoView
+}
+
+/**
  * Node 25 exposes a global `localStorage` object that shadows jsdom's `Storage`
  * implementation but has none of its methods, so `localStorage.clear()` throws.
  * Install a real in-memory Storage so persistence tests are deterministic.

@@ -8,6 +8,7 @@ import { Badge, Button, buttonVariants } from '@/components/ui'
 import { useCountdown } from '@/hooks/use-countdown'
 import { cn } from '@/lib/cn'
 import { Link } from '@/lib/i18n/navigation'
+import { safeHref, safeImageSrc } from '@/lib/url-safety'
 import type { ContentPayload } from '@/schemas/vibe-payloads'
 
 /**
@@ -48,6 +49,23 @@ function Panel({
           : 'border-[var(--border-subtle)] bg-[var(--surface)]'
 
   return <div className={cn('rounded-[var(--radius-lg)] border p-3', toneClass)}>{children}</div>
+}
+
+/**
+ * Agent-supplied image, scheme-checked.
+ *
+ * Renders nothing when the source is rejected. `src=""` is NOT inert — browsers
+ * resolve it to the current page and fetch it again — so a bad URL must produce no
+ * element at all rather than an empty one.
+ */
+function AgentImage({ src, alt }: { src: string | undefined; alt: string }) {
+  const safe = safeImageSrc(src)
+  if (!safe) return null
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={safe} alt={alt} className="size-full object-contain" loading="lazy" decoding="async" />
+  )
 }
 
 /** Live hold countdown, or an expiry notice once it runs out. */
@@ -210,14 +228,7 @@ export function QrPaymentBlock({
             )}
           >
             {/* Runtime URL from the agent, so a plain <img> rather than next/image. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={data.qrUrl}
-              alt={t('scanQr')}
-              className="size-full object-contain"
-              loading="lazy"
-              decoding="async"
-            />
+            <AgentImage src={data.qrUrl} alt={t('scanQr')} />
           </div>
 
           <p className="text-base font-semibold text-[var(--text-primary)]">
@@ -306,7 +317,7 @@ export function StripeCardFormBlock({
         </div>
 
         {/* Stated plainly, not buried: no card is charged here. */}
-        <p className="text-xs text-[var(--tone-warning-text)]">{tCheckout('mockNotice')}</p>
+        <p className="text-xs text-[var(--tone-warning-text)]">{t('sandboxNotice')}</p>
         <p className="text-xs text-[var(--tone-warning-text)]">{t('sandboxDesc')}</p>
 
         <p className="text-base font-semibold text-[var(--tone-warning-text)]">
@@ -362,6 +373,7 @@ export function PaymentStatusBlock({
   const tCheckout = useTranslations('checkout')
 
   const tone = STATUS_TONE[data.status]
+  const receiptHref = safeHref(data.receiptUrl)
   const label = t(
     data.status === 'PENDING'
       ? 'pending'
@@ -403,9 +415,16 @@ export function PaymentStatusBlock({
             </Button>
           ) : null}
 
-          {data.receiptUrl ? (
+          {/*
+           * The receipt URL comes from the AGENT, so it is untrusted input. Put
+           * straight into an href, a `javascript:` value would execute on click —
+           * the whole chat would be one tap from XSS. `safeHref` admits only
+           * http(s) and same-origin paths, and the link is simply not offered for
+           * anything else.
+           */}
+          {receiptHref ? (
             <a
-              href={data.receiptUrl}
+              href={receiptHref}
               target="_blank"
               rel="noopener noreferrer"
               className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
@@ -461,14 +480,7 @@ export function BookingConfirmedBlock({ data }: { data: BookingConfirmed }) {
 
         {data.qrCode ? (
           <div className="size-32 self-center overflow-hidden rounded-[var(--radius-md)] bg-[var(--surface)] p-1.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={data.qrCode}
-              alt={`${t('reference')} ${data.bookingRef}`}
-              className="size-full object-contain"
-              loading="lazy"
-              decoding="async"
-            />
+            <AgentImage src={data.qrCode} alt={`${t('reference')} ${data.bookingRef}`} />
           </div>
         ) : null}
 

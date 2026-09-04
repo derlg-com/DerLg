@@ -14,8 +14,23 @@ const minioClient = new Minio.Client({
 const BUCKET = 'derlg-storage';
 const imagesDir = path.join(__dirname, 'images');
 
+function escapeXml(unsafe) {
+  return String(unsafe).replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
+
 function createSvgPlaceholder(width, height, bgColor, text, subtext, textColor = 'white') {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  const safeText = escapeXml(text);
+  const safeSubtext = escapeXml(subtext);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:${bgColor};stop-opacity:1" />
@@ -24,8 +39,8 @@ function createSvgPlaceholder(width, height, bgColor, text, subtext, textColor =
   </defs>
   <rect width="${width}" height="${height}" fill="url(#bg)"/>
   <circle cx="${width/2}" cy="${height/2 - 30}" r="50" fill="${shadeColor(bgColor, 20)}" opacity="0.3"/>
-  <text x="${width/2}" y="${height/2 - 20}" font-family="Arial, sans-serif" font-size="24" fill="${textColor}" text-anchor="middle" opacity="0.9">${text}</text>
-  <text x="${width/2}" y="${height/2 + 15}" font-family="Arial, sans-serif" font-size="14" fill="${textColor}" text-anchor="middle" opacity="0.7">${subtext}</text>
+  <text x="${width/2}" y="${height/2 - 20}" font-family="Arial, sans-serif" font-size="24" fill="${textColor}" text-anchor="middle" opacity="0.9">${safeText}</text>
+  <text x="${width/2}" y="${height/2 + 15}" font-family="Arial, sans-serif" font-size="14" fill="${textColor}" text-anchor="middle" opacity="0.7">${safeSubtext}</text>
 </svg>`;
   return Buffer.from(svg);
 }
@@ -85,29 +100,89 @@ async function main() {
     console.log('  ℹ️  Bucket exists');
   }
 
-  // Upload existing real images first
+  // Real photos mapping: map named objects to high-res real photos
   const realImages = {
-    'places/angkor-wat.jpg':        path.join(imagesDir, 'places/angkor-wat.jpg'),
-    'places/bayon-temple.jpg':      path.join(imagesDir, 'places/bayon-temple.jpg'),
-    'places/ta-prohm.jpg':          path.join(imagesDir, 'places/ta-prohm.jpg'),
-    'places/sihanoukville-beach.jpg': path.join(imagesDir, 'places/sihanoukville-beach.jpg'),
+    // Places
+    'places/angkor-wat.jpg':              path.join(imagesDir, 'places/angkor-wat.jpg'),
+    'places/bayon-temple.jpg':            path.join(imagesDir, 'places/bayon-temple.jpg'),
+    'places/ta-prohm.jpg':                path.join(imagesDir, 'places/ta-prohm.jpg'),
+    'places/sihanoukville-beach.jpg':     path.join(imagesDir, 'places/sihanoukville-beach.jpg'),
+    'places/phnom-penh-royal-palace.jpg': path.join(imagesDir, 'places/phnom-penh-royal-palace.jpg'),
+    'places/tonle-sap.jpg':               path.join(imagesDir, 'places/tonle-sap.jpg'),
+    'places/killing-fields.jpg':          path.join(imagesDir, 'places/killing-fields.jpg'),
+    'places/national-museum.jpg':         path.join(imagesDir, 'places/national-museum.jpg'),
+    'places/bokor-mountain.jpg':          path.join(imagesDir, 'places/bokor-mountain.jpg'),
+    'places/ratanakiri-nature.jpg':       path.join(imagesDir, 'places/ratanakiri-nature.jpg'),
+    // Hotels
+    'hotels/sokha-siem-reap.jpg':         path.join(imagesDir, 'hotels/sokha-siem-reap.jpg'),
+    'hotels/park-hyatt-phnom-penh.jpg':   path.join(imagesDir, 'hotels/hotels-1.jpg'),
+    'hotels/raffles-grand.jpg':           path.join(imagesDir, 'hotels/hotels-2.jpg'),
+    'hotels/belmond-la-residence.jpg':    path.join(imagesDir, 'hotels/hotels-3.jpg'),
+    'hotels/shinta-mani.jpg':             path.join(imagesDir, 'hotels/hotels-4.jpg'),
+    // Trips
+    'trips/angkor-classic.jpg':           path.join(imagesDir, 'trips/trips-1.jpg'),
+    'trips/cambodia-highlights.jpg':      path.join(imagesDir, 'trips/trips-2.jpg'),
+    'trips/adventure-north.jpg':          path.join(imagesDir, 'trips/trips-3.jpg'),
+    'trips/culinary-journey.jpg':         path.join(imagesDir, 'trips/trips-4.jpg'),
+    'trips/beach-escape.jpg':             path.join(imagesDir, 'trips/trips-5.jpg'),
+    // Guides
+    'guides/guide-1.jpg':                 path.join(imagesDir, 'guides/guides-1.jpg'),
+    'guides/guide-2.jpg':                 path.join(imagesDir, 'guides/guides-2.jpg'),
+    'guides/guide-3.jpg':                 path.join(imagesDir, 'guides/guides-3.jpg'),
+    'guides/guide-4.jpg':                 path.join(imagesDir, 'guides/guides-4.jpg'),
+    // Transport
+    'transport/tuk-tuk.jpg':              path.join(imagesDir, 'transport/transport-1.jpg'),
+    'transport/van.jpg':                  path.join(imagesDir, 'transport/transport-2.jpg'),
+    'transport/bus.jpg':                  path.join(imagesDir, 'transport/transport-3.jpg'),
+    // Festivals
+    'festivals/khmer-new-year.jpg':       path.join(imagesDir, 'festivals/festivals-1.jpg'),
+    'festivals/water-festival.jpg':       path.join(imagesDir, 'festivals/festivals-2.jpg'),
   };
 
+  const uploadedReal = new Set();
+
+  // 1. Upload real photos
   for (const [objectName, filePath] of Object.entries(realImages)) {
     if (fs.existsSync(filePath)) {
       const stat = fs.statSync(filePath);
       const ext = path.extname(filePath).toLowerCase();
       const mimeType = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'application/octet-stream';
       await minioClient.putObject(BUCKET, objectName, fs.createReadStream(filePath), stat.size, { 'Content-Type': mimeType });
-      console.log(`  ✅ Uploaded (real): ${objectName}`);
+      uploadedReal.add(objectName);
+      console.log(`  ✅ Uploaded (real photo): ${objectName}`);
     }
   }
 
-  // Upload SVG placeholders
+  // 2. Upload all other files in imagesDir recursively
+  if (fs.existsSync(imagesDir)) {
+    const categories = fs.readdirSync(imagesDir);
+    for (const cat of categories) {
+      const catDir = path.join(imagesDir, cat);
+      if (fs.statSync(catDir).isDirectory()) {
+        const files = fs.readdirSync(catDir);
+        for (const file of files) {
+          const objectName = `${cat}/${file}`;
+          const filePath = path.join(catDir, file);
+          if (!uploadedReal.has(objectName) && fs.statSync(filePath).isFile()) {
+            const stat = fs.statSync(filePath);
+            const ext = path.extname(filePath).toLowerCase();
+            const mimeType = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'application/octet-stream';
+            await minioClient.putObject(BUCKET, objectName, fs.createReadStream(filePath), stat.size, { 'Content-Type': mimeType });
+            uploadedReal.add(objectName);
+            console.log(`  ✅ Uploaded (gallery image): ${objectName}`);
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Only upload SVG placeholders for keys that were NOT covered by real images
   for (const [objectName, config] of Object.entries(imageConfigs)) {
-    const svgBuffer = createSvgPlaceholder(config.w, config.h, config.bg, config.text, config.sub);
-    await minioClient.putObject(BUCKET, objectName, svgBuffer, svgBuffer.length, { 'Content-Type': 'image/svg+xml' });
-    console.log(`  ✅ Uploaded (svg): ${objectName}`);
+    if (!uploadedReal.has(objectName)) {
+      const svgBuffer = createSvgPlaceholder(config.w, config.h, config.bg, config.text, config.sub);
+      await minioClient.putObject(BUCKET, objectName, svgBuffer, svgBuffer.length, { 'Content-Type': 'image/svg+xml' });
+      console.log(`  ✅ Uploaded (svg with viewBox): ${objectName}`);
+    }
   }
 
   // Set public-read policy

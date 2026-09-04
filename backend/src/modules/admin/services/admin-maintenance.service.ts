@@ -15,12 +15,13 @@ export class AdminMaintenanceService {
 
   async getMaintenanceSchedule(filters: {
     vehicleId?: string;
+    status?: MaintenanceStatus;
     startDate?: string;
     endDate?: string;
     page?: string;
     limit?: string;
   }) {
-    const { vehicleId, startDate, endDate, page, limit } = filters;
+    const { vehicleId, status, startDate, endDate, page, limit } = filters;
     const currentPage = Math.max(1, parseInt(page || '1', 10));
     const take = Math.min(100, Math.max(1, parseInt(limit || '20', 10)));
     const skip = (currentPage - 1) * take;
@@ -28,6 +29,9 @@ export class AdminMaintenanceService {
     const where: Prisma.VehicleMaintenanceWhereInput = {};
 
     if (vehicleId) where.vehicleId = vehicleId;
+    // The scheduler UI sends `?status=SCHEDULED`; there was no `status` filter,
+    // so it silently listed completed records alongside upcoming ones.
+    if (status) where.status = status;
     if (startDate || endDate) {
       where.scheduledDate = {};
       if (startDate) where.scheduledDate.gte = new Date(startDate);

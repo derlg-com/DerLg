@@ -48,7 +48,7 @@ The AI handles the entire loop: **discover → plan → book → pay** — all w
 | **Verified Guides** | Tour guides with spoken languages (10 languages), specialties (culture, food, adventure, photography, etc.), and linked trip packages. |
 | **Multi-Booking Engine** | Book trips, hotels, transportation, and verified tour guides — compose multi-item bookings. |
 | **Smart Availability** | 15-minute booking holds with Redis TTL, conflict detection, and auto-cancellation. |
-| **Payments** | Stripe card payments (3D Secure) + Bakong/ABA QR codes for Cambodian and Chinese markets. |
+| **Payments** | Stripe card payments (3D Secure) confirmed by signed webhook, plus ABA Bank dynamic KHQR confirmed from ABA's Telegram credit alert. Refunds are tiered and automatic on cards. See [`backend/docs/payments.md`](backend/docs/payments.md). |
 | **Multi-Language** | Full support for **English, Chinese (中文), and Khmer (ខ្មែរ)** across all content. |
 | **PWA** | Installable Progressive Web App with offline static asset caching. |
 
@@ -184,8 +184,14 @@ Copy `backend/.env.example` → `backend/.env` and `web/.env.local.example` → 
 | `REDIS_URL` | yes | `redis://localhost:6379/0` |
 | `MINIO_ACCESS_KEY` | yes | MinIO credentials |
 | `MINIO_SECRET_KEY` | yes | MinIO credentials |
-| `STRIPE_SECRET_KEY` | no | Empty → payments return 503 |
-| `STRIPE_WEBHOOK_SECRET` | no | From `stripe listen` |
+| `STRIPE_SECRET_KEY` | no | Card payments. Empty → `/v1/payments/intents` returns 503 |
+| `STRIPE_WEBHOOK_SECRET` | no | From `stripe listen`. Without it cards can never settle |
+| `ABA_STATIC_QR` | no | Merchant KHQR string. Empty → ABA payments unavailable |
+| `ABA_TELEGRAM_GROUP_ID` | no | Group where ABA posts credit alerts |
+| `ABA_ALERT_SENDER_IDS` | no | Telegram ids allowed to settle a payment — **set this** |
+| `TELEGRAM_API_ID` / `TELEGRAM_API_HASH` | no | From my.telegram.org, for the ABA userbot |
+| `TELEGRAM_SESSION` | no | `npm run telegram:login`. Full account credential |
+| `TRUST_PROXY_HOPS` | no | Reverse-proxy count. Needed for correct rate-limit keying |
 
 #### Web (`web/.env.local`)
 
@@ -196,6 +202,7 @@ Copy `backend/.env.example` → `backend/.env` and `web/.env.local.example` → 
 | `NEXT_PUBLIC_APP_URL` | yes | `http://localhost:3002` |
 | `AI_SERVICE_KEY` | yes | Must match `backend/.env` (for BFF routes) |
 | `JWT_ACCESS_SECRET` | yes | Must match `backend/.env` (for BFF token verification) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | no | `pk_...`. Empty → the card form shows "unavailable" |
 
 #### AI Agent (`vibe-booking/.env`)
 

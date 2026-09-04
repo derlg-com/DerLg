@@ -7,6 +7,8 @@ import { Button } from '@/components/ui'
 import { cn } from '@/lib/cn'
 
 const MAX_LENGTH = 2000
+/** Show the counter only once it is actually relevant. */
+const COUNTER_THRESHOLD = MAX_LENGTH - 200
 
 /**
  * Message composer.
@@ -44,6 +46,8 @@ export function Composer({
     if (textarea) textarea.style.height = 'auto'
   }
 
+  const nearLimit = value.length >= COUNTER_THRESHOLD
+
   return (
     <form
       className="border-t border-[var(--border-subtle)] bg-[var(--surface)] p-3"
@@ -71,6 +75,7 @@ export function Composer({
           maxLength={MAX_LENGTH}
           placeholder={t('placeholder')}
           disabled={disabled}
+          aria-describedby={nearLimit ? 'chat-composer-count' : undefined}
           onChange={(event) => {
             setValue(event.target.value)
             const textarea = event.target
@@ -95,6 +100,21 @@ export function Composer({
           {tCommon('send')}
         </Button>
       </div>
+
+      {/*
+       * Silent truncation at `maxLength` is the failure this prevents: without a
+       * counter the last words of a long brief just stop appearing, with no
+       * explanation. Announced politely so it does not interrupt typing.
+       */}
+      {nearLimit ? (
+        <p
+          id="chat-composer-count"
+          className="mt-1.5 text-right text-xs tabular-nums text-[var(--text-tertiary)]"
+          aria-live="polite"
+        >
+          {t('charactersLeft', { count: MAX_LENGTH - value.length })}
+        </p>
+      ) : null}
     </form>
   )
 }

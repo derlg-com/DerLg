@@ -68,7 +68,7 @@ start_web() {
 
 start_admin() {
   echo "🛠  Starting admin    → http://localhost:${ADMIN_PORT}"
-  cd "$ROOT_DIR/derlg-system-admin/frontend_admin"
+  cd "$ROOT_DIR/derlg-system-admin"
   # The admin panel has no backend of its own — its API was merged into
   # backend/ and is served at /v1/admin/*.
   NEXT_PUBLIC_API_URL="http://localhost:${BACKEND_PORT}" \
@@ -80,9 +80,8 @@ start_admin() {
 start_ai() {
   echo "🤖 Starting AI agent → http://localhost:${AI_PORT}"
   cd "$ROOT_DIR/vibe-booking"
-  # IMPORTANT: unset NVIDIA_API_KEY so pydantic-settings reads .env instead.
   # Run uvicorn WITHOUT --reload — the reloader hangs on slow LLM calls.
-  env -u NVIDIA_API_KEY \
+  env -u LLM_API_KEY -u RAYU_API_KEY -u NVIDIA_API_KEY \
     BACKEND_URL="http://localhost:${BACKEND_PORT}" \
     "$ROOT_DIR/vibe-booking/.venv/bin/uvicorn" \
     main:app --host 0.0.0.0 --port $AI_PORT >> "$LOG_DIR/ai.log" 2>&1 &

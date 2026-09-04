@@ -16,6 +16,7 @@ import {
   QrPaymentBlock,
   StripeCardFormBlock,
 } from '@/components/chat/payloads/booking'
+import { ComparisonTable } from '@/components/chat/payloads/comparison-table'
 import { MapViewBlock } from '@/components/chat/payloads/map-block'
 import { CustomTripCardBlock } from '@/components/chat/payloads/rich/custom-trip-card'
 import {
@@ -52,6 +53,10 @@ export interface BlockContext {
   onPaymentCompleted?: (bookingId: string) => void
   /** Whether the session is signed in; the agent rejects guest payment claims. */
   isAuthenticated?: boolean
+  /** Currently selected/focused product ID (e.g. from card or map interaction). */
+  selectedProductId?: string | null
+  /** Callback to select or focus a product. */
+  onSelectProduct?: (id: string | null) => void
 }
 
 type Renderer = (payload: ContentPayload, context: BlockContext) => React.ReactNode
@@ -59,32 +64,58 @@ type Renderer = (payload: ContentPayload, context: BlockContext) => React.ReactN
 const RENDERERS: Partial<Record<ContentPayload['type'], Renderer>> = {
   trip_cards: (payload, ctx) =>
     payload.type === 'trip_cards' ? (
-      <TripCardsBlock trips={payload.data.trips} onAsk={ctx.onAsk} />
+      <TripCardsBlock
+        trips={payload.data.trips}
+        onAsk={ctx.onAsk}
+        selectedProductId={ctx.selectedProductId}
+        onSelectProduct={ctx.onSelectProduct}
+      />
     ) : null,
 
   /*
    * Comparison carries the same trip shape under `items`, and the agent emits it
-   * whenever a trip search returns exactly two results, so it reuses the trip
-   * renderer with a comparison heading.
+   * whenever a trip search returns exactly two results. It renders as an aligned
+   * comparison table rather than a card rail, because the whole point of the block
+   * is weighing one option against another on the same axis.
    */
   comparison: (payload, ctx) =>
     payload.type === 'comparison' ? (
-      <ComparisonBlock items={payload.data.items} onAsk={ctx.onAsk} />
+      <ComparisonBlock
+        items={payload.data.items}
+        onAsk={ctx.onAsk}
+        selectedProductId={ctx.selectedProductId}
+        onSelectProduct={ctx.onSelectProduct}
+      />
     ) : null,
 
   hotel_cards: (payload, ctx) =>
     payload.type === 'hotel_cards' ? (
-      <HotelCardsBlock hotels={payload.data.hotels} onAsk={ctx.onAsk} />
+      <HotelCardsBlock
+        hotels={payload.data.hotels}
+        onAsk={ctx.onAsk}
+        selectedProductId={ctx.selectedProductId}
+        onSelectProduct={ctx.onSelectProduct}
+      />
     ) : null,
 
   guide_cards: (payload, ctx) =>
     payload.type === 'guide_cards' ? (
-      <GuideCardsBlock guides={payload.data.guides} onAsk={ctx.onAsk} />
+      <GuideCardsBlock
+        guides={payload.data.guides}
+        onAsk={ctx.onAsk}
+        selectedProductId={ctx.selectedProductId}
+        onSelectProduct={ctx.onSelectProduct}
+      />
     ) : null,
 
   transport_options: (payload, ctx) =>
     payload.type === 'transport_options' ? (
-      <TransportOptionsBlock options={payload.data.options} onAsk={ctx.onAsk} />
+      <TransportOptionsBlock
+        options={payload.data.options}
+        onAsk={ctx.onAsk}
+        selectedProductId={ctx.selectedProductId}
+        onSelectProduct={ctx.onSelectProduct}
+      />
     ) : null,
 
   /* ---------------------------------------------------------- rich blocks */
@@ -105,7 +136,15 @@ const RENDERERS: Partial<Record<ContentPayload['type'], Renderer>> = {
   image_gallery: (payload) =>
     payload.type === 'image_gallery' ? <ImageGalleryBlock data={payload.data} /> : null,
 
-  map_view: (payload) => (payload.type === 'map_view' ? <MapViewBlock data={payload.data} /> : null),
+  map_view: (payload, ctx) =>
+    payload.type === 'map_view' ? (
+      <MapViewBlock
+        data={payload.data}
+        selectedId={ctx.selectedProductId}
+        onSelect={ctx.onSelectProduct}
+        onAsk={ctx.onAsk}
+      />
+    ) : null,
 
   weather: (payload) => (payload.type === 'weather' ? <WeatherBlock data={payload.data} /> : null),
 
@@ -143,15 +182,37 @@ const RENDERERS: Partial<Record<ContentPayload['type'], Renderer>> = {
     ) : null,
 }
 
+/**
+ * A comparison of two or more options.
+ *
+ * Falls back to the card rail for a single item, since there is nothing to compare
+ * — and the table's markers ("cheapest", "top rated") would be meaningless.
+ */
 function ComparisonBlock({
   items,
   onAsk,
+  selectedProductId,
+  onSelectProduct,
 }: {
   items: Parameters<typeof TripCardsBlock>[0]['trips']
   onAsk: (text: string) => void
+  selectedProductId?: string | null
+  onSelectProduct?: (id: string | null) => void
 }) {
   const t = useTranslations('content')
-  return <TripCardsBlock trips={items} onAsk={onAsk} title={t('comparison')} />
+
+  if (items.length < 2)
+    return (
+      <TripCardsBlock
+        trips={items}
+        onAsk={onAsk}
+        title={t('comparison')}
+        selectedProductId={selectedProductId}
+        onSelectProduct={onSelectProduct}
+      />
+    )
+
+  return <ComparisonTable items={items} onAsk={onAsk} title={t('comparison')} />
 }
 
 /** True when a renderer exists for this block type. */
@@ -184,7 +245,16 @@ function PayloadBlock({
   block: ContentBlock
   context: BlockContext
 }) {
-  const payload = parseContentPayload(block)
+  /*
+   * Parse ONCE per block, not once per render.
+   *
+   * Zod returns a fresh object graph on every `safeParse`, so parsing during
+   * render handed each renderer new prop identities every time the parent
+   * re-rendered — which, during a streamed reply, is on every token. Anything
+   * keyed on those identities (the map's marker effect clears and re-fits the
+   * whole layer set) then did its work dozens of times per reply.
+   */
+  const payload = React.useMemo(() => parseContentPayload(block), [block])
 
   if (!payload) {
     // Malformed or unknown to the schema entirely: skip it rather than throwing.

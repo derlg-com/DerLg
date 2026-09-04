@@ -23,12 +23,13 @@ All implementation is under `src/modules/`:
 
 | Module | Purpose | Key Files |
 |--------|---------|-----------|
-| `admin` | `/v1/admin/*` admin panel API — 18 controllers, 18 services. Includes trip-package CRUD (`admin-trips.*`) and customer status/role management | `admin.module.ts`, `controllers/`, `services/`, `interceptors/audit.interceptor.ts`, `websocket/admin.gateway.ts` |
+| `admin` | `/v1/admin/*` admin panel API — 20 controllers, 19 services. Includes trip-package CRUD (`admin-trips.*`), customer status/role management, and payment operations (`admin-payments.*`: ledger, ABA exception queue, manual settlement, refund payouts) | `admin.module.ts`, `controllers/`, `services/`, `interceptors/audit.interceptor.ts`, `websocket/admin.gateway.ts` |
 | `ai-tools` | `/v1/ai-tools/*` endpoints for the AI agent, including the chat-transcript archive (`chat-sessions*`) | `ai-tools.controller.ts`, `ai-tools.service.ts`, `ai-tools.dto.ts` |
 | `auth` | JWT access + refresh, Telegram OAuth | `auth.controller.ts`, `auth.service.ts` |
 | `bookings` | Booking creation, confirmation, cancellation, holds | `bookings.controller.ts`, `use-cases/`, `dto/` |
 | `guides` | Tour guide catalogue | `guides.controller.ts`, `list-guides.use-case.ts`, `utils/` |
 | `hotels` | Hotel catalogue (types, rooms, star ratings) | `hotels.controller.ts`, `list-hotels.use-case.ts`, `dto/` |
+| `payments` | Stripe cards + ABA dynamic KHQR. Webhook settlement, Telegram userbot, tiered refunds | `payments.controller.ts`, `stripe-webhook.controller.ts`, `services/{payments,stripe,aba-khqr}.service.ts`, `aba-telegram.listener.ts` — see `docs/payments.md` |
 | `places` | Points of interest | `places.controller.ts`, `list-places.use-case.ts` |
 | `prisma` | Prisma service + client | `prisma.service.ts` |
 | `redis` | Redis connection, cache, rate limiting | `redis.service.ts` |
@@ -101,6 +102,24 @@ Cross-cutting code lives in `src/common/`:
   interceptor (which replaces the body with `body.data`) then drops pagination.
 - **`SEED_ADMIN_PASSWORD` is often present-but-empty.** Use a length check, not
   `??`, when falling back to the dev default — an empty string is not nullish.
+- **`rawBody: true` in `main.ts` is load-bearing.** Stripe signs the exact bytes it
+  sent, so `StripeWebhookController` verifies against `request.rawBody`. Remove the
+  option and every webhook returns 400 with an invalid signature — meaning no card
+  payment can ever settle.
+- **Rate limiting is enforced by `CustomThrottlerGuard`, registered FIRST in
+  `common.module.ts`.** It bypasses itself under Jest (detected via
+  `JEST_WORKER_ID`) so e2e suites can sign in repeatedly; set
+  `THROTTLE_IN_TESTS=true` to exercise it. Only ONE throttler may be registered in
+  `ThrottlerModule` — the guard evaluates every registered throttler and requires
+  all to pass, so adding a second named limiter caps the whole API at the strictest
+  one. Use `@RateLimit('AUTH' | 'PAYMENT' | ...)` from `common/throttler/rate-limit.ts`.
+- **BigInt columns need the `json replacer` in `main.ts`.** `drivers.telegram_id` is
+  a bigint and `JSON.stringify` throws on BigInt rather than skipping it, so
+  `GET /v1/admin/drivers` 500s for any Telegram-linked driver without it.
+- **ABA payments settle out-of-band.** Nothing in the request/response cycle marks
+  an ABA booking paid; `AbaTelegramListener` does, from a Telegram credit alert.
+  Matching is by amount, and an ambiguous match deliberately settles NOTHING —
+  see `docs/payments.md` §4 before "fixing" that.
 
 ---
 

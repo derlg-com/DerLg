@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ServiceKeyGuard } from '../../common/guards/service-key.guard';
 import { Public } from '../../common/decorators/public.decorator';
+import { RateLimit } from '../../common/throttler/rate-limit';
 import { AiToolsService } from './ai-tools.service';
 import {
   SearchTripsDto,
@@ -38,8 +39,20 @@ import {
   ChatMessageFeedbackDto,
 } from './ai-tools.dto';
 
+/**
+ * Tool surface for the Vibe Booking AI agent.
+ *
+ * `@Public()` removes the JWT requirement, and `ServiceKeyGuard` replaces it —
+ * the agent has no user token, it authenticates as a service.
+ *
+ * Rate-limited at the service tier rather than the browser default: one
+ * conversation turn can fan out several parallel tool calls, and the throttler
+ * buckets service-key callers separately from browser IPs. The limit still
+ * bounds the damage if the key ever leaks.
+ */
 @Public()
 @UseGuards(ServiceKeyGuard)
+@RateLimit('SERVICE')
 @Controller('ai-tools')
 export class AiToolsController {
   constructor(private readonly service: AiToolsService) {}
@@ -92,7 +105,7 @@ export class AiToolsController {
   async checkPaymentStatus(@Query() dto: CheckPaymentStatusDto) {
     return {
       success: true,
-      data: await this.service.checkPaymentStatus(dto.booking_id),
+      data: await this.service.checkPaymentStatus(dto.booking_id, dto.user_id),
     };
   }
 

@@ -9,9 +9,12 @@ export interface OAuthUrlResponse {
 export class GoogleAuthUseCase {
   constructor(private readonly configService: ConfigService) {}
 
-  execute(): OAuthUrlResponse {
+  execute(redirectUriOverride?: string, state?: string): OAuthUrlResponse {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
-    const redirectUri = `${this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000')}/auth/google/callback`;
+    const redirectUri =
+      redirectUriOverride ??
+      this.configService.get<string>('GOOGLE_REDIRECT_URI') ??
+      `${this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000')}/auth/google/callback`;
 
     const params = new URLSearchParams({
       client_id: clientId ?? '',
@@ -21,6 +24,10 @@ export class GoogleAuthUseCase {
       access_type: 'offline',
       prompt: 'consent',
     });
+
+    if (state) {
+      params.set('state', state);
+    }
 
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     return { url };

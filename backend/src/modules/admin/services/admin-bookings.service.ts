@@ -27,11 +27,22 @@ export class AdminBookingsService {
     startDate?: string;
     endDate?: string;
     search?: string;
+    aiAssisted?: boolean;
+    guideId?: string;
     page?: string;
     limit?: string;
   }) {
-    const { bookingType, status, startDate, endDate, search, page, limit } =
-      filters;
+    const {
+      bookingType,
+      status,
+      startDate,
+      endDate,
+      search,
+      aiAssisted,
+      guideId,
+      page,
+      limit,
+    } = filters;
     const currentPage = Math.max(1, parseInt(page || '1', 10));
     const take = Math.min(100, Math.max(1, parseInt(limit || '20', 10)));
     const skip = (currentPage - 1) * take;
@@ -63,10 +74,45 @@ export class AdminBookingsService {
       where.items = { some: { bookingType: bookingType as BookingType } };
     }
 
+    // Guide filter. `guide_id` lives on booking_items, and the guide detail view
+    // has always requested it — but the handler never read it, so that page listed
+    // every booking in the system and attributed all of them to the one guide.
+    //
+    // Written as an AND entry rather than assigning `where.items` again, which
+    // would clobber the bookingType filter above when both are supplied.
+    if (guideId) {
+      const guideFilter: Prisma.BookingWhereInput = {
+        items: { some: { guideId } },
+      };
+      where.AND = where.AND
+        ? [...(Array.isArray(where.AND) ? where.AND : [where.AND]), guideFilter]
+        : [guideFilter];
+    }
+
     if (startDate || endDate) {
       where.startDate = {};
       if (startDate) where.startDate.gte = new Date(startDate);
       if (endDate) where.startDate.lte = new Date(endDate);
+    }
+
+    // AI attribution.
+    //
+    // The bookings page has always shipped an "AI / Manual" dropdown and sent
+    // `ai_assisted`, but no handler read it, so the filter was a no-op and every
+    // selection returned the same unfiltered list.
+    //
+    // Attribution here is "this customer has used the AI concierge", which is
+    // coarser than `AdminAiMonitoringService.isAIAssisted` — that one requires the
+    // booking to have been created within 24 hours of a chat session. The exact
+    // window compares a booking column against a related row's column, which
+    // Prisma cannot express in a `where`, and doing it in memory would break
+    // pagination totals. Both definitions are intentionally documented rather
+    // than silently different; narrowing this to the 24-hour rule wants a
+    // provenance column on `bookings` (e.g. `created_via`), which is the right
+    // follow-up.
+    if (aiAssisted !== undefined) {
+      const hasSessions = { aiChatSessions: { some: {} } };
+      where.user = aiAssisted ? hasSessions : { NOT: hasSessions };
     }
 
     if (search) {

@@ -7,34 +7,30 @@ import {
   Body,
   UseInterceptors,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { AuditInterceptor } from '../interceptors/audit.interceptor';
 import { AdminRoles } from '../../../common/decorators/admin-roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RateLimit } from '../../../common/throttler/rate-limit';
 import { AdminEmergencyService } from '../services/admin-emergency.service';
 import { AdminRole } from '@prisma/client';
 import { UpdateEmergencyDto } from '../dto/update-emergency.dto';
+import { ListEmergencyDto } from '../dto/list-fleet.dto';
 import type { EmergencyDetailResponseDto } from '../dto/emergency-detail-response.dto';
 
 @Controller('admin/emergency')
 @AdminRoles(AdminRole.OPERATIONS_MANAGER, AdminRole.SUPER_ADMIN)
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@RateLimit('ADMIN')
 @UseInterceptors(AuditInterceptor)
 export class AdminEmergencyController {
   constructor(private readonly service: AdminEmergencyService) {}
 
   @Get()
-  async getAllEmergencyAlerts(
-    @Query('status') status?: string,
-    @Query('alert_type') alertType?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  async getAllEmergencyAlerts(@Query() query: ListEmergencyDto) {
     return this.service.getAllEmergencyAlerts({
-      status,
-      alertType,
-      page,
-      limit,
+      status: query.status,
+      alertType: query.alert_type,
+      page: query.page?.toString(),
+      limit: query.limit?.toString(),
     });
   }
 

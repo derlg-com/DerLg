@@ -7,7 +7,9 @@ const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts')
  * Local-only relaxations for the development media store. Never set in a real
  * deployment; see the comments on the image options below.
  */
-const ALLOW_LOCAL_IMAGES = process.env.ALLOW_LOCAL_IMAGE_HOSTS === 'true'
+const ALLOW_LOCAL_IMAGES =
+  process.env.ALLOW_LOCAL_IMAGE_HOSTS === 'true' ||
+  process.env.NODE_ENV !== 'production'
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -22,26 +24,26 @@ const nextConfig: NextConfig = {
      * MinIO on localhost:9000, which is exactly that, so the guard must be lifted
      * to see any seeded imagery.
      *
-     * Gated behind an explicit opt-in rather than NODE_ENV, because `next start`
-     * also runs as production and the e2e suite tests a production build. Real
-     * deployments simply never set this flag, so the SSRF guard stays on where it
-     * matters — leaving it enabled would let the image endpoint probe internal
-     * services.
+     * Gated behind an explicit opt-in or development mode. Real deployments
+     * in production with ALLOW_LOCAL_IMAGE_HOSTS unset will keep the SSRF guard on.
      */
     dangerouslyAllowLocalIP: ALLOW_LOCAL_IMAGES,
     /*
-     * The seeded dev media in MinIO is SVG content served under .jpg filenames.
+     * The seeded dev media in MinIO contains SVG content served under .jpg filenames.
      * SVG can embed scripts, so Next blocks it by default; the CSP below strips
      * that capability (no scripts, sandboxed) which is the documented mitigation.
-     * Both are tied to the same local-only flag.
+     *
+     * Must be 'inline' so browsers render the image directly inside <img> tags.
+     * 'attachment' causes browsers to refuse rendering and trigger file downloads instead.
      */
     dangerouslyAllowSVG: ALLOW_LOCAL_IMAGES,
-    contentDispositionType: 'attachment',
+    contentDispositionType: 'inline',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // MinIO (self-hosted media) in dev, plus the QR service the backend uses for
     // ticket QR codes. Tighten this list for production.
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', port: '9000', pathname: '/**' },
+      { protocol: 'http', hostname: '127.0.0.1', port: '9000', pathname: '/**' },
       { protocol: 'https', hostname: '*.derlg.com', pathname: '/**' },
       { protocol: 'https', hostname: 'api.qrserver.com', pathname: '/**' },
     ],

@@ -59,4 +59,21 @@ export const authApi = {
     const data = await api.get<unknown>('users/me', { token, locale })
     return UserSchema.parse(data)
   },
+
+  async getGoogleAuthUrl(redirectUri?: string, state?: string) {
+    const data = await api.post<{ url: string }>('auth/google', {
+      redirectUri,
+      state,
+    })
+    return data
+  },
+
+  async googleCallback(code: string, redirectUri?: string, state?: string) {
+    const data = await api.post<unknown>('auth/google/callback', {
+      code,
+      redirectUri,
+      state,
+    })
+    return AuthResultSchema.parse(data)
+  },
 }

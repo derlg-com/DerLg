@@ -32,7 +32,14 @@ describe('GoogleCallbackUseCase', () => {
             user: {
               findUnique: jest.fn(),
               create: jest.fn(),
+              update: jest.fn(),
             },
+            oAuthAccount: {
+              findUnique: jest.fn(),
+              create: jest.fn(),
+              update: jest.fn(),
+            },
+            $transaction: jest.fn(),
           },
         },
         {
@@ -62,7 +69,7 @@ describe('GoogleCallbackUseCase', () => {
     jest.restoreAllMocks();
   });
 
-  it('should create new user and return tokens when email not found', async () => {
+  it('should create new user and oauthAccount when user not found', async () => {
     const fetchSpy = jest
       .spyOn(global, 'fetch')
       .mockResolvedValueOnce(
@@ -82,7 +89,9 @@ describe('GoogleCallbackUseCase', () => {
         ),
       );
 
+    jest.spyOn(prisma.oAuthAccount, 'findUnique').mockResolvedValue(null);
     jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(null);
+
     const createdUser = {
       id: 'user-1',
       email: 'new@example.com',
@@ -90,11 +99,23 @@ describe('GoogleCallbackUseCase', () => {
       avatarUrl: 'https://example.com/pic.jpg',
       role: 'user',
     };
-    jest.spyOn(prisma.user, 'create').mockResolvedValue(createdUser as never);
+
+    const mockTxUserCreate = jest.fn().mockResolvedValue(createdUser);
+    const mockTxOAuthCreate = jest.fn().mockResolvedValue({ id: 'oa-1' });
+
+    (prisma.$transaction as jest.Mock).mockImplementation(
+      async (cb: (tx: unknown) => unknown) => {
+        return cb({
+          user: { create: mockTxUserCreate },
+          oAuthAccount: { create: mockTxOAuthCreate },
+        });
+      },
+    );
 
     const result = await useCase.execute('auth-code');
 
-    expect(prisma.user.create).toHaveBeenCalledWith({
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(mockTxUserCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         email: 'new@example.com',
         fullName: 'New User',
@@ -103,13 +124,21 @@ describe('GoogleCallbackUseCase', () => {
         supabaseUid: expect.any(String),
       }),
     });
+    expect(mockTxOAuthCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-1',
+        provider: 'google',
+        providerAccountId: 'google-123',
+        email: 'new@example.com',
+      }),
+    });
     expect(generateTokens.execute).toHaveBeenCalledWith(createdUser);
     expect(result.accessToken).toBe('access-token');
 
     fetchSpy.mockRestore();
   });
 
-  it('should link existing user and return tokens', async () => {
+  it('should link existing user by creating oauthAccount and return tokens', async () => {
     const fetchSpy = jest
       .spyOn(global, 'fetch')
       .mockResolvedValueOnce(
@@ -132,15 +161,76 @@ describe('GoogleCallbackUseCase', () => {
       id: 'user-2',
       email: 'existing@example.com',
       fullName: 'Existing User',
+      avatarUrl: 'https://example.com/existing.jpg',
       role: 'user',
     };
+
+    jest.spyOn(prisma.oAuthAccount, 'findUnique').mockResolvedValue(null);
     jest
       .spyOn(prisma.user, 'findUnique')
       .mockResolvedValue(existingUser as never);
+    jest.spyOn(prisma.oAuthAccount, 'create').mockResolvedValue({} as never);
 
     const result = await useCase.execute('auth-code');
 
-    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(prisma.oAuthAccount.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-2',
+        provider: 'google',
+        providerAccountId: 'google-123',
+        email: 'existing@example.com',
+      }),
+    });
+    expect(generateTokens.execute).toHaveBeenCalledWith(existingUser);
+    expect(result.accessToken).toBe('access-token');
+
+    fetchSpy.mockRestore();
+  });
+
+  it('should directly log in when oauthAccount already exists', async () => {
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ access_token: 'google-access-token' }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            sub: 'google-123',
+            email: 'existing@example.com',
+            name: 'Existing User',
+            picture: 'https://example.com/pic.jpg',
+          }),
+          { status: 200 },
+        ),
+      );
+
+    const existingUser = {
+      id: 'user-3',
+      email: 'existing@example.com',
+      fullName: 'Existing User',
+      avatarUrl: 'https://example.com/pic.jpg',
+      role: 'user',
+    };
+
+    const existingOAuth = {
+      id: 'oauth-1',
+      userId: 'user-3',
+      provider: 'google',
+      providerAccountId: 'google-123',
+      user: existingUser,
+    };
+
+    jest
+      .spyOn(prisma.oAuthAccount, 'findUnique')
+      .mockResolvedValue(existingOAuth as never);
+    jest.spyOn(prisma.oAuthAccount, 'update').mockResolvedValue({} as never);
+
+    const result = await useCase.execute('auth-code');
+
+    expect(prisma.oAuthAccount.update).toHaveBeenCalled();
     expect(generateTokens.execute).toHaveBeenCalledWith(existingUser);
     expect(result.accessToken).toBe('access-token');
 

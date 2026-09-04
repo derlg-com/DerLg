@@ -66,10 +66,14 @@ export const bookingsApi = {
   },
 
   /**
-   * SANDBOX confirmation. Marks the booking paid WITHOUT a charge, and only when
-   * the server has DEMO_PAYMENTS enabled — otherwise it returns 403
-   * PAY_METHOD_NOT_SUPPORTED, which callers must surface honestly rather than as
-   * a generic failure.
+   * SANDBOX-only confirmation. Marks the booking paid WITHOUT any charge, and only
+   * when the server has DEMO_PAYMENTS enabled — otherwise it returns 403
+   * PAY_METHOD_NOT_SUPPORTED.
+   *
+   * NOT part of the real payment flow. Real payments go through `paymentsApi`
+   * (`POST /v1/payments/intents` + `GET /v1/payments/status`); this wrapper is kept
+   * deliberately so a developer can still settle a booking from the app against a
+   * local demo server or seeded fixtures. It has no UI caller by design.
    */
   async confirm(
     token: string,

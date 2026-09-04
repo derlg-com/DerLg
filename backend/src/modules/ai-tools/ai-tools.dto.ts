@@ -147,15 +147,34 @@ export class SendSosAlertDto {
 }
 
 export class GetUserLoyaltyDto {
-  @IsString() user_id: string;
+  @IsUUID() user_id: string;
 }
 
+/**
+ * `user_id` is required, not optional.
+ *
+ * This endpoint returns a booking's amount, payment method and paid-at time. A
+ * booking id alone used to be enough to read all of it, which made any booking's
+ * payment record enumerable by whoever held (or proxied) the service key. Making
+ * the owner part of the request lets the service scope the lookup instead of
+ * trusting the caller to have already checked.
+ */
 export class CheckPaymentStatusDto {
-  @IsString() booking_id: string;
+  @IsUUID() booking_id: string;
+  @IsUUID() user_id: string;
 }
 
+/**
+ * `user_id` is required for the same reason as `CheckPaymentStatusDto`: this
+ * endpoint is authenticated by a service key, not a customer token, so the owner
+ * has to be named for the service to scope the booking lookup.
+ *
+ * `provider` is retained for compatibility with conversations already in flight,
+ * but ABA is the only implemented KHQR provider — see `generatePaymentQr`.
+ */
 export class GeneratePaymentQrDto {
-  @IsString() booking_id: string;
+  @IsUUID() booking_id: string;
+  @IsUUID() user_id: string;
   @IsString() @IsIn(['BAKONG', 'ABA', 'bakong', 'aba']) provider: string;
 }
 

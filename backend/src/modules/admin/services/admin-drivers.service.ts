@@ -21,10 +21,11 @@ export class AdminDriversService {
   async getAllDrivers(filters: {
     status?: string;
     search?: string;
+    hasTelegram?: boolean;
     page?: string;
     limit?: string;
   }) {
-    const { status, search, page, limit } = filters;
+    const { status, search, hasTelegram, page, limit } = filters;
     const currentPage = Math.max(1, parseInt(page || '1', 10));
     const take = Math.min(100, Math.max(1, parseInt(limit || '20', 10)));
     const skip = (currentPage - 1) * take;
@@ -36,6 +37,12 @@ export class AdminDriversService {
       if (Object.values(DriverStatus).includes(normalized as DriverStatus)) {
         where.status = normalized as DriverStatus;
       }
+    }
+
+    // Drives the "Registered / Not registered" dropdown on the drivers page,
+    // which previously sent `has_telegram` to a handler that did not read it.
+    if (hasTelegram !== undefined) {
+      where.telegramId = hasTelegram ? { not: null } : null;
     }
 
     if (search) {
@@ -52,6 +59,13 @@ export class AdminDriversService {
         skip,
         take,
         orderBy: { createdAt: 'desc' },
+        // The list renders a Vehicle column. Without this include the relation is
+        // absent from the payload and the column rendered empty for every row.
+        include: {
+          vehicle: {
+            select: { id: true, name: true, licensePlate: true },
+          },
+        },
       }),
       this.prisma.driver.count({ where }),
     ]);
@@ -72,7 +86,11 @@ export class AdminDriversService {
       where: { id },
       include: {
         assignments: {
-          select: { id: true },
+          orderBy: { assignmentTimestamp: 'desc' },
+          take: 50,
+        },
+        _count: {
+          select: { assignments: true },
         },
       },
     });
@@ -115,7 +133,8 @@ export class AdminDriversService {
       createdAt: driver.createdAt,
       updatedAt: driver.updatedAt,
       vehicle,
-      assignmentCount: driver.assignments.length,
+      assignmentCount: driver._count?.assignments ?? driver.assignments.length,
+      assignments: driver.assignments,
     };
   }
 
@@ -163,7 +182,7 @@ export class AdminDriversService {
       driverId?: string;
       telegramId?: string;
       phone?: string;
-      vehicleId?: string;
+      vehicleId?: string | null;
       status?: DriverStatus;
     },
   ) {

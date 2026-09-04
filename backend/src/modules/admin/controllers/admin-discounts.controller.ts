@@ -17,6 +17,8 @@ import { AdminRole } from '@prisma/client';
 import { CreateDiscountCodeDto } from '../dto/create-discount.dto';
 import { UpdateDiscountCodeDto } from '../dto/update-discount.dto';
 import { ReviewStudentVerificationDto } from '../dto/review-student-verification.dto';
+import { ListStudentVerificationsDto } from '../dto/list-fleet.dto';
+import { RateLimit } from '../../../common/throttler/rate-limit';
 
 @Controller('admin/discounts')
 @AdminRoles(AdminRole.OPERATIONS_MANAGER, AdminRole.SUPER_ADMIN)
@@ -123,21 +125,19 @@ export class AdminDiscountsController {
 
 @Controller('admin/student-verifications')
 @AdminRoles(AdminRole.OPERATIONS_MANAGER, AdminRole.SUPER_ADMIN)
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@RateLimit('ADMIN')
 @UseInterceptors(AuditInterceptor)
 export class AdminStudentVerificationsController {
   constructor(private readonly service: AdminDiscountsService) {}
 
   @Get()
   async getAllStudentVerifications(
-    @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() query: ListStudentVerificationsDto,
   ) {
     const result = await this.service.getAllStudentVerifications({
-      status,
-      page,
-      limit,
+      status: query.status,
+      page: query.page?.toString(),
+      limit: query.limit?.toString(),
     });
     return {
       success: true,

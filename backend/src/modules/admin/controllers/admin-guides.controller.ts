@@ -28,10 +28,17 @@ export class AdminGuidesController {
   async getAllGuides(
     @Query('languages') languages?: string,
     @Query('specialties') specialties?: string,
+    @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.service.getAllGuides({ languages, specialties, page, limit });
+    return this.service.getAllGuides({
+      languages,
+      specialties,
+      search,
+      page,
+      limit,
+    });
   }
 
   @Get(':id')
