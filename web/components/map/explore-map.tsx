@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
 import * as React from 'react'
 
+import { NavelDestinationMapCard } from '@/components/discovery/navel-destination-map-card'
 import { PlaceSheet } from '@/components/map/place-sheet'
 import { CardMedia } from '@/components/shared/card-media'
 import { FilterBar } from '@/components/shared/filter-bar'
@@ -22,17 +23,17 @@ import {
 import { usePlaces } from '@/hooks/use-catalog'
 import { useUrlFilters } from '@/hooks/use-url-filters'
 import { cn } from '@/lib/cn'
-import { PLACE_CATEGORIES } from '@/schemas/domain'
+import type { Paginated } from '@/lib/api/errors'
+import { PLACE_CATEGORIES, type PlaceSummary } from '@/schemas/domain'
 
 import type { MapMarker } from './leaflet-map'
 
 /**
- * Leaflet reads `window` at import time and ships a sizeable bundle, so it is
- * loaded only in the browser and only for this view.
+ * Leaflet is client-only.
  */
 const LeafletMap = dynamic(() => import('./leaflet-map').then((m) => m.LeafletMap), {
   ssr: false,
-  loading: () => <Skeleton className="h-full w-full" />,
+  loading: () => <Skeleton className="h-full w-full rounded-[24px]" />,
 })
 
 const DEFAULTS = {
@@ -40,27 +41,32 @@ const DEFAULTS = {
   place: undefined as string | undefined,
 }
 
-export function ExploreMap() {
+export function ExploreMap({
+  initialData,
+}: {
+  initialData?: Paginated<PlaceSummary>
+} = {}) {
   const explore = useTranslations('explore')
   const catalog = useTranslations('catalog')
   const common = useTranslations('common')
 
   const { filters, setFilters, clearFilters, activeCount } = useUrlFilters(DEFAULTS)
-  // Mobile shows one pane at a time; desktop shows both side by side.
-  const [view, setView] = React.useState<'list' | 'map'>('list')
+  const [view, setView] = React.useState<'map' | 'list'>('list')
+  const carouselRef = React.useRef<HTMLDivElement>(null)
 
-  const { data, isPending, isError, refetch } = usePlaces({
-    limit: 50,
-    category: filters.category,
-  })
+  const { data, isPending, isError, refetch } = usePlaces(
+    {
+      limit: 50,
+      category: filters.category,
+    },
+    !filters.category && initialData ? { initialData } : undefined,
+  )
 
-  // Memoised so the marker list below has a stable dependency.
   const places = React.useMemo(() => data?.items ?? [], [data])
 
   const markers: MapMarker[] = React.useMemo(
     () =>
       places
-        // Only items with real coordinates can be mapped.
         .filter((place) => place.latitude != null && place.longitude != null)
         .map((place) => ({
           id: place.id,
@@ -75,9 +81,17 @@ export function ExploreMap() {
   const selectedId = filters.place ?? null
   const selected = places.find((place) => place.id === selectedId) ?? null
 
-  function select(id: string) {
+  // When selectedId changes, auto-scroll the carousel to that card
+  React.useEffect(() => {
+    if (!selectedId || !carouselRef.current) return
+    const cardEl = carouselRef.current.querySelector(`[data-place-id="${selectedId}"]`)
+    if (cardEl) {
+      cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    }
+  }, [selectedId])
+
+  function selectPlace(id: string) {
     setFilters({ place: id })
-    // On mobile, choosing from the list should not leave the user on the map.
     setView('list')
   }
 
@@ -109,7 +123,7 @@ export function ExploreMap() {
         <SegmentedControl
           label={explore('map.viewMode')}
           value={view}
-          onValueChange={setView}
+          onValueChange={(val) => setView(val as 'list' | 'map')}
           className="lg:hidden"
           options={[
             {
@@ -128,7 +142,7 @@ export function ExploreMap() {
 
       {isPending ? (
         <LoadingRegion label={common('loading')}>
-          <Skeleton className="h-[60vh] w-full" />
+          <Skeleton className="h-[60vh] w-full rounded-[28px]" />
         </LoadingRegion>
       ) : isError ? (
         <ErrorState
@@ -153,26 +167,33 @@ export function ExploreMap() {
                     <Card
                       as="article"
                       interactive
-                      className={cn('overflow-hidden', isSelected && 'border-[var(--accent)]')}
+                      className={cn(
+                        'overflow-hidden rounded-[24px] border-2 transition-all',
+                        isSelected
+                          ? 'border-[var(--color-navel-jade)] ring-2 ring-[var(--color-navel-jade)]/20'
+                          : 'border-[var(--border-subtle)]',
+                      )}
                     >
                       <button
                         type="button"
-                        onClick={() => select(place.id)}
+                        onClick={() => selectPlace(place.id)}
                         aria-pressed={isSelected}
-                        className="flex w-full items-stretch gap-3 text-left"
+                        className="flex w-full items-stretch gap-3 text-left p-2.5"
                       >
-                        <div className="w-28 shrink-0">
-                          <CardMedia src={place.coverImage} ratio="1/1" sizes="112px" />
+                        <div className="w-24 h-24 shrink-0 overflow-hidden rounded-2xl">
+                          <CardMedia src={place.coverImage} ratio="1/1" sizes="96px" />
                         </div>
-                        <CardContent className="min-w-0 flex-1 space-y-1 py-3 pr-3 pl-0">
-                          <h2 className="line-clamp-1 text-base leading-tight font-semibold tracking-tight">
+                        <CardContent className="min-w-0 flex-1 space-y-1 py-1 pr-2 pl-0">
+                          <h2 className="line-clamp-1 text-sm font-bold tracking-tight text-[var(--color-navel-forest)] dark:text-[var(--color-navel-mint)]">
                             {place.name}
                           </h2>
                           {place.category ? (
-                            <p className="text-sm text-[var(--text-secondary)]">{place.category}</p>
+                            <span className="inline-block rounded-full bg-[var(--color-navel-cream)]/80 dark:bg-[var(--surface-sunken)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
+                              {place.category}
+                            </span>
                           ) : null}
-                          <p className="text-sm text-[var(--text-tertiary)]">
-                            {place.entryFeeUsd === 0
+                          <p className="text-xs font-semibold text-[var(--color-navel-forest)] dark:text-[var(--color-navel-gold)] pt-1">
+                            {place.entryFeeUsd === 0 || place.entryFeeUsd == null
                               ? catalog('detail.free')
                               : `${catalog('detail.entryFee')}: $${place.entryFeeUsd}`}
                           </p>
@@ -189,20 +210,57 @@ export function ExploreMap() {
           <section
             aria-label={explore('map.mapLabel')}
             className={cn(
-              'h-[70vh] min-w-0 overflow-hidden rounded-lg border border-[var(--border-subtle)]',
+              'min-w-0 flex flex-col gap-3',
               view === 'list' && 'hidden lg:block',
             )}
           >
-            <LeafletMap
-              markers={markers}
-              selectedId={selectedId}
-              onSelect={(id) => setFilters({ place: id })}
-              ariaLabel={explore('map.mapLabel')}
-            />
+            <div className="h-[52vh] sm:h-[58vh] lg:h-[70vh] w-full overflow-hidden rounded-[28px] border border-[var(--border-subtle)] shadow-sm relative">
+              <LeafletMap
+                markers={markers}
+                selectedId={selectedId}
+                onSelect={(id) => setFilters({ place: id })}
+                ariaLabel={explore('map.mapLabel')}
+              />
+            </div>
+
+            {/* Bottom Destination Carousel visible in mobile map view */}
+            <div className="space-y-2 lg:hidden">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-bold text-[var(--text-secondary)]">
+                  {places.length} places found
+                </span>
+                <span className="text-[11px] text-[var(--text-tertiary)]">
+                  Swipe to explore
+                </span>
+              </div>
+
+              <div
+                ref={carouselRef}
+                className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory"
+              >
+                {places.map((place) => (
+                  <div key={place.id} data-place-id={place.id}>
+                    <NavelDestinationMapCard
+                      id={place.id}
+                      name={place.name}
+                      category={place.category}
+                      coverImage={place.coverImage}
+                      entryFeeUsd={place.entryFeeUsd}
+                      ratingAverage={4.8}
+                      location={place.category || 'Cambodia'}
+                      isSelected={place.id === selectedId}
+                      onSelect={() => selectPlace(place.id)}
+                      onOpenDetails={() => selectPlace(place.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
         </div>
       )}
 
+      {/* Place details modal */}
       <PlaceSheet
         placeId={selected?.id ?? null}
         onClose={() => setFilters({ place: undefined })}

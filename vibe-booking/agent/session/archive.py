@@ -227,6 +227,10 @@ async def record_feedback(
         )
         return False
 
+    # Ensure any queued turns containing this message are archived before sending feedback
+    if session.pending_archive:
+        await flush(session)
+
     resp = await get_backend_client().request(
         "PATCH",
         f"ai-tools/chat-sessions/{session.session_id}/messages/{seq}/feedback",

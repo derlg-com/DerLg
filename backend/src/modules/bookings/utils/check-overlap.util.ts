@@ -20,7 +20,13 @@ export function checkOverlap(
     );
   }
 
-  return existing.some(
-    (r) => r.startDate < target.endDate && r.endDate > target.startDate,
-  );
+  return existing.some((r) => {
+    if (
+      r.startDate.getTime() === r.endDate.getTime() ||
+      target.startDate.getTime() === target.endDate.getTime()
+    ) {
+      return r.startDate <= target.endDate && r.endDate >= target.startDate;
+    }
+    return r.startDate < target.endDate && r.endDate > target.startDate;
+  });
 }

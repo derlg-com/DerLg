@@ -94,7 +94,7 @@
       "sections": {
         "acceptance": {
           "heading": "接受条款",
-          "body": "使用 DerLg 探索和预订柬埔寨的旅行体验，即表示您同意本服务条款。如不同意，请勿使用本平台。本内容为占位示例，不构成法律意见。"
+          "body": "使用 DerLg 探索和预订柬埔寨的旅行体验，即表示您同意本服务条款。如不同意，请勿使用本平台。"
         },
         "bookings": {
           "heading": "预订",
@@ -114,7 +114,7 @@
         },
         "liability": {
           "heading": "责任限制",
-          "body": "DerLg 仅为旅客与独立服务提供方牵线搭桥，对这些提供方的行为或疏忽不承担责任。在法律允许的范围内，我们对任何预订的责任以您为该预订支付的金额为限。本内容为占位示例，不构成法律意见。"
+          "body": "DerLg 仅为旅客与独立服务提供方牵线搭桥，对这些提供方的行为或疏忽不承担责任。在法律允许的范围内，我们对任何预订的责任以您为该预订支付的金额为限。"
         },
         "changes": {
           "heading": "条款变更",
@@ -127,7 +127,7 @@
       "sections": {
         "intro": {
           "heading": "简介",
-          "body": "本隐私政策说明 DerLg 在您使用我们的柬埔寨旅行预订平台时如何收集、使用和保护您的个人信息。本内容为占位示例，不构成法律意见。"
+          "body": "本隐私政策说明 DerLg 在您使用我们的柬埔寨旅行预订平台时如何收集、使用和保护您的个人信息。"
         },
         "dataCollected": {
           "heading": "我们收集的信息",
@@ -160,7 +160,7 @@
       "sections": {
         "intro": {
           "heading": "简介",
-          "body": "本 Cookie 政策说明 DerLg 在我们的旅行预订平台上如何使用 Cookie 及类似技术。本内容为占位示例，不构成法律意见。"
+          "body": "本 Cookie 政策说明 DerLg 在我们的旅行预订平台上如何使用 Cookie 及类似技术。"
         },
         "whatAreCookies": {
           "heading": "什么是 Cookie？",
@@ -193,11 +193,15 @@
     "method": {
       "title": "支付方式",
       "card": "信用卡 / 借记卡",
+      "bakong_qr": "Bakong 二维码",
       "aba_qr": "ABA 二维码"
     },
     "title": "结账",
     "subtotal": "小计",
     "total": "总计",
+    "mockNotice": "演示模式 — 支付为模拟，不会真实扣款。",
+    "demoDisabledTitle": "支付功能未启用",
+    "demoDisabledDesc": "此服务器已关闭支付确认功能，因此无法在此完成支付。您的预留不受影响。",
     "card": {
       "number": "卡号",
       "expiry": "有效期",
@@ -707,7 +711,8 @@
       "home": "首页",
       "explore": "探索",
       "bookings": "预订",
-      "chat": "聊天",
+      "saved": "已保存",
+      "chat": "对话",
       "profile": "我的",
       "trips": "行程",
       "hotels": "酒店",

@@ -8,7 +8,7 @@ import { Price } from '@/components/shared/price'
 import { Badge, Button } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { Link } from '@/lib/i18n/navigation'
-import { normalizeImageUrl, safeImageSrc } from '@/lib/url-safety'
+import { normalizeImageUrl } from '@/lib/url-safety'
 import type {
   PayloadGuide,
   PayloadHotel,

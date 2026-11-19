@@ -120,7 +120,7 @@ export default async function VehicleDetailPage({
             <section className="space-y-3">
               <h2 className="text-xl font-semibold tracking-tight">{catalog('detail.capacity')}</h2>
               <p className="text-[var(--text-secondary)]">
-                {vehicle.capacity} {t('card.seats')}
+                {t('card.seats', { n: vehicle.capacity })}
               </p>
             </section>
 

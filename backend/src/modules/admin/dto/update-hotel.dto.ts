@@ -46,6 +46,24 @@ export class UpdateHotelDto {
   @IsOptional()
   starRating?: number;
 
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  @IsOptional()
+  star_rating?: number;
+
+  @IsString()
+  @IsOptional()
+  check_in_time?: string;
+
+  @IsString()
+  @IsOptional()
+  check_out_time?: string;
+
+  @IsString()
+  @IsOptional()
+  cancellation_policy?: string;
+
   @IsString()
   @IsOptional()
   address?: string;

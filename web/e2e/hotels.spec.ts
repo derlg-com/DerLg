@@ -1,10 +1,12 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3003'
+
 test.describe('hotels browse', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/hotels?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/hotels?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), 'backend is not reachable')
   })
 
   test('renders hotels from the live API', async ({ page }) => {
@@ -35,8 +37,8 @@ test.describe('hotels browse', () => {
 
 test.describe('hotel detail', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/hotels?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/hotels?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), 'backend is not reachable')
   })
 
   async function openFirstHotel(page: import('@playwright/test').Page) {
@@ -112,7 +114,7 @@ test.describe('hotel detail', () => {
   })
 
   test('emits Hotel and BreadcrumbList structured data', async ({ page, request }) => {
-    const list = await request.get('http://localhost:3003/v1/hotels?limit=1')
+    const list = await request.get(`${BACKEND_URL}/v1/hotels?limit=1`)
     const body = (await list.json()) as { data: { items: { id: string }[] } }
     await page.goto(`/en/hotels/${body.data.items[0]!.id}`)
 

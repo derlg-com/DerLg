@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheInvalidationService } from '../../../common/cache/cache-invalidation.service';
 import { GuideResponseDto } from '../dto/guide-response.dto';
 
 /** Bookings that still hold a guide's time. Cancelled/expired ones release it. */
@@ -23,7 +24,10 @@ const BLOCKING_BOOKING_STATUSES: Prisma.EnumBookingStatusFilter = {
 export class AdminGuidesService {
   private readonly logger = new Logger(AdminGuidesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheInvalidation?: CacheInvalidationService,
+  ) {}
 
   async getAllGuides(filters: {
     languages?: string;
@@ -289,6 +293,8 @@ export class AdminGuidesService {
       return created;
     });
 
+    await this.cacheInvalidation?.invalidateGuideCaches(guide.id);
+
     return {
       id: guide.id,
       userId: guide.userId,
@@ -376,6 +382,8 @@ export class AdminGuidesService {
 
       return updated;
     });
+
+    await this.cacheInvalidation?.invalidateGuideCaches(guide.id);
 
     const finalLanguages =
       dto.languages ?? existing.languages.map((l) => l.language);

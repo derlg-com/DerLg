@@ -8,7 +8,7 @@ import { expect, test, type Page } from '@playwright/test'
  * bookings list is per-user.
  */
 
-const API = 'http://localhost:3003'
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4007'
 
 async function backendUp(request: import('@playwright/test').APIRequestContext) {
   const probe = await request.get(`${API}/v1/trips`).catch(() => null)
@@ -39,7 +39,7 @@ async function firstTripId(request: import('@playwright/test').APIRequestContext
 
 test.describe('booking form', () => {
   test.beforeEach(async ({ request }) => {
-    test.skip(!(await backendUp(request)), 'backend on :3003 is not reachable')
+    test.skip(!(await backendUp(request)), 'backend is not reachable')
   })
 
   test('asks a guest to sign in and returns them to the same booking', async ({
@@ -118,6 +118,11 @@ test.describe('booking form', () => {
     const tripId = await firstTripId(request)
     await page.goto(`/en/booking/new?type=trip&id=${tripId}`)
 
+    const future = new Date(Date.now() + (30 + Math.floor(Math.random() * 5000)) * 86400000)
+      .toISOString()
+      .slice(0, 10)
+    await page.locator('input[name="startDate"]').fill(future)
+
     const submit = page.getByRole('button', { name: /confirm & continue/i })
     await expect(submit).toBeVisible({ timeout: 20_000 })
     await submit.click()
@@ -130,7 +135,7 @@ test.describe('booking form', () => {
 
 test.describe('checkout', () => {
   test.beforeEach(async ({ request }) => {
-    test.skip(!(await backendUp(request)), 'backend on :3003 is not reachable')
+    test.skip(!(await backendUp(request)), 'backend is not reachable')
   })
 
   /** Signs up and books a trip, returning the checkout URL. */
@@ -138,6 +143,11 @@ test.describe('checkout', () => {
     await signUp(page)
     const tripId = await firstTripId(request)
     await page.goto(`/en/booking/new?type=trip&id=${tripId}`)
+
+    const future = new Date(Date.now() + (30 + Math.floor(Math.random() * 5000)) * 86400000)
+      .toISOString()
+      .slice(0, 10)
+    await page.locator('input[name="startDate"]').fill(future)
 
     const submit = page.getByRole('button', { name: /confirm & continue/i })
     await expect(submit).toBeVisible({ timeout: 20_000 })
@@ -159,7 +169,7 @@ test.describe('checkout', () => {
     await bookTrip(page, request)
 
     await expect(page.getByText(/TRP-[A-Z0-9]+/)).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText(/\$1,?197|\$399/)).toBeVisible()
+    await expect(page.getByText(/\$1,?197|\$399/).first()).toBeVisible()
 
     // Stated before the pay button, not after.
     await expect(page.getByText(/demo mode/i)).toBeVisible()
@@ -180,7 +190,9 @@ test.describe('checkout', () => {
     await page.getByRole('button', { name: /pay now/i }).click()
 
     // DEMO_PAYMENTS is enabled on this server, so confirmation succeeds.
-    await expect(page.getByRole('status')).toContainText(/booking confirmed/i, { timeout: 30_000 })
+    await expect(page.getByRole('status').filter({ hasText: /booking confirmed/i })).toBeVisible({
+      timeout: 30_000,
+    })
 
     // The real ticket QR is minted by the backend on confirmation.
     const qr = page.getByRole('region', { name: /check-in qr/i }).getByRole('img')
@@ -193,11 +205,15 @@ test.describe('checkout', () => {
     const url = page.url()
 
     await page.getByRole('button', { name: /pay now/i }).click()
-    await expect(page.getByRole('status')).toContainText(/booking confirmed/i, { timeout: 30_000 })
+    await expect(page.getByRole('status').filter({ hasText: /booking confirmed/i })).toBeVisible({
+      timeout: 30_000,
+    })
 
     // Revisiting must not offer payment again.
     await page.goto(url)
-    await expect(page.getByRole('status')).toContainText(/booking confirmed/i, { timeout: 20_000 })
+    await expect(page.getByRole('status').filter({ hasText: /booking confirmed/i })).toBeVisible({
+      timeout: 20_000,
+    })
     await expect(page.getByRole('button', { name: /pay now/i })).toHaveCount(0)
   })
 

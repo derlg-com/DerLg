@@ -46,16 +46,24 @@ def _archive_in_background(coro, *, session_id: str, op: str) -> None:
 async def _safe_close(websocket: WebSocket, code: int = 1000) -> None:
     """Close only if still connected — prevents the ASGI double-close
     RuntimeError under React StrictMode double-mount churn (Issue 11)."""
-    if websocket.application_state != WebSocketState.DISCONNECTED:
-        try:
-            await websocket.close(code=code)
-        except RuntimeError:
-            pass
+    app_state = getattr(websocket, "application_state", None)
+    client_state = getattr(websocket, "client_state", None)
+    if app_state == WebSocketState.DISCONNECTED or client_state == WebSocketState.DISCONNECTED:
+        return
+    try:
+        await websocket.close(code=code)
+    except Exception:
+        pass
 
 _INJECTION_PATTERNS = re.compile(
-    r"(<script|javascript:|on\w+=|</?\w+\s*>|"
-    r"ignore previous|disregard.*instructions|you are now|"
-    r"system prompt|forget.*rules)",
+    r"(<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>|"
+    r"javascript:[^\s\"'>]+|"
+    r"on\w+\s*=\s*[\"'][^\"']*[\"']|"
+    r"</?(?:script|iframe|object|embed|applet|style|meta|link)\b[^>]*>|"
+    r"\b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+)?(?:previous|prior|above|system|existing)?\s*(?:instructions|rules|prompts|directives|guidelines|constraints)\b|"
+    r"\b(?:reveal|show|print|display|repeat|leak|output)\s+(?:the\s+)?(?:system\s+prompt|initial\s+instructions|developer\s+instructions|system\s+instructions)\b|"
+    r"\byou\s+are\s+now\s+(?:in\s+)?(?:developer|admin|debug|god|dan|unrestricted)\s+mode\b|"
+    r"\b(?:act|roleplay)\s+as\s+(?:an?\s+)?(?:unrestricted|jailbroken|admin|system\s+operator)\b)",
     re.IGNORECASE,
 )
 _MAX_CONTENT_LENGTH = 2000
@@ -233,12 +241,17 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     try:
         raw = await asyncio.wait_for(websocket.receive_text(), timeout=10.0)
         auth = json.loads(raw)
+    except WebSocketDisconnect:
+        return
     except Exception:
         await _safe_close(websocket, code=4000)
         return
 
     if auth.get("type") != "auth" or not auth.get("user_id"):
-        await websocket.send_json({"type": "error", "message": "Auth required"})
+        try:
+            await websocket.send_json({"type": "error", "message": "Auth required"})
+        except Exception:
+            pass
         await _safe_close(websocket, code=4001)
         return
 
@@ -251,69 +264,102 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
     active_connections[session_id] = websocket
 
-    session = await session_manager.load(session_id)
-    is_new = session is None
-    if is_new:
-        session = ConversationState(session_id=session_id)
+    session: ConversationState | None = None
+    try:
+        session = await session_manager.load(session_id)
+        is_new = session is None
+        if is_new:
+            session = ConversationState(session_id=session_id)
 
-    # Deferred auth: a token may arrive in the initial header OR inside the auth
-    # message (browsers can't set WS headers). A verified token re-binds the
-    # session to the real user UUID and unlocks booking; otherwise stay a guest.
-    msg_token = str(auth.get("token", "")).strip()
-    verified_id = user_id_from_jwt or (_verify_jwt(msg_token) if msg_token else None)
-    was_authenticated = session.is_authenticated
-    previous_user_id = session.user_id
-    if verified_id:
-        session.user_id = verified_id
-        session.is_authenticated = True
-    else:
-        session.user_id = user_id
-        session.is_authenticated = False
+        # Deferred auth: a token may arrive in the initial header OR inside the auth
+        # message (browsers can't set WS headers). A verified token re-binds the
+        # session to the real user UUID and unlocks booking; otherwise stay a guest.
+        msg_token = str(auth.get("token", "")).strip()
+        verified_id = user_id_from_jwt or (_verify_jwt(msg_token) if msg_token else None)
+        was_authenticated = session.is_authenticated
+        previous_user_id = session.user_id
 
-    #: A guest who signed in between connections needs the already-archived
-    #: transcript reattached, otherwise those turns stay anonymous and never
-    #: correlate to the booking they produced.
-    needs_rebind = session.is_authenticated and (
-        not was_authenticated or previous_user_id != session.user_id
-    )
+        # Security: If resuming an existing session that belonged to an authenticated user,
+        # require the caller to authenticate as that SAME user. A guest or different user
+        # must NOT inherit an authenticated user's session.
+        if not is_new and was_authenticated and verified_id != previous_user_id:
+            logger.warning(
+                "session_hijack_attempt_blocked",
+                session_id=session_id,
+                previous_user=previous_user_id,
+                attempted_user=verified_id or user_id,
+            )
+            active_connections.pop(session_id, None)
+            session_id = str(uuid.uuid4())
+            active_connections[session_id] = websocket
+            session = ConversationState(session_id=session_id)
+            is_new = True
+            was_authenticated = False
+            previous_user_id = None
+        elif not is_new and not was_authenticated and not verified_id and previous_user_id and previous_user_id != user_id:
+            logger.warning(
+                "guest_session_mismatch_reset",
+                session_id=session_id,
+                previous_guest=previous_user_id,
+                attempted_guest=user_id,
+            )
+            active_connections.pop(session_id, None)
+            session_id = str(uuid.uuid4())
+            active_connections[session_id] = websocket
+            session = ConversationState(session_id=session_id)
+            is_new = True
+            was_authenticated = False
+            previous_user_id = None
 
-    # Rate-limit on a key the client cannot freely rotate: the verified user id
-    # when authenticated, else the client IP for guests (H2). Never the
-    # client-supplied session_id.
-    client_ip = websocket.client.host if websocket.client else "unknown"
-    rate_limit_key = session.user_id if session.is_authenticated else f"ip:{client_ip}"
-    # Accept both old uppercase (EN/ZH/KH) and new lowercase (en/zh/km) — normalize to uppercase for session
-    raw_lang = str(auth.get("preferred_language", "EN")).upper()
-    # Map KH → KH (Khmer), also accept KM as alias
-    lang_map = {"EN": "EN", "ZH": "ZH", "KH": "KH", "KM": "KH", "ZH-CN": "ZH"}
-    lang = lang_map.get(raw_lang, "EN")
-    session.preferred_language = lang
+        if verified_id:
+            session.user_id = verified_id
+            session.is_authenticated = True
+        else:
+            session.user_id = user_id
+            session.is_authenticated = False
 
-    welcome_text = WELCOME[session.preferred_language] if is_new else RESUME[session.preferred_language]
-    await websocket.send_json({
-        "type": "conversation_started" if is_new else "conversation_resumed",
-        "text": welcome_text,
-        "session_id": session_id,
-        "suggested_prompts": WELCOME_PROMPTS.get(session.preferred_language, WELCOME_PROMPTS["EN"]),
-    })
+        #: A guest who signed in between connections needs the already-archived
+        #: transcript reattached, otherwise those turns stay anonymous and never
+        #: correlate to the booking they produced.
+        needs_rebind = not is_new and session.is_authenticated and not was_authenticated
 
-    # Create the archive row up front so the session is visible to admin AI
-    # monitoring from its first turn, not only once messages flush. Idempotent,
-    # so a reconnect refreshes rather than forks. Detached: a slow or down
-    # backend must not delay the welcome frame.
-    _archive_in_background(
-        archive.create_session(session),
-        session_id=session_id,
-        op="create_session",
-    )
-    if needs_rebind:
+        # Rate-limit on a key the client cannot freely rotate: the verified user id
+        # when authenticated, else the client IP for guests (H2). Never the
+        # client-supplied session_id.
+        client_ip = websocket.client.host if websocket.client else "unknown"
+        rate_limit_key = session.user_id if session.is_authenticated else f"ip:{client_ip}"
+        # Accept both old uppercase (EN/ZH/KH) and new lowercase (en/zh/km) — normalize to uppercase for session
+        raw_lang = str(auth.get("preferred_language", "EN")).upper()
+        # Map KH → KH (Khmer), also accept KM as alias
+        lang_map = {"EN": "EN", "ZH": "ZH", "KH": "KH", "KM": "KH", "ZH-CN": "ZH"}
+        lang = lang_map.get(raw_lang, "EN")
+        session.preferred_language = lang
+
+        welcome_text = WELCOME[session.preferred_language] if is_new else RESUME[session.preferred_language]
+        await websocket.send_json({
+            "type": "conversation_started" if is_new else "conversation_resumed",
+            "text": welcome_text,
+            "session_id": session_id,
+            "suggested_prompts": WELCOME_PROMPTS.get(session.preferred_language, WELCOME_PROMPTS["EN"]),
+        })
+
+        # Create the archive row up front so the session is visible to admin AI
+        # monitoring from its first turn, not only once messages flush. Idempotent,
+        # so a reconnect refreshes rather than forks. Detached: a slow or down
+        # backend must not delay the welcome frame.
+        # If the session needs rebind, run rebind sequentially AFTER create_session
+        # to avoid racing PATCH against POST.
+        async def _init_session_archive() -> None:
+            created = await archive.create_session(session)
+            if created and needs_rebind:
+                await archive.rebind_user(session)
+
         _archive_in_background(
-            archive.rebind_user(session),
+            _init_session_archive(),
             session_id=session_id,
-            op="rebind_user",
+            op="init_session_archive",
         )
 
-    try:
         async for raw_msg in websocket.iter_text():
             try:
                 msg = json.loads(raw_msg)
@@ -371,8 +417,15 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 )
 
             elif msg.get("type") == "user_action":
-                action_type = str(msg.get("action_type", ""))
-                payload = msg.get("payload") or {}
+                if not await check_rate_limit(rate_limit_key):
+                    await websocket.send_json({"type": "error", "message": "Too many requests. Please wait."})
+                    continue
+
+                action_type = str(msg.get("action_type", "")).strip()
+                if not re.match(r"^[a-zA-Z0-9_-]{1,64}$", action_type):
+                    continue
+
+                payload = msg.get("payload") if isinstance(msg.get("payload"), dict) else {}
                 # Synthesize a user message so the agent can respond to the action
                 action_text = f"[Action: {action_type}] {json.dumps(payload)}" if payload else f"[Action: {action_type}]"
                 content = _sanitize_input(action_text)
@@ -381,7 +434,14 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 await _stream_agent_response(websocket, session, content)
 
             elif msg.get("type") == "payment_completed":
-                booking_id = str(msg.get("booking_id", ""))
+                if not await check_rate_limit(rate_limit_key):
+                    await websocket.send_json({"type": "error", "message": "Too many requests. Please wait."})
+                    continue
+
+                booking_id = str(msg.get("booking_id", "")).strip()
+                if not re.match(r"^[a-zA-Z0-9_-]{1,64}$", booking_id):
+                    await websocket.send_json({"type": "error", "message": "Invalid booking ID."})
+                    continue
                 # Never trust the client's claim of payment. Require an
                 # authenticated session and confirm with the backend that the
                 # payment actually succeeded before continuing (H3).

@@ -3,6 +3,9 @@ import { expect, test } from '@playwright/test'
 
 test.describe('design system', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('derlg_onboarding_tour_seen', 'true')
+    })
     await page.goto('/en/design')
   })
 

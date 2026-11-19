@@ -1,6 +1,6 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
-import { App } from 'supertest/types';
 import cookieParser from 'cookie-parser';
 
 import { PrismaFilter } from './../src/common/filters/prisma.filter';
@@ -26,7 +26,7 @@ import { RedisService } from './../src/modules/redis/redis.service';
  * other suite.
  */
 describe('Rate limiting (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: NestExpressApplication;
   let redis: RedisService;
 
   // A distinct address per run so a leftover counter from a previous run cannot
@@ -48,7 +48,7 @@ describe('Rate limiting (e2e)', () => {
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
+    app = moduleFixture.createNestApplication<NestExpressApplication>();
     app.set('trust proxy', 1);
     app.useGlobalPipes(
       new ValidationPipe({

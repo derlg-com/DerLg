@@ -33,6 +33,16 @@ const buttonVariants = cva(
         danger:
           'border-transparent bg-[var(--danger)] text-[var(--danger-text)] hover:bg-[var(--danger-hover)]',
         link: 'border-transparent bg-transparent text-[var(--accent)] underline-offset-4 hover:underline',
+        navelPrimary:
+          'border-transparent bg-[#1B3232] text-white hover:bg-[#244444] dark:bg-[#3D9676] dark:hover:bg-[#327e63] dark:text-white rounded-2xl font-semibold shadow-sm active:scale-[0.98]',
+        navelSecondary:
+          'border-transparent bg-[#F5EADD] text-[#1B3232] hover:bg-[#ece0d0] dark:bg-[#1E2C2C] dark:text-[#F5EADD] rounded-2xl font-semibold active:scale-[0.98]',
+        navelTransparentNext:
+          'border-transparent bg-white/25 hover:bg-white/40 text-white backdrop-blur-md rounded-full active:scale-95 shadow-sm',
+        navelPill:
+          'border border-[var(--border-subtle)] bg-[var(--surface-raised)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] rounded-full text-xs font-semibold px-4 py-1.5',
+        navelGold:
+          'border-transparent bg-[#E7B171] hover:bg-[#d6a266] text-[#1B3232] rounded-2xl font-semibold active:scale-[0.98]',
       },
       size: {
         // Compact by default for precise pointers; expanded to the 44px
@@ -41,7 +51,9 @@ const buttonVariants = cva(
         sm: 'min-h-9 px-3 py-1.5 text-sm pointer-coarse:min-h-11',
         md: 'min-h-10 px-4 py-2 pointer-coarse:min-h-11',
         lg: 'min-h-12 px-6 py-2.5 text-base',
+        xl: 'min-h-14 px-7 py-3.5 text-base rounded-2xl font-semibold',
         icon: 'min-h-9 min-w-9 p-0 pointer-coarse:min-h-11 pointer-coarse:min-w-11',
+        round: 'size-12 min-h-12 min-w-12 p-0 rounded-full flex items-center justify-center',
       },
       block: {
         true: 'w-full',

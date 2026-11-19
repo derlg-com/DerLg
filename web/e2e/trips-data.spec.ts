@@ -6,10 +6,12 @@ import { expect, test } from '@playwright/test'
  * Skipped automatically when the backend is not running, so the suite stays
  * green in environments without the full stack.
  */
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3003'
+
 test.describe('trips data layer', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/trips?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/trips?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), 'backend is not reachable')
   })
 
   test('renders real trips fetched from the backend', async ({ page }) => {

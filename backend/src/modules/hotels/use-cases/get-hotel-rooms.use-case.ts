@@ -36,7 +36,7 @@ export class GetHotelRoomsUseCase {
 
     return this.cache.getOrSet(
       hotelRoomsKey(hotelId, checkIn, checkOut),
-      3600,
+      30,
       async () => {
         const checkInDate = new Date(checkIn);
         const checkOutDate = new Date(checkOut);
@@ -58,7 +58,7 @@ export class GetHotelRoomsUseCase {
               hotelRoomId: { not: null },
               hotelRoom: { hotelId },
               startDate: { lt: checkOutDate },
-              endDate: { gte: checkInDate },
+              endDate: { gt: checkInDate },
               booking: {
                 status: {
                   in: [

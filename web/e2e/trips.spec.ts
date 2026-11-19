@@ -1,10 +1,12 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3003'
+
 test.describe('trips browse', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/trips?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/trips?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), `backend on ${BACKEND_URL} is not reachable`)
   })
 
   test('filters are reflected in the URL so the view is shareable', async ({ page, isMobile }) => {
@@ -73,8 +75,8 @@ test.describe('trips browse', () => {
 
 test.describe('trip detail', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/trips?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/trips?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), `backend on ${BACKEND_URL} is not reachable`)
   })
 
   async function openFirstTrip(page: import('@playwright/test').Page) {
@@ -119,7 +121,7 @@ test.describe('trip detail', () => {
     // Load the detail URL directly rather than clicking through: React does not
     // render script tags during client-side navigation, and structured data only
     // needs to be present in the server HTML that crawlers receive.
-    const list = await request.get('http://localhost:3003/v1/trips?limit=1')
+    const list = await request.get(`${BACKEND_URL}/v1/trips?limit=1`)
     const body = (await list.json()) as { data: { items: { id: string }[] } }
     const id = body.data.items[0]!.id
 

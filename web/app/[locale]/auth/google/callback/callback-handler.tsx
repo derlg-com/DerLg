@@ -26,12 +26,12 @@ export function GoogleCallbackHandler() {
     const errorParam = searchParams.get('error')
 
     if (errorParam) {
-      setError(t('callback.failed'))
+      requestAnimationFrame(() => setError(t('callback.failed')))
       return
     }
 
     if (!code) {
-      setError(t('callback.failed'))
+      requestAnimationFrame(() => setError(t('callback.failed')))
       return
     }
 

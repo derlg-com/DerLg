@@ -10,8 +10,10 @@ import { CurrencySwitcher } from '@/components/layout/currency-switcher'
 import { LanguageSwitcher } from '@/components/layout/language-switcher'
 import { ThemeToggle } from '@/components/layout/theme-toggle'
 import { Button, Sheet } from '@/components/ui'
+import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/cn'
 import { Link, usePathname } from '@/lib/i18n/navigation'
+import { NAVEL_ASSETS } from '@/lib/navel-assets'
 
 /** Desktop navigation targets. The mobile bottom bar uses its own five. */
 const NAV_ITEMS = [
@@ -27,22 +29,40 @@ export function Header() {
   const pathname = usePathname()
   const { open, setOpen } = useCommandPalette()
   const [menuOpen, setMenuOpen] = React.useState(false)
+  const { isAuthenticated, user } = useAuth()
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--canvas)]/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2" aria-label={t('brand')}>
+    <header className="sticky top-0 z-30 border-b border-[var(--border-subtle)]/60 bg-[var(--canvas)]/95 backdrop-blur-md transition-colors">
+      <div className="mx-auto flex h-16 w-full items-center justify-between gap-3 px-4">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label={t('brand')}>
+          {/* NAVEL Welcome Avatar Ring (Mobile) */}
+          <div className="relative size-9 rounded-full ring-2 ring-[#3D9676]/50 dark:ring-[#3D9676] overflow-hidden bg-stone-100 dark:bg-stone-800 flex items-center justify-center shrink-0 lg:hidden shadow-xs">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={user?.avatarUrl || NAVEL_ASSETS.avatars.evelyn}
+              alt=""
+              className="size-full object-cover"
+            />
+          </div>
+
+          {/* Desktop Brand Icon */}
           <span
             aria-hidden="true"
-            className="grid size-8 place-items-center rounded-md bg-[var(--accent)] font-mono text-sm font-bold text-[var(--accent-text)]"
+            className="hidden lg:grid size-9 place-items-center rounded-xl bg-[#1B3232] dark:bg-[#3D9676] font-bold text-sm text-white shadow-xs"
           >
             D
           </span>
-          <span className="hidden text-base font-semibold tracking-tight sm:inline">
-            {t('brand')}
-          </span>
+
+          <div className="flex flex-col text-left">
+            <span className="lg:hidden text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider leading-none">
+              Welcome 👋
+            </span>
+            <span className="text-base font-bold tracking-tight text-[#1B3232] dark:text-white leading-tight font-dela sm:font-sans">
+              {isAuthenticated && user?.name ? user.name.split(' ')[0] : t('brand')}
+            </span>
+          </div>
         </Link>
 
         <nav aria-label={t('navLandmark')} className="hidden min-w-0 flex-1 lg:block">
@@ -74,11 +94,11 @@ export function Header() {
             type="button"
             onClick={() => setOpen(true)}
             aria-label={t('searchHint')}
-            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[var(--border-default)] px-3 text-sm text-[var(--text-secondary)] transition-colors duration-[var(--duration-fast)] hover:text-[var(--text-primary)] pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-raised)] px-3 text-sm text-[var(--text-secondary)] transition-all duration-200 hover:text-[var(--text-primary)] hover:border-[#1B3232] dark:hover:border-[#3D9676] pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center"
           >
             <Search aria-hidden="true" className="size-4" />
             <span className="hidden sm:inline">{t('searchHint')}</span>
-            <kbd className="hidden rounded border border-[var(--border-subtle)] bg-[var(--surface-sunken)] px-1.5 font-mono text-xs text-[var(--text-secondary)] lg:inline">
+            <kbd className="hidden rounded-md border border-[var(--border-subtle)] bg-[var(--surface-sunken)] px-1.5 font-mono text-xs text-[var(--text-secondary)] lg:inline">
               ⌘K
             </kbd>
           </button>
@@ -86,9 +106,9 @@ export function Header() {
           <Link
             href="/chat"
             aria-label={t('nav.chat')}
-            className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[var(--accent)] px-3 text-sm font-medium text-[var(--accent-text)] transition-colors duration-[var(--duration-fast)] hover:bg-[var(--accent-hover)] pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#1B3232] px-3.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#244444] dark:bg-[#205743] dark:hover:bg-[#1B4B39] pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:justify-center shadow-xs active:scale-95"
           >
-            <Sparkles aria-hidden="true" className="size-4" />
+            <Sparkles aria-hidden="true" className="size-3.5 text-[#E7B171]" />
             <span className="hidden sm:inline">{t('nav.chat')}</span>
           </Link>
 
@@ -103,7 +123,7 @@ export function Header() {
             size="icon"
             aria-label={t('openMenu')}
             onClick={() => setMenuOpen(true)}
-            className="xl:hidden"
+            className="rounded-full xl:hidden text-[#1B3232] dark:text-[#F5EADD] hover:bg-[var(--surface-hover)]"
           >
             <Menu aria-hidden="true" className="size-5" />
           </Button>

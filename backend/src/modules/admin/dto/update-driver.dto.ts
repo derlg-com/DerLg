@@ -22,23 +22,34 @@ import { DriverStatus } from '@prisma/client';
  */
 export class UpdateDriverDto {
   @IsString()
-  @IsNotEmpty()
   @Length(1, 255)
   @IsOptional()
   driverName?: string;
 
   @IsString()
-  @IsNotEmpty()
+  @Length(1, 255)
+  @IsOptional()
+  driver_name?: string;
+
+  @IsString()
   @Length(1, 50)
   @IsOptional()
   driverId?: string;
+
+  @IsString()
+  @Length(1, 50)
+  @IsOptional()
+  driver_id?: string;
 
   @IsString()
   @IsOptional()
   telegramId?: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
+  telegram_id?: string;
+
+  @IsString()
   @Length(1, 20)
   @IsOptional()
   phone?: string;
@@ -47,6 +58,15 @@ export class UpdateDriverDto {
   @IsUUID()
   @IsOptional()
   vehicleId?: string | null;
+
+  @ValidateIf((_, val) => val !== null && val !== undefined)
+  @IsUUID()
+  @IsOptional()
+  vehicle_id?: string | null;
+
+  @IsString()
+  @IsOptional()
+  auth_pin?: string;
 
   @IsEnum(DriverStatus)
   @IsOptional()

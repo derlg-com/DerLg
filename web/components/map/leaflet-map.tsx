@@ -24,29 +24,33 @@ const CAMBODIA_CENTRE: [number, number] = [12.5657, 104.991]
 const COUNTRY_ZOOM = 7
 
 const KIND_COLOUR: Record<MapMarker['kind'], string> = {
-  place: 'var(--color-info-500)',
-  trip: 'var(--accent)',
-  hotel: 'var(--color-success-500)',
+  place: '#3D9676', // NAVEL jade
+  trip: '#1B3232',  // NAVEL forest
+  hotel: '#E7B171', // NAVEL gold
 }
 
 /**
- * Builds a marker icon from a coloured pin.
- *
- * Leaflet's default icon loads images from a CDN path that breaks under a
- * bundler, so a `divIcon` is used instead — it also lets the pin inherit the
- * theme tokens. The border uses --surface so it stays visible on both light
- * and dark map tiles.
+ * Builds a marker icon from a styled pin matching NAVEL design kit.
  */
-function pinIcon(kind: MapMarker['kind']): L.DivIcon {
+function pinIcon(kind: MapMarker['kind'], isSelected?: boolean): L.DivIcon {
+  const bg = KIND_COLOUR[kind] || '#3D9676'
+  const size = isSelected ? 22 : 16
+  const anchor = isSelected ? 11 : 8
+  const shadow = isSelected
+    ? 'box-shadow: 0 0 0 5px rgba(61, 150, 118, 0.45), 0 3px 10px rgba(0,0,0,0.35);'
+    : 'box-shadow: 0 2px 5px rgba(0,0,0,0.25);'
+
   return L.divIcon({
     className: 'derlg-pin',
     html: `<span style="
-      display:block;width:1rem;height:1rem;border-radius:9999px;
-      background:${KIND_COLOUR[kind]};
-      border:2px solid var(--surface);box-shadow:0 1px 4px rgb(0 0 0 / 0.4);
+      display:block;width:${size}px;height:${size}px;border-radius:9999px;
+      background:${bg};
+      border:2.5px solid #FFFFFF;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      ${shadow}
     "></span>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    iconSize: [size, size],
+    iconAnchor: [anchor, anchor],
   })
 }
 
@@ -78,11 +82,6 @@ export function LeafletMap({
   const clusterRef = React.useRef<L.MarkerClusterGroup | null>(null)
   const markerIndex = React.useRef(new Map<string, L.Marker>())
 
-  /*
-   * Keep the latest callback without making the map effects depend on it.
-   * Assigning during render is disallowed (React may discard the render), so the
-   * sync happens in its own effect that runs after every commit.
-   */
   const onSelectRef = React.useRef(onSelect)
   React.useEffect(() => {
     onSelectRef.current = onSelect
@@ -95,8 +94,6 @@ export function LeafletMap({
     const map = L.map(container, {
       center: CAMBODIA_CENTRE,
       zoom: COUNTRY_ZOOM,
-      // Scroll-wheel zoom hijacks page scrolling on a long page; require a
-      // deliberate action instead.
       scrollWheelZoom: false,
       attributionControl: true,
     })
@@ -131,10 +128,10 @@ export function LeafletMap({
     markerIndex.current.clear()
 
     for (const marker of markers) {
+      const isSelected = marker.id === selectedId
       const instance = L.marker([marker.latitude, marker.longitude], {
-        icon: pinIcon(marker.kind),
+        icon: pinIcon(marker.kind, isSelected),
         title: marker.label,
-        // Markers must be keyboard reachable, and the title is their name.
         alt: marker.label,
         keyboard: true,
       })
@@ -148,7 +145,7 @@ export function LeafletMap({
       const bounds = L.latLngBounds(markers.map((m) => [m.latitude, m.longitude]))
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 })
     }
-  }, [markers])
+  }, [markers, selectedId])
 
   // Pan to the externally selected marker so list and map stay in step.
   React.useEffect(() => {
@@ -157,7 +154,7 @@ export function LeafletMap({
     const marker = markerIndex.current.get(selectedId)
     if (!map || !marker) return
 
-    map.panTo(marker.getLatLng())
+    map.panTo(marker.getLatLng(), { animate: true, duration: 0.5 })
     marker.openTooltip()
   }, [selectedId])
 
@@ -166,7 +163,7 @@ export function LeafletMap({
       ref={containerRef}
       role="application"
       aria-label={ariaLabel}
-      className={cn('h-full w-full rounded-lg', className)}
+      className={cn('h-full w-full rounded-[24px]', className)}
     />
   )
 }

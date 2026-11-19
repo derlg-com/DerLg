@@ -21,11 +21,19 @@ export class CreateAdminUserDto {
 
   @IsString()
   @IsOptional()
+  full_name?: string;
+
+  @IsString()
+  @IsOptional()
   phone?: string;
 
   @IsEnum(AdminRole)
-  @IsNotEmpty()
-  adminRole: AdminRole;
+  @IsOptional()
+  adminRole?: AdminRole;
+
+  @IsEnum(AdminRole)
+  @IsOptional()
+  admin_role?: AdminRole;
 
   @IsObject()
   @IsOptional()

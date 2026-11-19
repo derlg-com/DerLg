@@ -17,6 +17,19 @@ export async function GET(
       return new NextResponse('Not found', { status: 404 })
     }
 
+    // Guard against path traversal / SSRF into arbitrary buckets or hosts
+    if (
+      path.some(
+        (segment) =>
+          segment === '..' ||
+          segment === '.' ||
+          segment.includes('/') ||
+          segment.includes('\\'),
+      )
+    ) {
+      return new NextResponse('Bad request', { status: 400 })
+    }
+
     const objectPath = path.join('/')
     const minioEndpoint = process.env.STORAGE_ENDPOINT || 'http://localhost:9000'
     const targetUrl = `${minioEndpoint}/derlg-storage/${objectPath}`

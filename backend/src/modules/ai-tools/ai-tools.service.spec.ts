@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/services/payments.service';
@@ -499,6 +503,17 @@ describe('AiToolsService — chat archive', () => {
         service.rebindChatSession('missing', { user_id: 'user-1' }),
       ).rejects.toThrow(NotFoundException);
     });
+
+    it('should 403 when attempting to rebind a session already bound to a different user', async () => {
+      prisma.aIChatSession.findUnique.mockResolvedValue({
+        id: 'sess-1',
+        userId: 'original-owner',
+      });
+
+      await expect(
+        service.rebindChatSession('sess-1', { user_id: 'attacker-user' }),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 
   describe('setChatMessageFeedback', () => {
@@ -529,6 +544,264 @@ describe('AiToolsService — chat archive', () => {
           helpful: true,
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+});
+
+describe('AiToolsService.checkAvailability and createBookingHold', () => {
+  let service: AiToolsService;
+  let prisma: {
+    trip: { findUnique: jest.Mock };
+    hotelRoom: { findUnique: jest.Mock; findMany: jest.Mock; findFirst: jest.Mock };
+    guide: { findUnique: jest.Mock };
+    transportationVehicle: { findUnique: jest.Mock };
+    bookingItem: { count: jest.Mock; findMany: jest.Mock };
+    user: { findUnique: jest.Mock };
+    booking: { create: jest.Mock };
+    $transaction: jest.Mock;
+  };
+
+  const FUTURE_DATE = new Date(Date.now() + 86400000 * 10)
+    .toISOString()
+    .slice(0, 10);
+  const PAST_DATE = '2020-01-01';
+
+  beforeEach(async () => {
+    prisma = {
+      trip: { findUnique: jest.fn() },
+      hotelRoom: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        findFirst: jest.fn(),
+      },
+      guide: { findUnique: jest.fn() },
+      transportationVehicle: { findUnique: jest.fn() },
+      bookingItem: { count: jest.fn(), findMany: jest.fn() },
+      user: { findUnique: jest.fn() },
+      booking: { create: jest.fn() },
+      $transaction: jest.fn((cb) => cb(prisma)),
+    };
+
+    const mod = await Test.createTestingModule({
+      providers: [
+        AiToolsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: PaymentsService, useValue: paymentsStub() },
+      ],
+    }).compile();
+    service = mod.get(AiToolsService);
+  });
+
+  describe('checkAvailability', () => {
+    it('throws BadRequestException for invalid date format', async () => {
+      await expect(
+        service.checkAvailability({
+          item_type: 'trip',
+          item_id: 't1',
+          date: 'not-a-date',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('checks trip availability by summing booked quantities', async () => {
+      prisma.trip.findUnique.mockResolvedValue({
+        id: 't1',
+        isPublished: true,
+        maxCapacity: 10,
+      });
+      prisma.bookingItem.findMany.mockResolvedValue([
+        { quantity: 4 },
+        { quantity: 3 },
+      ]);
+
+      const result = await service.checkAvailability({
+        item_type: 'trip',
+        item_id: 't1',
+        date: FUTURE_DATE,
+      });
+
+      expect(result.available).toBe(true);
+      expect(result.remaining).toBe(3);
+    });
+
+    it('throws NotFoundException if trip is unpublished or not found', async () => {
+      prisma.trip.findUnique.mockResolvedValue({
+        id: 't1',
+        isPublished: false,
+      });
+
+      await expect(
+        service.checkAvailability({
+          item_type: 'trip',
+          item_id: 't1',
+          date: FUTURE_DATE,
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('createBookingHold', () => {
+    it('rejects past travel date with BadRequestException', async () => {
+      await expect(
+        service.createBookingHold({
+          user_id: 'user-1',
+          item_type: 'trip',
+          item_id: 't1',
+          travel_date: PAST_DATE,
+          people_count: 2,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects invalid people count with BadRequestException', async () => {
+      await expect(
+        service.createBookingHold({
+          user_id: 'user-1',
+          item_type: 'trip',
+          item_id: 't1',
+          travel_date: FUTURE_DATE,
+          people_count: 0,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      await expect(
+        service.createBookingHold({
+          user_id: 'user-1',
+          item_type: 'trip',
+          item_id: 't1',
+          travel_date: FUTURE_DATE,
+          people_count: -3,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      await expect(
+        service.createBookingHold({
+          user_id: 'user-1',
+          item_type: 'trip',
+          item_id: 't1',
+          travel_date: FUTURE_DATE,
+          people_count: 55,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects if user does not exist', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.createBookingHold({
+          user_id: 'missing-user',
+          item_type: 'trip',
+          item_id: 't1',
+          travel_date: FUTURE_DATE,
+          people_count: 2,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('successfully creates a hold for trip with multi-day duration', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
+      prisma.trip.findUnique.mockResolvedValue({
+        id: 't1',
+        isPublished: true,
+        maxCapacity: 10,
+        basePriceUsd: 150,
+        durationDays: 3,
+      });
+      prisma.bookingItem.findMany.mockResolvedValue([{ quantity: 2 }]);
+      prisma.booking.create.mockResolvedValue({
+        id: 'b1',
+        reference: 'DLG-2026-12345',
+        totalUsd: 300,
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      });
+
+      const result = await service.createBookingHold({
+        user_id: 'user-1',
+        item_type: 'trip',
+        item_id: 't1',
+        travel_date: FUTURE_DATE,
+        people_count: 2,
+      });
+
+      expect(result.booking_id).toBe('b1');
+      expect(result.amount_usd).toBe(300);
+      expect(result.methods).toEqual(['card', 'aba_qr']);
+
+      const createCall = prisma.booking.create.mock.calls[0][0];
+      expect(createCall.data.totalUsd).toBe(300);
+      expect(createCall.data.passengerCount).toBe(2);
+      expect(createCall.data.items.create.quantity).toBe(2);
+      // endDate should span duration
+      const startDate = new Date(createCall.data.items.create.startDate);
+      const endDate = new Date(createCall.data.items.create.endDate);
+      expect(endDate.getTime()).toBeGreaterThan(startDate.getTime());
+    });
+
+    it('rejects when trip is fully booked with BadRequestException (not 500)', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
+      prisma.trip.findUnique.mockResolvedValue({
+        id: 't1',
+        isPublished: true,
+        maxCapacity: 10,
+        basePriceUsd: 150,
+        durationDays: 1,
+      });
+      prisma.bookingItem.findMany.mockResolvedValue([{ quantity: 9 }]);
+
+      await expect(
+        service.createBookingHold({
+          user_id: 'user-1',
+          item_type: 'trip',
+          item_id: 't1',
+          travel_date: FUTURE_DATE,
+          people_count: 2,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects when total booking exceeds $5,000 USD cap', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
+      prisma.trip.findUnique.mockResolvedValue({
+        id: 't1',
+        isPublished: true,
+        maxCapacity: 50,
+        basePriceUsd: 3000,
+        durationDays: 1,
+      });
+      prisma.bookingItem.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.createBookingHold({
+          user_id: 'user-1',
+          item_type: 'trip',
+          item_id: 't1',
+          travel_date: FUTURE_DATE,
+          people_count: 2, // 2 * 3000 = 6000 > 5000
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects when total booking is $0 or negative', async () => {
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1' });
+      prisma.trip.findUnique.mockResolvedValue({
+        id: 't1',
+        isPublished: true,
+        maxCapacity: 50,
+        basePriceUsd: 0,
+        durationDays: 1,
+      });
+      prisma.bookingItem.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.createBookingHold({
+          user_id: 'user-1',
+          item_type: 'trip',
+          item_id: 't1',
+          travel_date: FUTURE_DATE,
+          people_count: 1,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 });

@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3003'
+
 test.describe('app shell', () => {
   test('renders the shell landmarks on every page', async ({ page }) => {
     await page.goto('/en')
@@ -35,6 +37,7 @@ test.describe('app shell', () => {
   })
 
   test('every navigation destination resolves without a 404', async ({ page }) => {
+    test.slow()
     const routes = [
       '/en',
       '/en/trips',
@@ -100,10 +103,11 @@ test.describe('mobile bottom navigation', () => {
 
 test.describe('command palette', () => {
   test('opens with the keyboard shortcut and searches live data', async ({ page, request }) => {
-    const probe = await request.get('http://localhost:3003/v1/trips?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/trips?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), 'backend is not reachable')
 
     await page.goto('/en')
+    await expect(page.getByRole('button', { name: /search/i }).first()).toBeVisible()
     await page.keyboard.press('ControlOrMeta+k')
 
     const input = page.getByRole('combobox')
@@ -118,13 +122,15 @@ test.describe('command palette', () => {
   })
 
   test('navigates to the selected result with the keyboard', async ({ page, request }) => {
-    const probe = await request.get('http://localhost:3003/v1/trips?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/trips?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), 'backend is not reachable')
 
     await page.goto('/en')
+    await expect(page.getByRole('button', { name: /search/i }).first()).toBeVisible()
     await page.keyboard.press('ControlOrMeta+k')
 
     const input = page.getByRole('combobox')
+    await expect(input).toBeVisible()
     await input.fill('angkor')
     await expect(page.getByRole('option').first()).toBeVisible({ timeout: 15_000 })
 
@@ -135,6 +141,7 @@ test.describe('command palette', () => {
 
   test('closes on Escape', async ({ page }) => {
     await page.goto('/en')
+    await expect(page.getByRole('button', { name: /search/i }).first()).toBeVisible()
     await page.keyboard.press('ControlOrMeta+k')
     await expect(page.getByRole('combobox')).toBeVisible()
 

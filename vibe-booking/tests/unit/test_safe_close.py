@@ -30,3 +30,22 @@ async def test_safe_close_swallows_runtime_error():
     ws.application_state = WebSocketState.CONNECTED
     ws.close = AsyncMock(side_effect=RuntimeError("already closed"))
     await _safe_close(ws)  # must not raise
+
+
+@pytest.mark.asyncio
+async def test_safe_close_noop_when_client_disconnected():
+    ws = MagicMock()
+    ws.application_state = WebSocketState.CONNECTED
+    ws.client_state = WebSocketState.DISCONNECTED
+    ws.close = AsyncMock()
+    await _safe_close(ws)
+    ws.close.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_safe_close_swallows_attribute_error():
+    ws = MagicMock()
+    ws.application_state = WebSocketState.CONNECTED
+    ws.close = AsyncMock(side_effect=AttributeError("'WebSocketProtocol' object has no attribute 'transfer_data_task'"))
+    await _safe_close(ws)  # must not raise
+

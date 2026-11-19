@@ -82,12 +82,19 @@ export function BookingForm({
   const startInPast = Date.parse(startDate) < Date.parse(today)
   const routeMissing = needsRoute && (!pickup.trim() || !dropoff.trim())
 
+  const durationDays =
+    needsEndDate && !datesInvalid
+      ? Math.max(1, Math.round((Date.parse(endDate) - Date.parse(startDate)) / 86_400_000))
+      : 1
+
   /*
-   * Children are charged the FULL per-person price — verified live: 2 adults + 1
-   * child on a $399 trip produced quantity 3 and a $1197 total. Showing a lower
-   * estimate than the server will charge would be a lie about price.
+   * Trips are charged per-traveler (adults + children).
+   * Hotels, guides, and transportation (per-day) are charged per day/night.
    */
-  const quantity = needsGuests ? adults + children : 1
+  const quantity =
+    kind === 'trip'
+      ? adults + children
+      : durationDays
   const estimate = unitPriceUsd * quantity
 
   const canSubmit = !datesInvalid && !startInPast && !routeMissing && !createBooking.isPending
@@ -184,34 +191,84 @@ export function BookingForm({
         ) : null}
 
         {needsGuests ? (
-          <>
-            <Field label={t('adults')} required>
-              {(props) => (
-                <Input
-                  {...props}
-                  type="number"
-                  name="adults"
-                  min={1}
-                  max={20}
-                  value={adults}
-                  onChange={(event) => setAdults(Math.max(1, Number(event.target.value) || 1))}
-                />
-              )}
-            </Field>
-            <Field label={t('children')}>
-              {(props) => (
-                <Input
-                  {...props}
+          <div className="sm:col-span-2 space-y-3 rounded-2xl bg-[var(--surface-raised)] border border-[var(--border-subtle)] p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-[#1B3232] dark:text-white">
+                {t('adults')} (Person)
+              </span>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#1B3232] dark:bg-[#3D9676] text-white shadow-xs">
+                {adults} {adults > 1 ? 'Persons' : 'Person'}
+              </span>
+            </div>
+
+            {/* NAVEL Person Slider */}
+            <div className="space-y-1 pt-1">
+              <input
+                type="range"
+                min={1}
+                max={20}
+                value={adults}
+                onChange={(e) => setAdults(Number(e.target.value))}
+                className="w-full h-2 rounded-lg bg-neutral-200 dark:bg-neutral-800 accent-[#1B3232] dark:accent-[#3D9676] cursor-pointer"
+              />
+              <div className="flex justify-between text-[11px] text-[var(--text-tertiary)] font-medium">
+                <span>1 person</span>
+                <span>10 person</span>
+                <span>20 person</span>
+              </div>
+            </div>
+
+            {/* Quick buttons */}
+            <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar">
+              {[1, 2, 3, 4, 5, 6].map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => setAdults(num)}
+                  className={cn(
+                    'size-9 rounded-xl text-xs font-bold shrink-0 transition-all duration-200 active:scale-95',
+                    adults === num
+                      ? 'bg-[#1B3232] dark:bg-[#3D9676] text-white shadow-xs'
+                      : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:border-[#1B3232]',
+                  )}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+
+            {/* Children field */}
+            <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between">
+              <span className="text-xs text-[var(--text-secondary)]">{t('children')}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={children <= 0}
+                  onClick={() => setChildren((prev) => Math.max(0, prev - 1))}
+                  className="size-8 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center font-bold text-sm disabled:opacity-40"
+                >
+                  -
+                </button>
+                <input
                   type="number"
                   name="children"
+                  aria-label={t('children')}
                   min={0}
                   max={20}
                   value={children}
-                  onChange={(event) => setChildren(Math.max(0, Number(event.target.value) || 0))}
+                  onChange={(e) => setChildren(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-12 text-center text-xs font-bold bg-transparent border border-[var(--border-subtle)] rounded py-1 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)]"
                 />
-              )}
-            </Field>
-          </>
+                <button
+                  type="button"
+                  onClick={() => setChildren((prev) => Math.min(10, prev + 1))}
+                  className="size-8 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center font-bold text-sm"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
         ) : null}
 
         {needsRoute ? (
@@ -258,56 +315,65 @@ export function BookingForm({
 
       <section
         aria-label={t('priceTitle')}
-        className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--surface)] p-3"
+        className="rounded-2xl border border-[var(--border-subtle)] bg-[#F5EADD]/40 dark:bg-[#1A2626] p-4 space-y-3"
       >
-        <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t('priceTitle')}</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-[#1B3232] dark:text-white">{t('priceTitle')}</h2>
+          <span className="text-xs font-semibold text-[#3D9676]">Best price guarantee</span>
+        </div>
 
-        <dl className="mt-2 flex flex-col gap-1">
+        <dl className="flex flex-col gap-1.5 text-xs text-[var(--text-secondary)]">
           <div className="flex items-baseline justify-between gap-2">
-            <dt className="text-sm text-[var(--text-secondary)]">
-              {name}
-              <span className="text-[var(--text-tertiary)]">
-                {' '}
-                {t('priceLineDetail', { quantity, unit: unitLabel })}
-              </span>
+            <dt className="truncate max-w-[200px]">
+              {name} ({quantity} {unitLabel})
             </dt>
-            <dd className="text-sm text-[var(--text-primary)]">
+            <dd className="font-semibold text-[var(--text-primary)]">
               <Price amountUsd={estimate} />
             </dd>
           </div>
         </dl>
 
-        <div className="mt-2 flex items-baseline justify-between gap-2 border-t border-[var(--border-subtle)] pt-2">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">{t('priceTotal')}</p>
-          <p className="text-base font-semibold text-[var(--text-primary)]">
+        <div className="flex items-baseline justify-between gap-2 border-t border-[#B1A699]/30 pt-3">
+          <p className="text-sm font-bold text-[#1B3232] dark:text-white">{t('priceTotal')}</p>
+          <p className="text-2xl font-bold text-[#1B3232] dark:text-[#3D9676]">
             <Price amountUsd={estimate} />
           </p>
         </div>
 
-        {needsGuests && children > 0 ? (
-          <p className="mt-1.5 text-xs text-[var(--text-tertiary)]">{t('priceChildrenNote')}</p>
+        {kind === 'trip' && children > 0 ? (
+          <p className="text-[11px] text-[var(--text-tertiary)]">{t('priceChildrenNote')}</p>
         ) : null}
-        <p className="mt-1 text-xs text-[var(--text-tertiary)]">{t('priceEstimateNote')}</p>
       </section>
 
-      <p className="text-xs text-[var(--text-tertiary)]">{t('holdNotice')}</p>
+      <p className="text-[11px] text-[var(--text-tertiary)] px-1">{t('holdNotice')}</p>
 
       {createBooking.isError ? (
         <p
-          className="rounded-[var(--radius-md)] bg-[var(--tone-danger-bg)] px-3 py-2 text-sm text-[var(--tone-danger-text)]"
+          className="rounded-2xl bg-[var(--tone-danger-bg)] px-4 py-3 text-xs text-[var(--tone-danger-text)] font-medium"
           role="alert"
         >
           {bookingErrorMessage(createBooking.error, t)}
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={!canSubmit} loading={createBooking.isPending}>
+      <div className="space-y-2 pt-2">
+        <Button
+          type="submit"
+          variant="navelPrimary"
+          size="xl"
+          block
+          disabled={!canSubmit}
+          loading={createBooking.isPending}
+          className="shadow-md"
+        >
           {t('submit')}
         </Button>
         <Link
           href={hrefForKind(kind, resourceId)}
-          className={cn(buttonVariants({ variant: 'ghost' }))}
+          className={cn(
+            buttonVariants({ variant: 'ghost' }),
+            'w-full text-xs text-[#B1A699] hover:text-[var(--text-primary)] flex justify-center py-2',
+          )}
         >
           {tCommon('cancel')}
         </Link>

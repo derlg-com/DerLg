@@ -22,11 +22,19 @@ export class UpdateAdminUserDto {
 
   @IsString()
   @IsOptional()
+  full_name?: string;
+
+  @IsString()
+  @IsOptional()
   phone?: string;
 
   @IsEnum(AdminRole)
   @IsOptional()
   adminRole?: AdminRole;
+
+  @IsEnum(AdminRole)
+  @IsOptional()
+  admin_role?: AdminRole;
 
   @IsObject()
   @IsOptional()

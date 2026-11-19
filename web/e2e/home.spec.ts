@@ -1,10 +1,12 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3003'
+
 test.describe('home / discovery', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/trips?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/trips?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), `backend on ${BACKEND_URL} is not reachable`)
   })
 
   test('renders the hero with a single h1', async ({ page }) => {

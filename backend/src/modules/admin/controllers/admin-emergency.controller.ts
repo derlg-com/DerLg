@@ -3,8 +3,10 @@ import {
   Get,
   Patch,
   Param,
+  ParseUUIDPipe,
   Query,
   Body,
+  BadRequestException,
   UseInterceptors,
 } from '@nestjs/common';
 import { AuditInterceptor } from '../interceptors/audit.interceptor';
@@ -35,13 +37,13 @@ export class AdminEmergencyController {
   }
 
   @Get(':id')
-  async getEmergencyAlertById(@Param('id') id: string) {
+  async getEmergencyAlertById(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.getEmergencyAlertById(id);
   }
 
   @Patch(':id')
   async updateEmergencyAlert(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEmergencyDto,
     @CurrentUser('sub') userId?: string,
   ) {
@@ -57,7 +59,7 @@ export class AdminEmergencyController {
       alert = await this.service.resolveAlert(id, dto.notes, userId);
       action = 'RESOLVE_EMERGENCY';
     } else {
-      throw new Error(
+      throw new BadRequestException(
         'Invalid status transition. Use "acknowledged" or "resolved"',
       );
     }

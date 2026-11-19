@@ -7,10 +7,12 @@ import { expect, test } from '@playwright/test'
  * the security boundary directly: allowlist enforcement, JWT-derived identity,
  * and that the service key never appears in a response.
  */
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3003'
+
 test.describe('BFF proxy', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/trips?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/trips?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), 'backend is not reachable')
   })
 
   test('proxies festivals with the service key attached server-side', async ({ request }) => {

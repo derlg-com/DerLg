@@ -198,7 +198,7 @@ export async function VehicleCard({
           <Badge tone="neutral">{vehicle.vehicleType.replace(/_/g, ' ')}</Badge>
         </div>
         <p className="text-sm text-[var(--text-secondary)]">
-          {vehicle.capacity} {t('card.seats')}
+          {t('card.seats', { n: vehicle.capacity })}
           {vehicle.province ? ` · ${vehicle.province}` : ''}
         </p>
         <p className="text-sm">

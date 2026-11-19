@@ -1,13 +1,17 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheInvalidationService } from '../../../common/cache/cache-invalidation.service';
 import { AuditEventType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class AdminHotelsService {
   private readonly logger = new Logger(AdminHotelsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheInvalidation?: CacheInvalidationService,
+  ) {}
 
   async getAllHotels(filters: {
     search?: string;
@@ -119,8 +123,11 @@ export class AdminHotelsService {
         id: room.id,
         hotelId: room.hotelId,
         roomType: room.roomType,
+        name: room.roomType,
         maxOccupancy: room.maxOccupancy,
+        capacity: room.maxOccupancy,
         priceUsd: Number(room.priceUsd),
+        price_per_night: Number(room.priceUsd),
         amenities: room.amenities,
         images: room.images,
         isActive: room.isActive,
@@ -138,6 +145,7 @@ export class AdminHotelsService {
     latitude: number;
     longitude: number;
     starRating?: number;
+    star_rating?: number;
     address?: string;
     description?: string;
     images?: string[];
@@ -146,13 +154,14 @@ export class AdminHotelsService {
   }) {
     const now = new Date();
     const hotelId = randomUUID();
+    const starRating = dto.starRating ?? dto.star_rating;
 
     const hotel = await this.prisma.hotel.create({
       data: {
         id: hotelId,
         latitude: dto.latitude,
         longitude: dto.longitude,
-        starRating: dto.starRating,
+        starRating,
         images: dto.images || [],
         amenities: dto.amenities || [],
         isPublished: dto.isPublished ?? false,
@@ -170,6 +179,8 @@ export class AdminHotelsService {
         description: dto.description || null,
       },
     });
+
+    await this.cacheInvalidation?.invalidateHotelCaches(hotel.id);
 
     return {
       id: hotel.id,
@@ -194,6 +205,7 @@ export class AdminHotelsService {
       latitude?: number;
       longitude?: number;
       starRating?: number;
+      star_rating?: number;
       address?: string;
       description?: string;
       images?: string[];
@@ -214,12 +226,14 @@ export class AdminHotelsService {
       throw new NotFoundException(`Hotel with id ${id} not found`);
     }
 
+    const starRating = dto.starRating ?? dto.star_rating;
+
     const hotel = await this.prisma.hotel.update({
       where: { id },
       data: {
         latitude: dto.latitude,
         longitude: dto.longitude,
-        starRating: dto.starRating,
+        ...(starRating !== undefined && { starRating }),
         images: dto.images,
         amenities: dto.amenities,
         isPublished: dto.isPublished,
@@ -254,6 +268,8 @@ export class AdminHotelsService {
         });
       }
     }
+
+    await this.cacheInvalidation?.invalidateHotelCaches(hotel.id);
 
     return {
       id: hotel.id,
@@ -290,8 +306,11 @@ export class AdminHotelsService {
       id: room.id,
       hotelId: room.hotelId,
       roomType: room.roomType,
+      name: room.roomType,
       maxOccupancy: room.maxOccupancy,
+      capacity: room.maxOccupancy,
       priceUsd: Number(room.priceUsd),
+      price_per_night: Number(room.priceUsd),
       amenities: room.amenities,
       images: room.images,
       isActive: room.isActive,
@@ -303,9 +322,12 @@ export class AdminHotelsService {
   async createRoom(
     hotelId: string,
     dto: {
-      roomType: string;
-      maxOccupancy: number;
-      priceUsd: number;
+      roomType?: string;
+      name?: string;
+      maxOccupancy?: number;
+      capacity?: number;
+      priceUsd?: number;
+      price_per_night?: number;
       amenities?: string[];
       images?: string[];
       isActive?: boolean;
@@ -320,19 +342,41 @@ export class AdminHotelsService {
       throw new NotFoundException(`Hotel with id ${hotelId} not found`);
     }
 
-    return this.prisma.hotelRoom.create({
+    const roomType = dto.roomType || dto.name || 'Standard';
+    const maxOccupancy = dto.maxOccupancy ?? dto.capacity ?? 2;
+    const priceUsd = dto.priceUsd ?? dto.price_per_night ?? 0;
+
+    const room = await this.prisma.hotelRoom.create({
       data: {
         id: randomUUID(),
         hotelId: hotelId,
-        roomType: dto.roomType,
-        maxOccupancy: dto.maxOccupancy,
-        priceUsd: dto.priceUsd,
+        roomType,
+        maxOccupancy,
+        priceUsd,
         amenities: dto.amenities || [],
         images: dto.images || [],
         isActive: dto.isActive ?? true,
         updatedAt: new Date(),
       },
     });
+
+    await this.cacheInvalidation?.invalidateHotelCaches(hotelId);
+
+    return {
+      id: room.id,
+      hotelId: room.hotelId,
+      roomType: room.roomType,
+      name: room.roomType,
+      maxOccupancy: room.maxOccupancy,
+      capacity: room.maxOccupancy,
+      priceUsd: Number(room.priceUsd),
+      price_per_night: Number(room.priceUsd),
+      amenities: room.amenities,
+      images: room.images,
+      isActive: room.isActive,
+      createdAt: room.createdAt,
+      updatedAt: room.updatedAt,
+    };
   }
 
   async updateRoom(
@@ -340,8 +384,11 @@ export class AdminHotelsService {
     roomId: string,
     dto: {
       roomType?: string;
+      name?: string;
       maxOccupancy?: number;
+      capacity?: number;
       priceUsd?: number;
+      price_per_night?: number;
       amenities?: string[];
       images?: string[];
       isActive?: boolean;
@@ -357,17 +404,39 @@ export class AdminHotelsService {
       );
     }
 
-    return this.prisma.hotelRoom.update({
+    const roomType = dto.roomType || dto.name;
+    const maxOccupancy = dto.maxOccupancy ?? dto.capacity;
+    const priceUsd = dto.priceUsd ?? dto.price_per_night;
+
+    const updated = await this.prisma.hotelRoom.update({
       where: { id: roomId },
       data: {
-        roomType: dto.roomType,
-        maxOccupancy: dto.maxOccupancy,
-        priceUsd: dto.priceUsd,
+        ...(roomType !== undefined && { roomType }),
+        ...(maxOccupancy !== undefined && { maxOccupancy }),
+        ...(priceUsd !== undefined && { priceUsd }),
         amenities: dto.amenities,
         images: dto.images,
         isActive: dto.isActive,
       },
     });
+
+    await this.cacheInvalidation?.invalidateHotelCaches(hotelId);
+
+    return {
+      id: updated.id,
+      hotelId: updated.hotelId,
+      roomType: updated.roomType,
+      name: updated.roomType,
+      maxOccupancy: updated.maxOccupancy,
+      capacity: updated.maxOccupancy,
+      priceUsd: Number(updated.priceUsd),
+      price_per_night: Number(updated.priceUsd),
+      amenities: updated.amenities,
+      images: updated.images,
+      isActive: updated.isActive,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    };
   }
 
   async getRoomAvailability(

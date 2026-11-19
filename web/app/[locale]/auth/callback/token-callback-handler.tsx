@@ -36,7 +36,7 @@ export function TokenCallbackHandler() {
         : '/'
 
     if (!token) {
-      setError(t('callback.failed'))
+      requestAnimationFrame(() => setError(t('callback.failed')))
       return
     }
 

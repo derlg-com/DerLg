@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheInvalidationService } from '../../../common/cache/cache-invalidation.service';
 import { VehicleResponseDto } from '../dto/vehicle-response.dto';
 import {
   PricingModel,
@@ -13,7 +14,10 @@ import {
 export class AdminVehiclesService {
   private readonly logger = new Logger(AdminVehiclesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheInvalidation?: CacheInvalidationService,
+  ) {}
 
   async getAllVehicles(filters: {
     category?: string;
@@ -127,27 +131,48 @@ export class AdminVehiclesService {
   }
 
   async createVehicle(dto: {
-    name: string;
-    vehicleType: VehicleType;
+    name?: string;
+    vehicleType?: VehicleType;
+    vehicle_type?: VehicleType;
     licensePlate?: string;
+    license_plate?: string;
     capacity: number;
-    pricingModel: PricingModel;
-    priceUsd: number;
+    pricingModel?: PricingModel;
+    pricing_model?: PricingModel;
+    priceUsd?: number;
+    price_usd?: number;
     province: string;
+    features?: string[];
     images?: string[];
+    make?: string;
+    model?: string;
+    year?: number;
+    plateNumber?: string;
+    plate_number?: string;
+    pricePerDayUsd?: number;
+    price_per_day_usd?: number;
   }) {
-    return this.prisma.transportationVehicle.create({
+    const name = dto.name || [dto.make, dto.model].filter(Boolean).join(' ') || 'Vehicle';
+    const vehicleType = dto.vehicleType || dto.vehicle_type || VehicleType.van;
+    const pricingModel = dto.pricingModel || dto.pricing_model || PricingModel.per_day;
+    const priceUsd = dto.priceUsd ?? dto.price_usd ?? dto.pricePerDayUsd ?? dto.price_per_day_usd ?? 0;
+    const licensePlate = dto.licensePlate ?? dto.license_plate ?? dto.plateNumber ?? dto.plate_number ?? null;
+
+    const vehicle = await this.prisma.transportationVehicle.create({
       data: {
-        name: dto.name,
-        vehicleType: dto.vehicleType,
-        licensePlate: dto.licensePlate || null,
+        name,
+        vehicleType,
+        licensePlate,
         capacity: dto.capacity,
-        pricingModel: dto.pricingModel,
-        priceUsd: dto.priceUsd,
+        pricingModel,
+        priceUsd,
         province: dto.province,
         images: dto.images || [],
       },
     });
+
+    await this.cacheInvalidation?.invalidateVehicleCaches(vehicle.id);
+    return vehicle;
   }
 
   async updateVehicle(
@@ -155,13 +180,25 @@ export class AdminVehiclesService {
     dto: {
       name?: string;
       vehicleType?: VehicleType;
+      vehicle_type?: VehicleType;
       licensePlate?: string;
+      license_plate?: string;
       capacity?: number;
       pricingModel?: PricingModel;
+      pricing_model?: PricingModel;
       priceUsd?: number;
+      price_usd?: number;
       province?: string;
+      features?: string[];
       images?: string[];
       isActive?: boolean;
+      make?: string;
+      model?: string;
+      year?: number;
+      plateNumber?: string;
+      plate_number?: string;
+      pricePerDayUsd?: number;
+      price_per_day_usd?: number;
     },
     adminUserId?: string,
   ) {
@@ -173,18 +210,24 @@ export class AdminVehiclesService {
       throw new NotFoundException(`Vehicle with id ${id} not found`);
     }
 
+    const name = dto.name || (dto.make || dto.model ? [dto.make, dto.model].filter(Boolean).join(' ') : undefined);
+    const vehicleType = dto.vehicleType || dto.vehicle_type;
+    const pricingModel = dto.pricingModel || dto.pricing_model;
+    const priceUsd = dto.priceUsd ?? dto.price_usd ?? dto.pricePerDayUsd ?? dto.price_per_day_usd;
+    const licensePlate = dto.licensePlate ?? dto.license_plate ?? dto.plateNumber ?? dto.plate_number;
+
     const oldPrice = Number(existing.priceUsd);
-    const newPrice = dto.priceUsd !== undefined ? dto.priceUsd : oldPrice;
+    const newPrice = priceUsd !== undefined ? priceUsd : oldPrice;
 
     const vehicle = await this.prisma.transportationVehicle.update({
       where: { id },
       data: {
-        name: dto.name,
-        vehicleType: dto.vehicleType,
-        licensePlate: dto.licensePlate,
+        name,
+        vehicleType,
+        licensePlate,
         capacity: dto.capacity,
-        pricingModel: dto.pricingModel,
-        priceUsd: dto.priceUsd,
+        pricingModel,
+        priceUsd,
         province: dto.province,
         images: dto.images,
         isActive: dto.isActive,
@@ -206,6 +249,7 @@ export class AdminVehiclesService {
       });
     }
 
+    await this.cacheInvalidation?.invalidateVehicleCaches(vehicle.id);
     return vehicle;
   }
 
@@ -227,10 +271,13 @@ export class AdminVehiclesService {
       throw new NotFoundException(`Vehicle with id ${id} not found`);
     }
 
-    return this.prisma.transportationVehicle.update({
+    const updated = await this.prisma.transportationVehicle.update({
       where: { id },
       data: { isActive: false },
     });
+
+    await this.cacheInvalidation?.invalidateVehicleCaches(id);
+    return updated;
   }
 
   async getVehicleAvailability(id: string) {

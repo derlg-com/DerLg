@@ -145,6 +145,7 @@ async function main() {
   for (const [objectName, filePath] of Object.entries(realImages)) {
     if (fs.existsSync(filePath)) {
       const stat = fs.statSync(filePath);
+      if (stat.size === 0) continue;
       const ext = path.extname(filePath).toLowerCase();
       const mimeType = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'application/octet-stream';
       await minioClient.putObject(BUCKET, objectName, fs.createReadStream(filePath), stat.size, { 'Content-Type': mimeType });

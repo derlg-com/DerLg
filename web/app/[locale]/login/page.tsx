@@ -1,9 +1,6 @@
 import type { Metadata } from 'next'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
-import { Suspense } from 'react'
-
 import { LoginForm } from '@/components/auth/login-form'
-import { Skeleton } from '@/components/ui'
 import type { Locale } from '@/lib/i18n/config'
 
 // Reads the `next` query param, so it cannot be statically prerendered.
@@ -19,15 +16,20 @@ export async function generateMetadata({
   return { title: t('signIn.title'), robots: { index: false, follow: false } }
 }
 
-export default async function LoginPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function LoginPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>
+  searchParams: Promise<{ next?: string }>
+}) {
   const { locale } = await params
+  const { next } = await searchParams
   setRequestLocale(locale as Locale)
 
   return (
     <div className="mx-auto max-w-md px-4 py-12 sm:px-6">
-      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <LoginForm />
-      </Suspense>
+      <LoginForm next={next} />
     </div>
   )
 }

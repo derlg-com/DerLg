@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
@@ -80,14 +81,19 @@ export class AdminUsersService {
   async createAdminUser(dto: {
     email: string;
     fullName?: string;
+    full_name?: string;
     phone?: string;
-    adminRole: AdminRole;
+    adminRole?: AdminRole;
+    admin_role?: AdminRole;
     permissions?: Record<string, boolean>;
     password?: string;
   }) {
     const existingUser = await this.prisma.user.findFirst({
       where: { email: { equals: dto.email, mode: 'insensitive' } },
     });
+
+    const adminRole = dto.adminRole ?? dto.admin_role ?? AdminRole.SUPPORT_AGENT;
+    const fullName = dto.fullName ?? dto.full_name;
 
     // No password means no usable login, so the grant is created inactive rather
     // than appearing ready to use. The caller is told which happened.
@@ -114,7 +120,7 @@ export class AdminUsersService {
       await this.prisma.user.update({
         where: { id: existingUser.id },
         data: {
-          role: ADMIN_ROLE_TO_USER_ROLE[dto.adminRole],
+          role: ADMIN_ROLE_TO_USER_ROLE[adminRole],
           // Never blank an existing password: this user may already sign in as a
           // customer, and overwriting it would lock them out of that account.
           ...(passwordHash ? { passwordHash } : {}),
@@ -129,9 +135,9 @@ export class AdminUsersService {
           id: randomUUID(),
           supabaseUid: randomUUID(),
           email: dto.email.toLowerCase(),
-          fullName: dto.fullName || null,
+          fullName: fullName || null,
           phone: dto.phone || null,
-          role: ADMIN_ROLE_TO_USER_ROLE[dto.adminRole],
+          role: ADMIN_ROLE_TO_USER_ROLE[adminRole],
           passwordHash: passwordHash ?? null,
         },
       });
@@ -145,7 +151,7 @@ export class AdminUsersService {
     const adminUser = await this.prisma.adminUser.create({
       data: {
         userId,
-        adminRole: dto.adminRole,
+        adminRole,
         permissions: dto.permissions || {},
         isActive: canSignIn,
       },
@@ -153,14 +159,14 @@ export class AdminUsersService {
 
     // Only cache a grant that can actually be exercised.
     if (canSignIn) {
-      await this.cacheAdminPermissions(userId, dto.adminRole, dto.permissions);
+      await this.cacheAdminPermissions(userId, adminRole, dto.permissions);
     }
 
     return {
       id: adminUser.id,
       userId: adminUser.userId,
       email: dto.email.toLowerCase(),
-      fullName: dto.fullName || null,
+      fullName: fullName || null,
       phone: dto.phone || null,
       adminRole: adminUser.adminRole,
       permissions: adminUser.permissions,
@@ -257,6 +263,10 @@ export class AdminUsersService {
     id: string,
     dto: {
       adminRole?: AdminRole;
+      admin_role?: AdminRole;
+      fullName?: string;
+      full_name?: string;
+      phone?: string;
       permissions?: Record<string, boolean>;
       isActive?: boolean;
     },
@@ -269,10 +279,39 @@ export class AdminUsersService {
       throw new NotFoundException(`Admin user with id ${id} not found`);
     }
 
+    const adminRole = dto.adminRole ?? dto.admin_role;
+    const fullName = dto.fullName ?? dto.full_name;
+
+    if (
+      existing.adminRole === AdminRole.SUPER_ADMIN &&
+      existing.isActive &&
+      (dto.isActive === false ||
+        (adminRole && adminRole !== AdminRole.SUPER_ADMIN))
+    ) {
+      const activeSuperAdmins = await this.prisma.adminUser.count({
+        where: { adminRole: AdminRole.SUPER_ADMIN, isActive: true },
+      });
+      if (activeSuperAdmins <= 1) {
+        throw new BadRequestException(
+          'Cannot deactivate or demote the last active super admin',
+        );
+      }
+    }
+
+    if (fullName !== undefined || dto.phone !== undefined) {
+      await this.prisma.user.update({
+        where: { id: existing.userId },
+        data: {
+          ...(fullName !== undefined && { fullName }),
+          ...(dto.phone !== undefined && { phone: dto.phone }),
+        },
+      });
+    }
+
     const adminUser = await this.prisma.adminUser.update({
       where: { id },
       data: {
-        adminRole: dto.adminRole,
+        ...(adminRole && { adminRole }),
         permissions: dto.permissions,
         isActive: dto.isActive,
       },
@@ -281,10 +320,10 @@ export class AdminUsersService {
     // Invalidate and refresh cache
     await this.redis.getClient().del(`admin:permissions:${existing.userId}`);
 
-    if (dto.adminRole && dto.isActive !== false) {
+    if (adminRole && dto.isActive !== false) {
       await this.cacheAdminPermissions(
         existing.userId,
-        dto.adminRole,
+        adminRole,
         dto.permissions ?? (existing.permissions as Record<string, boolean>),
       );
     }
@@ -299,6 +338,17 @@ export class AdminUsersService {
 
     if (!existing) {
       throw new NotFoundException(`Admin user with id ${id} not found`);
+    }
+
+    if (existing.adminRole === AdminRole.SUPER_ADMIN && existing.isActive) {
+      const activeSuperAdmins = await this.prisma.adminUser.count({
+        where: { adminRole: AdminRole.SUPER_ADMIN, isActive: true },
+      });
+      if (activeSuperAdmins <= 1) {
+        throw new BadRequestException(
+          'Cannot deactivate the last active super admin',
+        );
+      }
     }
 
     const adminUser = await this.prisma.adminUser.update({

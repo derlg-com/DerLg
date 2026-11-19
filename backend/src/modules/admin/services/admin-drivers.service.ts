@@ -139,33 +139,45 @@ export class AdminDriversService {
   }
 
   async createDriver(dto: {
-    driverName: string;
-    driverId: string;
+    driverName?: string;
+    driver_name?: string;
+    fullName?: string;
+    driverId?: string;
+    driver_id?: string;
     telegramId?: string;
+    telegram_id?: string;
     phone: string;
     vehicleId?: string;
+    vehicle_id?: string;
+    auth_pin?: string;
+    authPin?: string;
   }) {
-    if (dto.telegramId) {
+    const driverName = dto.driverName || dto.driver_name || dto.fullName || 'Driver';
+    const driverId = dto.driverId || dto.driver_id || `DRV-${Date.now()}`;
+    const telegramId = dto.telegramId || dto.telegram_id;
+    const vehicleId = dto.vehicleId || dto.vehicle_id;
+
+    if (telegramId) {
       const existing = await this.prisma.driver.findUnique({
-        where: { telegramId: BigInt(dto.telegramId) },
+        where: { telegramId: BigInt(telegramId) },
       });
       if (existing) {
         throw new ConflictException(
-          `Telegram ID ${dto.telegramId} is already registered`,
+          `Telegram ID ${telegramId} is already registered`,
         );
       }
     }
 
-    const authPin = this.generatePin();
+    const authPin = dto.authPin || dto.auth_pin || this.generatePin();
 
     const driver = await this.prisma.driver.create({
       data: {
-        driverName: dto.driverName,
-        driverId: dto.driverId,
-        telegramId: dto.telegramId ? BigInt(dto.telegramId) : null,
+        driverName,
+        driverId,
+        telegramId: telegramId ? BigInt(telegramId) : null,
         authPin,
         phone: dto.phone,
-        vehicleId: dto.vehicleId || null,
+        vehicleId: vehicleId || null,
         status: DriverStatus.OFFLINE,
       },
     });
@@ -179,10 +191,15 @@ export class AdminDriversService {
     id: string,
     dto: {
       driverName?: string;
+      driver_name?: string;
       driverId?: string;
+      driver_id?: string;
       telegramId?: string;
+      telegram_id?: string;
       phone?: string;
       vehicleId?: string | null;
+      vehicle_id?: string | null;
+      auth_pin?: string;
       status?: DriverStatus;
     },
   ) {
@@ -191,8 +208,13 @@ export class AdminDriversService {
       throw new NotFoundException(`Driver with id ${id} not found`);
     }
 
-    if (dto.telegramId) {
-      const telegramBigInt = BigInt(dto.telegramId);
+    const driverName = dto.driverName ?? dto.driver_name;
+    const driverId = dto.driverId ?? dto.driver_id;
+    const telegramId = dto.telegramId ?? dto.telegram_id;
+    const vehicleId = dto.vehicleId !== undefined ? dto.vehicleId : dto.vehicle_id;
+
+    if (telegramId) {
+      const telegramBigInt = BigInt(telegramId);
       const conflict = await this.prisma.driver.findFirst({
         where: {
           telegramId: telegramBigInt,
@@ -201,25 +223,28 @@ export class AdminDriversService {
       });
       if (conflict) {
         throw new ConflictException(
-          `Telegram ID ${dto.telegramId} is already registered`,
+          `Telegram ID ${telegramId} is already registered`,
         );
       }
     }
 
     const data: Prisma.DriverUpdateInput = {};
-    if (dto.driverName !== undefined) data.driverName = dto.driverName;
-    if (dto.driverId !== undefined) data.driverId = dto.driverId;
-    if (dto.telegramId !== undefined) {
-      data.telegramId = dto.telegramId ? BigInt(dto.telegramId) : null;
+    if (driverName !== undefined) data.driverName = driverName;
+    if (driverId !== undefined) data.driverId = driverId;
+    if (telegramId !== undefined) {
+      data.telegramId = telegramId ? BigInt(telegramId) : null;
     }
     if (dto.phone !== undefined) data.phone = dto.phone;
-    if (dto.vehicleId !== undefined) {
+    if (vehicleId !== undefined) {
       // A relation, not a scalar, on DriverUpdateInput: reassigning means
       // connect, and clearing means disconnect. Assigning the raw id would not
       // type-check and would silently do nothing at runtime.
-      data.vehicle = dto.vehicleId
-        ? { connect: { id: dto.vehicleId } }
+      data.vehicle = vehicleId
+        ? { connect: { id: vehicleId } }
         : { disconnect: true };
+    }
+    if (dto.auth_pin !== undefined) {
+      data.authPin = dto.auth_pin;
     }
     if (dto.status !== undefined) {
       data.status = dto.status;

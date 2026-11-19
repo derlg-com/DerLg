@@ -85,12 +85,12 @@ describe('AdminAIMonitoringController', () => {
 
     it('should forward search, language and pagination', async () => {
       await controller.listAISessions(
-        query({ search: 'angkor', language: 'ZH', page: 3, limit: 50 }),
+        query({ search: 'angkor', language: 'zh', page: 3, limit: 50 }),
       );
 
       expect(service.listAISessions).toHaveBeenCalledWith({
         search: 'angkor',
-        language: 'ZH',
+        language: 'zh',
         onlyGuests: false,
         page: 3,
         limit: 50,

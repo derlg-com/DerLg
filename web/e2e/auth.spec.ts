@@ -7,11 +7,12 @@ function uniqueEmail(): string {
 }
 
 const PASSWORD = 'e2e-password-1234'
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3003'
 
 test.describe('authentication', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/trips?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/trips?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), 'backend is not reachable')
   })
 
   test('a guest sees a sign-in entry point', async ({ page }) => {

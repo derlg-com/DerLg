@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 
 import { ExploreMap } from '@/components/map/explore-map'
 import { Skeleton } from '@/components/ui'
+import { placesApi } from '@/lib/api/resources'
 import type { Locale } from '@/lib/i18n/config'
 import { absoluteUrl } from '@/lib/seo'
 
@@ -25,21 +26,26 @@ export async function generateMetadata({
   }
 }
 
-export default async function ExplorePage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function ExplorePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>
+  searchParams?: Promise<{ category?: string }>
+}) {
   const { locale } = await params
+  const { category } = (await searchParams) ?? {}
   setRequestLocale(locale as Locale)
+  const typed = locale as Locale
 
-  const explore = await getTranslations('explore')
+  const initialData = await placesApi
+    .list({ limit: 50, category }, { locale: typed })
+    .catch(() => undefined)
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
-      <header className="space-y-1">
-        <h1 className="text-3xl font-semibold tracking-tight">{explore('tabs.title')}</h1>
-        <p className="text-[var(--text-secondary)]">{explore('map.description')}</p>
-      </header>
-
-      <Suspense fallback={<Skeleton className="h-[70vh] w-full" />}>
-        <ExploreMap />
+    <div className="space-y-4 px-3 py-4">
+      <Suspense fallback={<Skeleton className="h-[70vh] w-full rounded-[28px]" />}>
+        <ExploreMap initialData={initialData} />
       </Suspense>
     </div>
   )

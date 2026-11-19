@@ -22,8 +22,7 @@ describe('AiToolsService.checkPaymentStatus ownership', () => {
     findFirst = jest.fn();
     service = new AiToolsService(
       { booking: { findFirst } } as never,
-      { get: jest.fn() },
-      { getClient: jest.fn() },
+      {} as never,
     );
   });
 

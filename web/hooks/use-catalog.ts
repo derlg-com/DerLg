@@ -118,11 +118,15 @@ export function useVehicle(id: string) {
   })
 }
 
-export function usePlaces(filters: PlaceFilters = {}) {
+export function usePlaces(
+  filters: PlaceFilters = {},
+  options?: Options<Awaited<ReturnType<typeof placesApi.list>>>,
+) {
   const locale = useLocale() as Locale
   return useQuery({
     queryKey: queryKeys.places.list(locale, filters),
     queryFn: ({ signal }) => placesApi.list(filters, { locale, signal }),
+    ...options,
   })
 }
 

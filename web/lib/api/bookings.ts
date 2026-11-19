@@ -170,6 +170,6 @@ export const bookingsApi = {
 
 /** Absolute URL for the iCal download, which returns text/calendar not JSON. */
 export function bookingIcalUrl(id: string): string {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3003'
+  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4007'
   return `${base}/v1/bookings/${id}/ical`
 }

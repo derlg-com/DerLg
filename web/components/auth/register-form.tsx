@@ -1,14 +1,15 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { ArrowRight } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useForm, useWatch } from 'react-hook-form'
 
-import { Button, Card, Field, Input } from '@/components/ui'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
+import { Button, Card, Field, Input } from '@/components/ui'
 import { authErrorKey, useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/cn'
-import { useRouter } from '@/lib/i18n/navigation'
+import { Link, useRouter } from '@/lib/i18n/navigation'
 import { passwordStrength, registerSchema, type RegisterFormValues } from '@/schemas/auth'
 
 /** Visual strength signal. Purely advisory; the real rule is the 8-char minimum. */
@@ -22,11 +23,11 @@ function StrengthMeter({ password }: { password: string }) {
         <span
           key={step}
           className={cn(
-            'h-1 flex-1 rounded-full',
+            'h-1 flex-1 rounded-full transition-colors',
             score >= step
               ? score <= 2
-                ? 'bg-[var(--color-warning-500)]'
-                : 'bg-[var(--color-success-500)]'
+                ? 'bg-[var(--color-navel-gold)]'
+                : 'bg-[var(--color-navel-jade)]'
               : 'bg-[var(--border-subtle)]',
           )}
         />
@@ -47,8 +48,6 @@ export function RegisterForm() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({ resolver: zodResolver(registerSchema) })
 
-  // useWatch subscribes to a single field, rather than re-rendering the whole form
-  // the way the returned watch() function does.
   const password = useWatch({ control, name: 'password' }) ?? ''
 
   async function onSubmit(values: RegisterFormValues) {
@@ -62,8 +61,21 @@ export function RegisterForm() {
   }
 
   return (
-    <Card className="space-y-5 p-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t('signUp.title')}</h1>
+    <Card className="space-y-6 rounded-[28px] border border-[var(--border-subtle)] bg-[var(--surface)] dark:bg-[var(--surface-sunken)] p-6 sm:p-8 shadow-sm">
+      <div className="space-y-1">
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="size-2 rounded-full bg-[var(--color-navel-jade)]" />
+          <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-navel-jade)]">
+            Create Account
+          </span>
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-navel-forest)] dark:text-[var(--color-navel-mint)]">
+          {t('signUp.title')}
+        </h1>
+        <p className="text-xs text-[var(--text-secondary)]">
+          Join DerLg to explore Cambodia with local insights and seamless bookings.
+        </p>
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         <Field
@@ -78,7 +90,9 @@ export function RegisterForm() {
               type="email"
               autoComplete="email"
               inputMode="email"
+              placeholder="you@example.com"
               data-autofocus
+              className="rounded-2xl bg-[var(--color-navel-cream)]/40 dark:bg-[var(--surface)] py-3 text-sm border-[var(--border-subtle)] focus:border-[var(--color-navel-jade)] focus:ring-[var(--color-navel-jade)]/20"
             />
           )}
         </Field>
@@ -97,6 +111,8 @@ export function RegisterForm() {
                 type="password"
                 autoComplete="new-password"
                 minLength={8}
+                placeholder="At least 8 characters"
+                className="rounded-2xl bg-[var(--color-navel-cream)]/40 dark:bg-[var(--surface)] py-3 text-sm border-[var(--border-subtle)] focus:border-[var(--color-navel-jade)] focus:ring-[var(--color-navel-jade)]/20"
               />
             )}
           </Field>
@@ -114,37 +130,62 @@ export function RegisterForm() {
               {...register('confirmPassword')}
               type="password"
               autoComplete="new-password"
+              placeholder="Re-enter password"
+              className="rounded-2xl bg-[var(--color-navel-cream)]/40 dark:bg-[var(--surface)] py-3 text-sm border-[var(--border-subtle)] focus:border-[var(--color-navel-jade)] focus:ring-[var(--color-navel-jade)]/20"
             />
           )}
         </Field>
 
         <Field label={t('fields.name')}>
-          {(props) => <Input {...props} {...register('name')} autoComplete="name" />}
+          {(props) => (
+            <Input
+              {...props}
+              {...register('name')}
+              autoComplete="name"
+              placeholder="Full name"
+              className="rounded-2xl bg-[var(--color-navel-cream)]/40 dark:bg-[var(--surface)] py-3 text-sm border-[var(--border-subtle)] focus:border-[var(--color-navel-jade)] focus:ring-[var(--color-navel-jade)]/20"
+            />
+          )}
         </Field>
 
         <Field label={t('fields.phone')}>
           {(props) => (
-            <Input {...props} {...register('phone')} type="tel" autoComplete="tel" inputMode="tel" />
+            <Input
+              {...props}
+              {...register('phone')}
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              placeholder="+855 12 345 678"
+              className="rounded-2xl bg-[var(--color-navel-cream)]/40 dark:bg-[var(--surface)] py-3 text-sm border-[var(--border-subtle)] focus:border-[var(--color-navel-jade)] focus:ring-[var(--color-navel-jade)]/20"
+            />
           )}
         </Field>
 
         {registerUser.isError ? (
-          <p role="alert" className="text-sm text-[var(--text-danger)]">
+          <div className="rounded-xl bg-[var(--tone-danger-bg)] p-3 text-xs text-[var(--tone-danger-text)] border border-[var(--tone-danger-border,#f87171)]/30" role="alert">
             {t(`errors.${authErrorKey(registerUser.error)}` as 'errors.emailExists')}
-          </p>
+          </div>
         ) : null}
 
-        <Button type="submit" block loading={isSubmitting || registerUser.isPending}>
-          {t('signUp.submit')}
+        <Button
+          type="submit"
+          variant="navelPrimary"
+          size="xl"
+          className="w-full rounded-full py-4 text-base font-semibold shadow-md shadow-[#1B3232]/20"
+          loading={isSubmitting || registerUser.isPending}
+        >
+          <span>{t('signUp.submit')}</span>
+          <ArrowRight className="size-4 ml-1.5" />
         </Button>
       </form>
 
-      <div className="relative my-2">
+      <div className="relative my-3">
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t border-[var(--border-subtle)]" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-[var(--surface)] px-2 text-[var(--text-tertiary)]">
+          <span className="bg-[var(--surface)] dark:bg-[var(--surface-sunken)] px-3 text-[var(--text-tertiary)] font-medium">
             {t('or')}
           </span>
         </div>
@@ -152,11 +193,11 @@ export function RegisterForm() {
 
       <GoogleSignInButton />
 
-      <p className="text-sm text-[var(--text-secondary)]">
+      <p className="text-center text-xs text-[var(--text-secondary)] pt-2">
         {t('signUp.haveAccount')}{' '}
-        <a href="./login" className="font-medium text-[var(--accent)] hover:underline">
+        <Link href="/login" className="font-bold text-[var(--color-navel-jade)] hover:underline">
           {t('signUp.cta')}
-        </a>
+        </Link>
       </p>
     </Card>
   )

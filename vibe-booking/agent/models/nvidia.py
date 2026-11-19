@@ -39,10 +39,15 @@ class NvidiaClient(GatewayClient):
                 break
 
         # Safely resolve model
-        model = "longcat-2"
+        model = "deepseek-v4.1-flash-cloud"
         model_val = getattr(active_settings, "model_llm", None)
         if isinstance(model_val, str) and model_val:
-            model = "longcat-2" if model_val in ("longcat-2.0", "longcat-2") else model_val
+            if model_val in ("deepseek-v4.1-flash", "deepseek-v4.1-flash-cloud"):
+                model = "deepseek-v4.1-flash-cloud"
+            elif model_val in ("longcat-2.0", "longcat-2"):
+                model = "longcat-2"
+            else:
+                model = model_val
 
         timeout = getattr(active_settings, "model_timeout_s", 90.0)
         timeout_val = timeout if isinstance(timeout, (int, float)) else 90.0

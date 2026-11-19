@@ -192,6 +192,26 @@ export class AiToolsController {
     };
   }
 
+  @Get('chat-sessions/:sessionId')
+  async getChatSession(@Param('sessionId', ParseUUIDPipe) sessionId: string) {
+    return {
+      success: true,
+      data: await this.service.getChatSession(sessionId),
+    };
+  }
+
+  @Patch('messages/:messageId/feedback')
+  @HttpCode(HttpStatus.OK)
+  async setMessageFeedbackById(
+    @Param('messageId', ParseUUIDPipe) messageId: string,
+    @Body() dto: ChatMessageFeedbackDto,
+  ) {
+    return {
+      success: true,
+      data: await this.service.setMessageFeedbackById(messageId, dto),
+    };
+  }
+
   @Patch('chat-sessions/:sessionId/messages/:seq/feedback')
   @HttpCode(HttpStatus.OK)
   async setChatMessageFeedback(

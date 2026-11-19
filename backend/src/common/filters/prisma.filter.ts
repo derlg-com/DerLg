@@ -41,6 +41,15 @@ export class PrismaFilter implements ExceptionFilter {
           },
         });
         break;
+      case 'P2023':
+        response.status(400).json({
+          success: false,
+          error: {
+            code: ErrorCode.VAL_INVALID_INPUT,
+            message: 'Invalid input format or identifier',
+          },
+        });
+        break;
       default:
         response.status(500).json({
           success: false,

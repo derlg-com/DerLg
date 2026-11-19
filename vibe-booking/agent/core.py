@@ -16,6 +16,8 @@ MAX_TOOL_LOOPS = 5
 MAX_MESSAGES = 20
 MAX_TOKENS = 2048
 
+_SEARCH_TOOLS = {"search_trips", "search_hotels", "search_guides", "search_transport"}
+
 # Mutations/reads whose user_id must come from the verified session, never the model.
 _USER_SCOPED_TOOLS = (
     "create_booking_hold",
@@ -750,6 +752,43 @@ async def _execute_tool(name: str, inp: dict, session: ConversationState) -> dic
             "message": "Please sign in to use this feature.",
         }
 
+    # Defensive validation: validate people_count and travel_date if supplied
+    if name == "create_booking_hold":
+        if "people_count" in inp:
+            try:
+                p = int(inp["people_count"])
+                if p < 1 or p > 50:
+                    return {
+                        "success": False,
+                        "error": {
+                            "code": "INVALID_PEOPLE_COUNT",
+                            "message": "People count must be an integer between 1 and 50.",
+                        },
+                    }
+            except (ValueError, TypeError):
+                return {
+                    "success": False,
+                    "error": {
+                        "code": "INVALID_PEOPLE_COUNT",
+                        "message": "People count must be a valid integer.",
+                    },
+                }
+        t_date = inp.get("travel_date")
+        if t_date and isinstance(t_date, str):
+            try:
+                from datetime import date
+                d = date.fromisoformat(t_date)
+                if d < date.today():
+                    return {
+                        "success": False,
+                        "error": {
+                            "code": "INVALID_TRAVEL_DATE",
+                            "message": "Travel date cannot be in the past.",
+                        },
+                    }
+            except (ValueError, TypeError):
+                pass
+
     # Server-side inject the verified session user id; never trust a model-supplied
     # user_id for user-scoped mutations (Issue 10).
     if name in _USER_SCOPED_TOOLS:
@@ -819,8 +858,22 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
             })
         session.messages.append(assistant_msg)
 
+        executed_tool_names = {name for name, _ in all_tool_results}
+        tool_tasks = []
+        for b in tool_calls:
+            if b.name in _SEARCH_TOOLS and b.name in executed_tool_names:
+                async def _dup_search(tool_name=b.name):
+                    return {
+                        "success": True,
+                        "data": [],
+                        "message": f"Search '{tool_name}' has already been performed in this turn. Do not call '{tool_name}' again; please present the available options and respond to the traveler directly."
+                    }
+                tool_tasks.append(_dup_search())
+            else:
+                tool_tasks.append(_execute_tool(b.name, b.input, session))
+
         try:
-            results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+            results = await asyncio.gather(*tool_tasks)
         except Exception as exc:  # tool layer failure (defensive; requests are caught)
             last_error = exc
             break
@@ -849,6 +902,21 @@ async def run_agent(session: ConversationState, user_text: str) -> tuple[str, di
                 "content": json.dumps(result),
             })
         messages = session.messages[-MAX_MESSAGES:]
+
+    if last_error is None and all_tool_results:
+        try:
+            force_reply = await client.create_message(
+                system=system, messages=messages, tools=[], max_tokens=MAX_TOKENS,
+            )
+            forced_text = next((b.text for b in force_reply.content if b.type == "text" and b.text), "")
+            if forced_text:
+                text = _sanitize_assistant_text(forced_text)
+                session.messages.append({"role": "assistant", "content": text})
+                return text, _build_content_payload(
+                    all_tool_results, search_destination, tool_args=all_tool_args
+                )
+        except Exception:
+            pass
 
     return f"I'm having trouble processing your request. {_friendly_cause(last_error)}", None
 
@@ -1000,8 +1068,22 @@ async def run_agent_streaming(
         for tc in tool_calls:
             yield {"type": "agent_tool_status", "tool_use_id": tc.id, "name": tc.name, "status": "running"}
 
+        executed_tool_names = {name for name, _ in all_tool_results}
+        tool_tasks = []
+        for b in tool_calls:
+            if b.name in _SEARCH_TOOLS and b.name in executed_tool_names:
+                async def _dup_search(tool_name=b.name):
+                    return {
+                        "success": True,
+                        "data": [],
+                        "message": f"Search '{tool_name}' has already been performed in this turn. Do not call '{tool_name}' again; please present the available options and respond to the traveler directly."
+                    }
+                tool_tasks.append(_dup_search())
+            else:
+                tool_tasks.append(_execute_tool(b.name, b.input, session))
+
         try:
-            results = await asyncio.gather(*[_execute_tool(b.name, b.input, session) for b in tool_calls])
+            results = await asyncio.gather(*tool_tasks)
         except Exception as exc:  # tool layer failure (defensive; requests are caught)
             last_error = exc
             break
@@ -1033,6 +1115,31 @@ async def run_agent_streaming(
                 "content": json.dumps(result),
             })
         messages = session.messages[-MAX_MESSAGES:]
+
+    if last_error is None and all_tool_results:
+        try:
+            force_resp = await client.create_message(
+                system=system, messages=messages, tools=[], max_tokens=MAX_TOKENS,
+            )
+            force_text = next((b.text for b in force_resp.content if b.type == "text" and b.text), "")
+            if force_text:
+                full_text = _sanitize_assistant_text(force_text)
+                yield {"type": "agent_stream_chunk", "delta": full_text}
+                session.messages.append({"role": "assistant", "content": full_text})
+                payloads = build_content_payloads(
+                    all_tool_results, search_destination, query=search_label, tool_args=all_tool_args
+                )
+                yield {
+                    "type": "final",
+                    "text": full_text,
+                    "content_payload": payloads[0] if payloads else None,
+                    "content_payloads": payloads,
+                    "suggestions": [],
+                    "requires_payment": _extract_booking_hold(all_tool_results),
+                }
+                return
+        except Exception as exc:
+            logger.warning("forced_tool_summary_failed", error=str(exc))
 
     fallback_text = f"I'm having trouble processing your request. {_friendly_cause(last_error)}"
     yield {"type": "final", "text": fallback_text, "content_payload": None, "content_payloads": [], "suggestions": [], "requires_payment": None}

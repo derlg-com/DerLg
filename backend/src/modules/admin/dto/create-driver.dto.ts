@@ -2,18 +2,32 @@ import { IsString, IsOptional, IsNotEmpty, Length } from 'class-validator';
 
 export class CreateDriverDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @Length(1, 255)
-  driverName: string;
+  driverName?: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
+  @Length(1, 255)
+  driver_name?: string;
+
+  @IsString()
+  @IsOptional()
   @Length(1, 50)
-  driverId: string;
+  driverId?: string;
+
+  @IsString()
+  @IsOptional()
+  @Length(1, 50)
+  driver_id?: string;
 
   @IsString()
   @IsOptional()
   telegramId?: string;
+
+  @IsString()
+  @IsOptional()
+  telegram_id?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -23,4 +37,21 @@ export class CreateDriverDto {
   @IsString()
   @IsOptional()
   vehicleId?: string;
+
+  @IsString()
+  @IsOptional()
+  vehicle_id?: string;
+
+  @IsString()
+  @IsOptional()
+  auth_pin?: string;
+
+  @IsString()
+  @IsOptional()
+  authPin?: string;
+
+  @IsString()
+  @IsOptional()
+  @Length(1, 255)
+  fullName?: string;
 }

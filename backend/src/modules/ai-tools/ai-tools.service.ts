@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { SingleResourceKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -37,9 +38,87 @@ export class AiToolsService {
   ) {}
 
   async searchTrips(dto: SearchTripsDto) {
-    // Destination is matched against free text (title/subtitle/description) because
-    // Trip has no structured province column; reliable filtering needs a schema
-    // migration + reseed (searchHotels has the same limitation on `address`).
+    // Destination is matched against free text (title/subtitle/description/meetingPoint/itinerary)
+    // because Trip has no structured province column. We also handle aliases (e.g. Siem Reap <-> Angkor).
+    const dest = dto.destination?.trim() || '';
+    const isCambodiaGeneral =
+      /cambodia/i.test(dest) &&
+      !/siem|angkor|phnom|kampot|kep|sihanouk|battambang|ratanakiri|mondulkiri/i.test(
+        dest,
+      );
+
+    const searchTerms: string[] = [];
+    if (dest && !isCambodiaGeneral) {
+      searchTerms.push(dest);
+      if (/siem\s*reap/i.test(dest) && !searchTerms.includes('Angkor')) {
+        searchTerms.push('Angkor');
+      }
+      if (/angkor/i.test(dest) && !searchTerms.includes('Siem Reap')) {
+        searchTerms.push('Siem Reap');
+      }
+    }
+
+    const destinationFilter =
+      searchTerms.length > 0
+        ? {
+            OR: searchTerms.map((term) => ({
+              OR: [
+                {
+                  translations: {
+                    some: {
+                      OR: [
+                        { title: { contains: term, mode: 'insensitive' as const } },
+                        {
+                          subtitle: {
+                            contains: term,
+                            mode: 'insensitive' as const,
+                          },
+                        },
+                        {
+                          description: {
+                            contains: term,
+                            mode: 'insensitive' as const,
+                          },
+                        },
+                        {
+                          meetingPoint: {
+                            contains: term,
+                            mode: 'insensitive' as const,
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+                {
+                  itineraryItems: {
+                    some: {
+                      translations: {
+                        some: {
+                          OR: [
+                            {
+                              title: {
+                                contains: term,
+                                mode: 'insensitive' as const,
+                              },
+                            },
+                            {
+                              description: {
+                                contains: term,
+                                mode: 'insensitive' as const,
+                              },
+                            },
+                          ],
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            })),
+          }
+        : {};
+
     const trips = await this.prisma.trip.findMany({
       where: {
         isPublished: true,
@@ -54,31 +133,7 @@ export class AiToolsService {
             }
           : {}),
         ...(dto.budget_usd ? { basePriceUsd: { lte: dto.budget_usd } } : {}),
-        ...(dto.destination
-          ? {
-              translations: {
-                some: {
-                  OR: [
-                    {
-                      title: { contains: dto.destination, mode: 'insensitive' },
-                    },
-                    {
-                      subtitle: {
-                        contains: dto.destination,
-                        mode: 'insensitive',
-                      },
-                    },
-                    {
-                      description: {
-                        contains: dto.destination,
-                        mode: 'insensitive',
-                      },
-                    },
-                  ],
-                },
-              },
-            }
-          : {}),
+        ...destinationFilter,
       },
       include: { translations: { where: { language: 'en' } } },
       take: 10,
@@ -412,13 +467,16 @@ export class AiToolsService {
 
   async checkAvailability(dto: CheckAvailabilityDto) {
     const date = new Date(dto.date);
+    if (isNaN(date.getTime())) {
+      throw new BadRequestException('Invalid date format');
+    }
 
     if (dto.item_type === 'trip') {
       const trip = await this.prisma.trip.findUnique({
         where: { id: dto.item_id },
       });
-      if (!trip) throw new NotFoundException('Trip not found');
-      const booked = await this.prisma.bookingItem.count({
+      if (!trip || !trip.isPublished) throw new NotFoundException('Trip not found');
+      const bookedItems = await this.prisma.bookingItem.findMany({
         where: {
           tripId: dto.item_id,
           startDate: { lte: date },
@@ -428,14 +486,20 @@ export class AiToolsService {
             deletedAt: null,
           },
         },
+        select: { quantity: true },
       });
+      const booked = bookedItems.reduce((sum, it) => sum + it.quantity, 0);
       return {
         available: booked < trip.maxCapacity,
-        remaining: trip.maxCapacity - booked,
+        remaining: Math.max(0, trip.maxCapacity - booked),
       };
     }
 
     if (dto.item_type === 'guide') {
+      const guide = await this.prisma.guide.findUnique({
+        where: { id: dto.item_id },
+      });
+      if (!guide || !guide.isActive) throw new NotFoundException('Guide not found');
       const booked = await this.prisma.bookingItem.count({
         where: {
           guideId: dto.item_id,
@@ -454,26 +518,40 @@ export class AiToolsService {
       const vehicle = await this.prisma.transportationVehicle.findUnique({
         where: { id: dto.item_id },
       });
-      if (!vehicle) throw new NotFoundException('Vehicle not found');
-      const booked = await this.prisma.bookingItem.count({
+      if (!vehicle || !vehicle.isActive) throw new NotFoundException('Vehicle not found');
+      const bookedItems = await this.prisma.bookingItem.findMany({
         where: {
           vehicleId: dto.item_id,
           startDate: { lte: date },
           endDate: { gte: date },
-          booking: { status: { in: ['hold', 'pending_payment', 'confirmed'] } },
+          booking: {
+            status: { in: ['hold', 'pending_payment', 'confirmed'] },
+            deletedAt: null,
+          },
         },
+        select: { quantity: true },
       });
+      const booked = bookedItems.reduce((sum, it) => sum + it.quantity, 0);
       return {
         available: booked < vehicle.capacity,
-        remaining: vehicle.capacity - booked,
+        remaining: Math.max(0, vehicle.capacity - booked),
       };
     }
 
     // hotel — check any active room
-    const rooms = await this.prisma.hotelRoom.findMany({
+    let rooms = await this.prisma.hotelRoom.findMany({
       where: { hotelId: dto.item_id, isActive: true },
       select: { id: true },
     });
+    if (rooms.length === 0) {
+      const singleRoom = await this.prisma.hotelRoom.findUnique({
+        where: { id: dto.item_id, isActive: true },
+        select: { id: true },
+      });
+      if (singleRoom) {
+        rooms = [singleRoom];
+      }
+    }
     const bookedRoomIds = await this.prisma.bookingItem.findMany({
       where: {
         hotelRoomId: { in: rooms.map((r) => r.id) },
@@ -492,9 +570,28 @@ export class AiToolsService {
   }
 
   async createBookingHold(dto: CreateBookingHoldDto) {
+    if (
+      !dto.people_count ||
+      !Number.isInteger(dto.people_count) ||
+      dto.people_count < 1 ||
+      dto.people_count > 50
+    ) {
+      throw new BadRequestException(
+        'People count must be an integer between 1 and 50',
+      );
+    }
+
+    const travelDate = new Date(dto.travel_date);
+    if (isNaN(travelDate.getTime())) {
+      throw new BadRequestException('Invalid travel date format');
+    }
+    const todayUtc = new Date(new Date().toISOString().slice(0, 10));
+    if (travelDate < todayUtc) {
+      throw new BadRequestException('Travel date cannot be in the past');
+    }
+
     const expiresAt = new Date(Date.now() + HOLD_TTL_MIN * 60 * 1000);
     const reference = `DLG-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000 + 10000)}`;
-    const travelDate = new Date(dto.travel_date);
     const singleResourceKind: SingleResourceKind =
       dto.item_type === 'trip'
         ? 'trip'
@@ -505,6 +602,15 @@ export class AiToolsService {
             : 'guide';
 
     return this.prisma.$transaction(async (tx) => {
+      // Verify user exists before writing booking hold
+      const user = await tx.user.findUnique({
+        where: { id: dto.user_id },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new BadRequestException(`User ${dto.user_id} not found`);
+      }
+
       let unitPrice = 0;
       let bookingType:
         | 'trip_package'
@@ -512,25 +618,38 @@ export class AiToolsService {
         | 'tour_guide'
         | 'transportation' = 'trip_package';
       let resolvedItemId = dto.item_id;
+      let endDate = travelDate;
 
       if (dto.item_type === 'trip') {
         const trip = await tx.trip.findUnique({ where: { id: dto.item_id } });
-        if (!trip) throw new NotFoundException('Trip not found');
-        // Atomic availability check
-        const booked = await tx.bookingItem.count({
+        if (!trip || !trip.isPublished) {
+          throw new NotFoundException('Trip not found or not available');
+        }
+        // Atomic availability check: sum quantities of active booking items
+        const bookedItems = await tx.bookingItem.findMany({
           where: {
             tripId: dto.item_id,
             startDate: { lte: travelDate },
             endDate: { gte: travelDate },
             booking: {
               status: { in: ['hold', 'pending_payment', 'confirmed'] },
+              deletedAt: null,
             },
           },
+          select: { quantity: true },
         });
-        if (booked >= trip.maxCapacity)
-          throw new Error('Trip is fully booked for this date');
+        const booked = bookedItems.reduce((sum, it) => sum + it.quantity, 0);
+        if (booked + dto.people_count > trip.maxCapacity) {
+          throw new BadRequestException(
+            `Trip is fully booked for this date (only ${Math.max(0, trip.maxCapacity - booked)} spots remaining)`,
+          );
+        }
         unitPrice = Number(trip.basePriceUsd);
         bookingType = 'trip_package';
+        if (trip.durationDays > 1) {
+          endDate = new Date(travelDate);
+          endDate.setUTCDate(endDate.getUTCDate() + trip.durationDays - 1);
+        }
       } else if (dto.item_type === 'hotel') {
         let room = await tx.hotelRoom.findUnique({
           where: { id: dto.item_id },
@@ -541,7 +660,9 @@ export class AiToolsService {
             orderBy: { priceUsd: 'asc' },
           });
         }
-        if (!room) throw new NotFoundException('Hotel room not found');
+        if (!room || !room.isActive) {
+          throw new NotFoundException('Hotel room not found or not available');
+        }
         const booked = await tx.bookingItem.count({
           where: {
             hotelRoomId: room.id,
@@ -549,11 +670,15 @@ export class AiToolsService {
             endDate: { gte: travelDate },
             booking: {
               status: { in: ['hold', 'pending_payment', 'confirmed'] },
+              deletedAt: null,
             },
           },
         });
-        if (booked > 0)
-          throw new Error('Hotel room is not available for this date');
+        if (booked > 0) {
+          throw new BadRequestException(
+            'Hotel room is not available for this date',
+          );
+        }
         unitPrice = Number(room.priceUsd);
         bookingType = 'hotel_room';
         resolvedItemId = room.id;
@@ -561,24 +686,34 @@ export class AiToolsService {
         const vehicle = await tx.transportationVehicle.findUnique({
           where: { id: dto.item_id },
         });
-        if (!vehicle) throw new NotFoundException('Vehicle not found');
-        const booked = await tx.bookingItem.count({
+        if (!vehicle || !vehicle.isActive) {
+          throw new NotFoundException('Vehicle not found or not available');
+        }
+        const bookedItems = await tx.bookingItem.findMany({
           where: {
             vehicleId: dto.item_id,
             startDate: { lte: travelDate },
             endDate: { gte: travelDate },
             booking: {
               status: { in: ['hold', 'pending_payment', 'confirmed'] },
+              deletedAt: null,
             },
           },
+          select: { quantity: true },
         });
-        if (booked >= vehicle.capacity)
-          throw new Error('Vehicle is fully booked for this date');
+        const booked = bookedItems.reduce((sum, it) => sum + it.quantity, 0);
+        if (booked + dto.people_count > vehicle.capacity) {
+          throw new BadRequestException(
+            `Vehicle is fully booked for this date (only ${Math.max(0, vehicle.capacity - booked)} seats remaining)`,
+          );
+        }
         unitPrice = Number(vehicle.priceUsd);
         bookingType = 'transportation';
       } else {
         const guide = await tx.guide.findUnique({ where: { id: dto.item_id } });
-        if (!guide) throw new NotFoundException('Guide not found');
+        if (!guide || !guide.isActive) {
+          throw new NotFoundException('Guide not found or not available');
+        }
         const booked = await tx.bookingItem.count({
           where: {
             guideId: dto.item_id,
@@ -586,15 +721,28 @@ export class AiToolsService {
             endDate: { gte: travelDate },
             booking: {
               status: { in: ['hold', 'pending_payment', 'confirmed'] },
+              deletedAt: null,
             },
           },
         });
-        if (booked > 0) throw new Error('Guide is not available for this date');
+        if (booked > 0) {
+          throw new BadRequestException('Guide is not available for this date');
+        }
         unitPrice = Number(guide.pricePerDayUsd);
         bookingType = 'tour_guide';
       }
 
-      const subtotal = unitPrice * dto.people_count;
+      const subtotal = round2(unitPrice * dto.people_count);
+      if (subtotal <= 0) {
+        throw new BadRequestException(
+          'Booking total must be greater than $0 USD',
+        );
+      }
+      if (subtotal > 5000) {
+        throw new BadRequestException(
+          'Booking amount exceeds maximum limit of $5,000 USD per transaction',
+        );
+      }
 
       const booking = await tx.booking.create({
         data: {
@@ -620,7 +768,7 @@ export class AiToolsService {
                 ? { vehicleId: dto.item_id }
                 : {}),
               startDate: travelDate,
-              endDate: travelDate,
+              endDate,
               snapshot: {},
               quantity: dto.people_count,
               unitPriceUsd: unitPrice,
@@ -830,6 +978,15 @@ export class AiToolsService {
         );
       }
     }
+
+    const seenNames = new Set<string>();
+    result = result.filter((f) => {
+      const key = f.name.trim().toLowerCase();
+      if (!key || seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
+
     return result;
   }
 
@@ -951,7 +1108,19 @@ export class AiToolsService {
    * become attributable in the AI-assisted booking correlation.
    */
   async rebindChatSession(sessionId: string, dto: RebindChatSessionDto) {
-    await this.assertSessionExists(sessionId);
+    const existing = await this.prisma.aIChatSession.findUnique({
+      where: { id: sessionId },
+      select: { id: true, userId: true },
+    });
+    if (!existing) {
+      throw new NotFoundException(`Chat session ${sessionId} not found`);
+    }
+
+    if (existing.userId && existing.userId !== dto.user_id) {
+      throw new ForbiddenException(
+        `Chat session ${sessionId} is already bound to another user`,
+      );
+    }
 
     const user = await this.prisma.user.findUnique({
       where: { id: dto.user_id },
@@ -1053,6 +1222,37 @@ export class AiToolsService {
       seq: updated.seq,
       helpful: updated.helpful,
     };
+  }
+
+  async getChatSession(sessionId: string) {
+    const session = await this.prisma.aIChatSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        messages: {
+          orderBy: { seq: 'asc' },
+        },
+      },
+    });
+    if (!session) {
+      throw new NotFoundException(`Chat session ${sessionId} not found`);
+    }
+    return session;
+  }
+
+  async setMessageFeedbackById(messageId: string, dto: ChatMessageFeedbackDto) {
+    const message = await this.prisma.aIChatMessage.findUnique({
+      where: { id: messageId },
+      select: { id: true, seq: true },
+    });
+    if (!message) {
+      throw new NotFoundException(`Message ${messageId} not found`);
+    }
+    const updated = await this.prisma.aIChatMessage.update({
+      where: { id: message.id },
+      data: { helpful: dto.helpful },
+      select: { id: true, seq: true, helpful: true },
+    });
+    return updated;
   }
 
   private async assertSessionExists(sessionId: string): Promise<void> {

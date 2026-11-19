@@ -23,6 +23,10 @@ import { SupportedLanguage, Specialty } from '@prisma/client';
 export class UpdateGuideDto {
   @IsString()
   @IsOptional()
+  userId?: string;
+
+  @IsString()
+  @IsOptional()
   bio?: string;
 
   @IsArray()

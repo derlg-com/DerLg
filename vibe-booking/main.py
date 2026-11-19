@@ -52,9 +52,15 @@ def _validate_startup() -> None:
 
 app = FastAPI(title="DerLg Vibe Booking AI Agent", lifespan=lifespan)
 
+_allowed_origins = [
+    o.strip()
+    for o in (settings.allowed_ws_origins or "").split(",")
+    if o.strip()
+] or ["https://derlg.com", "https://www.derlg.com"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://derlg.com", "https://www.derlg.com"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

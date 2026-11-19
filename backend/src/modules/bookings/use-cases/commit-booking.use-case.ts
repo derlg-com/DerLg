@@ -98,6 +98,39 @@ export class CommitBookingUseCase {
                   'Room is fully booked for at least one requested night',
               });
             }
+          } else if (item.type === BookingType.trip_package) {
+            const trip = await tx.trip.findUnique({
+              where: { id: item.resourceId },
+              select: { maxCapacity: true },
+            });
+            const maxCap = trip?.maxCapacity ?? 10;
+            const conflicts = await tx.bookingItem.findMany({
+              where: {
+                tripId: item.resourceId,
+                bookingType: item.type,
+                booking: {
+                  status: { in: ['hold', 'pending_payment', 'confirmed'] },
+                  deletedAt: null,
+                },
+              },
+              select: { startDate: true, endDate: true, quantity: true },
+            });
+            const overlapping = conflicts.filter((c) =>
+              checkOverlap([c], {
+                startDate: item.startDate,
+                endDate: item.endDate,
+              }),
+            );
+            const currentBooked = overlapping.reduce(
+              (sum, c) => sum + c.quantity,
+              0,
+            );
+            if (currentBooked + item.quantity > maxCap) {
+              throw new ConflictException({
+                code: ErrorCode.BKNG_UNAVAILABLE,
+                message: `Trip capacity exceeded for the requested dates (available: ${Math.max(0, maxCap - currentBooked)}, requested: ${item.quantity})`,
+              });
+            }
           } else {
             const conflicts = await tx.bookingItem.findMany({
               where: {

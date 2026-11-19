@@ -12,10 +12,12 @@ async function showMap(page: import('@playwright/test').Page, isMobile: boolean 
   await page.getByRole('radiogroup', { name: 'View mode' }).getByRole('radio', { name: 'Map' }).click()
 }
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3003'
+
 test.describe('explore map', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/places?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/places?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), `backend on ${BACKEND_URL} is not reachable`)
   })
 
   test('lists places from the live API', async ({ page }) => {
@@ -43,7 +45,7 @@ test.describe('explore map', () => {
     request,
     isMobile,
   }) => {
-    const response = await request.get('http://localhost:3003/v1/places?limit=50')
+    const response = await request.get(`${BACKEND_URL}/v1/places?limit=50`)
     const body = (await response.json()) as {
       data: { items: { latitude: number | null; longitude: number | null }[] }
     }
@@ -86,7 +88,7 @@ test.describe('explore map', () => {
   })
 
   test('a shared selection link opens the sheet directly', async ({ page, request }) => {
-    const response = await request.get('http://localhost:3003/v1/places?limit=1')
+    const response = await request.get(`${BACKEND_URL}/v1/places?limit=1`)
     const body = (await response.json()) as { data: { items: { id: string; name: string }[] } }
     const place = body.data.items[0]!
 

@@ -52,6 +52,25 @@ class BackendClient:
             self._failures = 0
             self._opened_at = None
             return resp.json()
+        except httpx.HTTPStatusError as exc:
+            # 4xx client errors (400, 404, 409, etc.) are user/input errors, not service outages.
+            # Do NOT trip the circuit breaker on 4xx responses.
+            if exc.response.status_code >= 500:
+                self._failures += 1
+                if self._failures >= _MAX_FAILURES:
+                    import time
+                    self._opened_at = time.monotonic()
+                    logger.warning("circuit_breaker_opened", failures=self._failures)
+            logger.warning("backend_request_http_error", path=path, status=exc.response.status_code, error=str(exc))
+            try:
+                err_data = exc.response.json()
+                msg = err_data.get("message")
+                if isinstance(msg, list):
+                    msg = ", ".join(str(m) for m in msg)
+                err_code = err_data.get("code") or ("CLIENT_ERROR" if exc.response.status_code < 500 else "BACKEND_ERROR")
+                return {"success": False, "error": {"code": err_code, "message": msg or "Request failed."}}
+            except Exception:
+                return {"success": False, "error": {"code": "BACKEND_ERROR", "message": "Tool execution failed."}}
         except Exception as exc:
             self._failures += 1
             if self._failures >= _MAX_FAILURES:

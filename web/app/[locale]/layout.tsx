@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono, Noto_Sans_Khmer, Noto_Sans_SC } from 'next/font/google'
+import { Geist, Geist_Mono, Noto_Sans_Khmer, Noto_Sans_SC, Plus_Jakarta_Sans } from 'next/font/google'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { notFound } from 'next/navigation'
 
@@ -11,6 +11,13 @@ import { localeTags, type Locale } from '@/lib/i18n/config'
 import { routing } from '@/lib/i18n/routing'
 
 import '../globals.css'
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: '--font-plus-jakarta',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+})
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -80,12 +87,18 @@ export default async function LocaleLayout({
     // and the CSS `:lang()` line-height rules for Khmer and Chinese apply.
     <html lang={localeTags[typedLocale]} suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&display=swap"
+          rel="stylesheet"
+        />
         <ThemeScript />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${notoKhmer.variable} ${notoSC.variable}`}
+        className={`${plusJakartaSans.variable} ${geistSans.variable} ${geistMono.variable} ${notoKhmer.variable} ${notoSC.variable}`}
       >
-        <NextIntlClientProvider>
+        <NextIntlClientProvider timeZone="Asia/Phnom_Penh">
           <QueryProvider>
             {/* Restores the session from the httpOnly refresh cookie on load. */}
             <SessionBootstrap />

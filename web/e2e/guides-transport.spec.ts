@@ -1,10 +1,12 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:3003'
+
 test.describe('guides', () => {
   test.beforeEach(async ({ request }) => {
-    const probe = await request.get('http://localhost:3003/v1/guides?limit=1').catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    const probe = await request.get(`${BACKEND_URL}/v1/guides?limit=1`).catch(() => null)
+    test.skip(!probe?.ok(), 'backend is not reachable')
   })
 
   test('lists guides using the province as the heading, since the API has no name', async ({
@@ -61,10 +63,10 @@ test.describe('guides', () => {
     await page.getByRole('article').first().getByRole('link').first().click()
     await expect(page.getByRole('heading', { name: 'Check availability' })).toBeVisible()
 
-    const from = await page.getByLabel('From').inputValue()
-    await page.getByLabel('To').fill(from)
+    const from = await page.getByLabel('From', { exact: true }).inputValue()
+    await page.getByLabel('To', { exact: true }).fill(from)
 
-    await expect(page.getByLabel('To')).toHaveAttribute('aria-invalid', 'true')
+    await expect(page.getByLabel('To', { exact: true })).toHaveAttribute('aria-invalid', 'true')
   })
 
   test('an unknown guide id returns a 404', async ({ page }) => {
@@ -76,9 +78,9 @@ test.describe('guides', () => {
 test.describe('transport', () => {
   test.beforeEach(async ({ request }) => {
     const probe = await request
-      .get('http://localhost:3003/v1/transportation/vehicles?limit=1')
+      .get(`${BACKEND_URL}/v1/transportation/vehicles?limit=1`)
       .catch(() => null)
-    test.skip(!probe?.ok(), 'backend on :3003 is not reachable')
+    test.skip(!probe?.ok(), 'backend is not reachable')
   })
 
   test('lists vehicles with capacity and pricing model', async ({ page }) => {

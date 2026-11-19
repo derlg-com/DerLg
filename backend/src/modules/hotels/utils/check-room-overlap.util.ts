@@ -1,7 +1,7 @@
 /**
  * Pure function. Returns true if a booking item interval overlaps the requested check-in/out range.
  * Half-open semantics: [itemStart, itemEnd] overlaps [checkIn, checkOut) iff
- *   itemStart < checkOut AND itemEnd >= checkIn.
+ *   itemStart < checkOut AND itemEnd > checkIn.
  */
 export function doesBookingOverlap(
   itemStart: Date,
@@ -9,7 +9,7 @@ export function doesBookingOverlap(
   checkIn: Date,
   checkOut: Date,
 ): boolean {
-  return itemStart < checkOut && itemEnd >= checkIn;
+  return itemStart < checkOut && itemEnd > checkIn;
 }
 
 export type BookingItemSlim = {

@@ -11,7 +11,7 @@ import { Badge, Button } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { Link } from '@/lib/i18n/navigation'
 import { googleMapsDirectionsUrl, googleMapsPlaceUrl } from '@/lib/maps/google'
-import { normalizeImageUrl, safeImageSrc } from '@/lib/url-safety'
+import { normalizeImageUrl } from '@/lib/url-safety'
 import type { ContentPayload } from '@/schemas/vibe-payloads'
 
 /**

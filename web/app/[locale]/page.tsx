@@ -5,6 +5,8 @@ import { Suspense } from 'react'
 import { Hero } from '@/components/discovery/hero'
 import { FestivalStrip } from '@/components/discovery/festival-strip'
 import { GuidesShelf, HotelsShelf, TripsShelf } from '@/components/discovery/shelves'
+import { NavelFeaturedTrips } from '@/components/discovery/navel-featured-trips'
+import { NavelCountriesShelf } from '@/components/discovery/navel-countries-shelf'
 import { ChatCallout } from '@/components/discovery/chat-callout'
 import { Card, CardContent, Skeleton } from '@/components/ui'
 import type { Locale } from '@/lib/i18n/config'
@@ -77,7 +79,15 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
       <Hero />
 
-      <div className="mx-auto max-w-7xl space-y-12 px-4 py-12 sm:px-6">
+      <div className="mx-auto w-full space-y-10 px-4 py-8 sm:px-6">
+        {/* NAVEL Travel Booking Signature Recommendation Carousel */}
+        <Suspense fallback={<ShelfSkeleton />}>
+          <NavelFeaturedTrips locale={typed} />
+        </Suspense>
+
+        {/* NAVEL Popular Countries Shelf */}
+        <NavelCountriesShelf />
+
         {/* Each shelf streams independently, so a slow query cannot block the rest. */}
         <Suspense fallback={<ShelfSkeleton />}>
           <TripsShelf locale={typed} />

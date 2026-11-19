@@ -14,9 +14,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # LLM Gateway configuration (RayuCode / any OpenAI-compatible provider)
+    # See https://rayucode.com/docs/15-api-keys
     llm_api_key: str = ""
     llm_base_url: str = "https://gateway.rayucode.com/v1"
-    model_llm: str = "longcat-2.0"
+    model_llm: str = "deepseek-v4.1-flash"
     model_timeout_s: float = 90.0
 
     # Provider aliases for backward compatibility
@@ -41,6 +42,9 @@ class Settings(BaseSettings):
 
     @property
     def effective_model(self) -> str:
+        # Gateway model identifier for deepseek-v4.1-flash is 'deepseek-v4.1-flash-cloud'
+        if self.model_llm in ("deepseek-v4.1-flash", "deepseek-v4.1-flash-cloud"):
+            return "deepseek-v4.1-flash-cloud"
         # Gateway model identifier for longcat 2.0 release is 'longcat-2'
         if self.model_llm in ("longcat-2.0", "longcat-2"):
             return "longcat-2"

@@ -30,18 +30,19 @@ export class CheckRoomAvailabilityUtil {
           '1 day'
         )::date AS night
       )
-      SELECT ds.night, COUNT(bi.id)::bigint AS booked
+      SELECT ds.night, COUNT(b.id)::bigint AS booked
       FROM date_series ds
-      LEFT JOIN booking_items bi
-        ON bi.hotel_room_id = ${args.hotelRoomId}::uuid
+      LEFT JOIN (
+        booking_items bi
+        JOIN bookings b
+          ON b.id = bi.booking_id
+          AND b.status IN ('hold', 'pending_payment', 'confirmed')
+          AND b.deleted_at IS NULL
+      ) ON bi.hotel_room_id = ${args.hotelRoomId}::uuid
         AND bi.start_date <= ds.night
         AND bi.end_date > ds.night
-      LEFT JOIN bookings b
-        ON b.id = bi.booking_id
-        AND b.status IN ('hold', 'pending_payment', 'confirmed')
-        AND b.deleted_at IS NULL
       GROUP BY ds.night
-      HAVING COUNT(bi.id) >= ${args.totalRooms}
+      HAVING COUNT(b.id) >= ${args.totalRooms}
     `;
 
     return rows.length === 0;

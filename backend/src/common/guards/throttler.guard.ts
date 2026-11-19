@@ -50,6 +50,10 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
   protected shouldSkip(context: ExecutionContext): Promise<boolean> {
     if (context.getType() !== 'http') return Promise.resolve(true);
 
+    if (process.env.DISABLE_THROTTLER === 'true') {
+      return Promise.resolve(true);
+    }
+
     const underTest = process.env.JEST_WORKER_ID !== undefined;
     if (underTest && process.env.THROTTLE_IN_TESTS !== 'true') {
       return Promise.resolve(true);

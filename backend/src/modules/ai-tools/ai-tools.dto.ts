@@ -70,6 +70,7 @@ export class CreateCustomTripExtraDto {
 
   @IsNumber()
   @Min(0.01)
+  @Max(500)
   unit_price_usd: number;
 
   @IsInt()
@@ -128,7 +129,7 @@ export class CreateBookingHoldDto {
   @IsString() @IsIn(['trip', 'hotel', 'guide', 'transport']) item_type: string;
   @IsString() item_id: string;
   @IsDateString() travel_date: string;
-  @IsNumber() @Type(() => Number) people_count: number;
+  @IsInt() @Min(1) @Max(50) @Type(() => Number) people_count: number;
 }
 
 export class GetWeatherDto {

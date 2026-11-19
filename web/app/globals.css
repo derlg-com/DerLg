@@ -51,11 +51,25 @@
   --color-danger-500: oklch(58% 0.21 20);
   --color-danger-600: oklch(50% 0.2 20);
   --color-info-500: oklch(60% 0.15 250);
-  /* Radius: 8 / 12 only, plus full for pills */
+  /* NAVEL Travel Booking App palette tokens */
+  --color-navel-dark: #1b3232;
+  --color-navel-medium: #244444;
+  --color-navel-light: #415f5f;
+  --color-navel-accent: #3d9676;
+  --color-navel-cream: #f5eadd;
+  --color-navel-gold: #e7b171;
+  --color-navel-gold-dark: #d6a266;
+  --color-navel-muted: #b1a699;
+  --color-navel-mint: #fafffd;
+
+  /* Radius: expanded for NAVEL rounded-2xl / rounded-3xl cards & sheets */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-4xl: 2.5rem;
 
   /* Motion — feedback only */
   --ease-out-quick: cubic-bezier(0.16, 1, 0.3, 1);
@@ -63,9 +77,10 @@
   --duration-base: 200ms;
   --duration-slow: 250ms;
 
-  /* Typography */
+  /* Typography: Plus Jakarta Sans & Dela Gothic One for NAVEL UI Kit */
   --font-sans:
-    var(--font-geist-sans), ui-sans-serif, system-ui, 'Noto Sans SC', 'Noto Sans Khmer', sans-serif;
+    var(--font-plus-jakarta), var(--font-geist-sans), ui-sans-serif, system-ui, 'Noto Sans SC', 'Noto Sans Khmer', sans-serif;
+  --font-dela: 'Dela Gothic One', var(--font-plus-jakarta), sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, 'SFMono-Regular', monospace;
 }
 
@@ -128,6 +143,16 @@
   --tone-info-text: oklch(40% 0.14 250);
   --tone-info-border: color-mix(in oklch, var(--color-info-500) 40%, white);
 
+  /* NAVEL theme semantic mappings */
+  --navel-dark: var(--color-navel-dark);
+  --navel-medium: var(--color-navel-medium);
+  --navel-light: var(--color-navel-light);
+  --navel-accent: var(--color-navel-accent);
+  --navel-cream: var(--color-navel-cream);
+  --navel-gold: var(--color-navel-gold);
+  --navel-muted: var(--color-navel-muted);
+  --navel-mint: var(--color-navel-mint);
+
   color-scheme: light;
 }
 
@@ -176,6 +201,16 @@
   --tone-info-bg: color-mix(in oklch, var(--color-info-500) 22%, var(--color-neutral-950));
   --tone-info-text: oklch(86% 0.1 250);
   --tone-info-border: color-mix(in oklch, var(--color-info-500) 40%, var(--color-neutral-950));
+
+  /* NAVEL dark mode semantic mappings */
+  --navel-dark: #1b3232;
+  --navel-medium: #244444;
+  --navel-light: #415f5f;
+  --navel-accent: #3d9676;
+  --navel-cream: #1e2c2c;
+  --navel-gold: #d6a266;
+  --navel-muted: #798787;
+  --navel-mint: #0f1919;
 
   color-scheme: dark;
 }
@@ -453,4 +488,31 @@
 .dark .marker-cluster-large div {
   background-color: var(--accent);
   color: var(--accent-text);
+}
+
+/* NAVEL Glass & Typography Utilities */
+.font-dela {
+  font-family: var(--font-dela);
+}
+
+.navel-glass {
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.dark .navel-glass {
+  background: rgba(27, 50, 50, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

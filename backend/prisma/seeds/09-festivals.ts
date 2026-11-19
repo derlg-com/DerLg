@@ -72,6 +72,8 @@ const FESTIVALS: FestivalEntry[] = [
 export = async function seed(prisma: PrismaClient): Promise<void> {
   console.log('  • festivals');
 
+  await prisma.festival.deleteMany({});
+
   for (const f of FESTIVALS) {
     await prisma.festival.create({
       data: {

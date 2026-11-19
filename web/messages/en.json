@@ -94,7 +94,7 @@
       "sections": {
         "acceptance": {
           "heading": "Acceptance of terms",
-          "body": "By using DerLg to discover and book travel experiences in Cambodia, you agree to these Terms of Service. If you do not agree to them, please do not use the platform. This is placeholder content and does not constitute legal advice."
+          "body": "By using DerLg to discover and book travel experiences in Cambodia, you agree to these Terms of Service. If you do not agree to them, please do not use the platform."
         },
         "bookings": {
           "heading": "Bookings",
@@ -114,7 +114,7 @@
         },
         "liability": {
           "heading": "Limitation of liability",
-          "body": "DerLg connects travelers with independent service providers and is not responsible for the acts or omissions of those providers. To the extent permitted by law, our liability for any booking is limited to the amount you paid for that booking. This is placeholder content and does not constitute legal advice."
+          "body": "DerLg connects travelers with independent service providers and is not responsible for the acts or omissions of those providers. To the extent permitted by law, our liability for any booking is limited to the amount you paid for that booking."
         },
         "changes": {
           "heading": "Changes to these terms",
@@ -127,7 +127,7 @@
       "sections": {
         "intro": {
           "heading": "Introduction",
-          "body": "This Privacy Policy explains how DerLg collects, uses, and protects your personal information when you use our Cambodia travel booking platform. This is placeholder content and does not constitute legal advice."
+          "body": "This Privacy Policy explains how DerLg collects, uses, and protects your personal information when you use our Cambodia travel booking platform."
         },
         "dataCollected": {
           "heading": "Information we collect",
@@ -160,7 +160,7 @@
       "sections": {
         "intro": {
           "heading": "Introduction",
-          "body": "This Cookie Policy explains how DerLg uses cookies and similar technologies on our travel booking platform. This is placeholder content and does not constitute legal advice."
+          "body": "This Cookie Policy explains how DerLg uses cookies and similar technologies on our travel booking platform."
         },
         "whatAreCookies": {
           "heading": "What are cookies?",
@@ -193,11 +193,15 @@
     "method": {
       "title": "Payment method",
       "card": "Credit / debit card",
+      "bakong_qr": "Bakong KHQR",
       "aba_qr": "ABA QR"
     },
     "title": "Checkout",
     "subtotal": "Subtotal",
     "total": "Total",
+    "mockNotice": "Demo mode — payments are simulated. No card is charged.",
+    "demoDisabledTitle": "Demo payments disabled",
+    "demoDisabledDesc": "Payment confirmation is turned off on this server.",
     "card": {
       "number": "Card number",
       "expiry": "Expiry",
@@ -707,6 +711,7 @@
       "home": "Home",
       "explore": "Explore",
       "bookings": "Bookings",
+      "saved": "Saved",
       "chat": "Chat",
       "profile": "Profile",
       "trips": "Trips",

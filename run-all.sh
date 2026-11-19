@@ -34,11 +34,13 @@ AI_PORT=4009
 ADMIN_PORT=4010
 
 PIDS=()
+declare -A SERVICE_PIDS
 
 # Tear down services started by this script
 cleanup() {
   echo ""
   echo "⏹  Stopping services..."
+  [[ -n "${TAIL_PID:-}" ]] && kill "$TAIL_PID" 2>/dev/null || true
   for pid in "${PIDS[@]}"; do
     kill "$pid" 2>/dev/null || true
     # Kill child processes (e.g. nest → node, npm exec → node)
@@ -52,7 +54,11 @@ trap cleanup EXIT INT TERM
 start_backend() {
   echo "🚀 Starting backend  → http://localhost:${BACKEND_PORT}"
   cd "$ROOT_DIR/backend"
-  PORT=$BACKEND_PORT npx nest start --watch >> "$LOG_DIR/backend.log" 2>&1 &
+  PORT=$BACKEND_PORT \
+  DISABLE_THROTTLER=true \
+  CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000,http://localhost:3002,http://localhost:4008,http://localhost:4010,http://localhost:5000}" \
+  npx nest start --watch >> "$LOG_DIR/backend.log" 2>&1 &
+  SERVICE_PIDS[backend]=$!
   PIDS+=($!)
 }
 
@@ -63,6 +69,7 @@ start_web() {
   NEXT_PUBLIC_AI_WS_URL="ws://localhost:${AI_PORT}" \
   NEXT_PUBLIC_APP_URL="http://localhost:${WEB_PORT}" \
   npx next dev -p $WEB_PORT >> "$LOG_DIR/web.log" 2>&1 &
+  SERVICE_PIDS[web]=$!
   PIDS+=($!)
 }
 
@@ -74,6 +81,7 @@ start_admin() {
   NEXT_PUBLIC_API_URL="http://localhost:${BACKEND_PORT}" \
   NEXT_PUBLIC_WS_URL="ws://localhost:${BACKEND_PORT}" \
   npx next dev -p $ADMIN_PORT >> "$LOG_DIR/admin.log" 2>&1 &
+  SERVICE_PIDS[admin]=$!
   PIDS+=($!)
 }
 
@@ -83,8 +91,10 @@ start_ai() {
   # Run uvicorn WITHOUT --reload — the reloader hangs on slow LLM calls.
   env -u LLM_API_KEY -u RAYU_API_KEY -u NVIDIA_API_KEY \
     BACKEND_URL="http://localhost:${BACKEND_PORT}" \
+    ALLOWED_WS_ORIGINS="${ALLOWED_WS_ORIGINS:-https://derlg.com,https://www.derlg.com,http://localhost:3000,http://localhost:3002,http://localhost:4008,http://localhost:4010,http://localhost:5000}" \
     "$ROOT_DIR/vibe-booking/.venv/bin/uvicorn" \
     main:app --host 0.0.0.0 --port $AI_PORT >> "$LOG_DIR/ai.log" 2>&1 &
+  SERVICE_PIDS[ai]=$!
   PIDS+=($!)
 }
 
@@ -111,10 +121,29 @@ esac
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Logs are streaming below AND saved to logs/*.log"
+echo "  Process supervisor active (auto-restarts dead services)"
 echo "  Ctrl+C to stop all services"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# --- tail all log files into one interleaved stream -----------------------
+# --- tail all log files and supervise services -------------------------------
 sleep 3   # give services a moment to create their log files
-tail -f "$LOG_DIR"/*.log 2>/dev/null
+tail -f "$LOG_DIR"/*.log 2>/dev/null &
+TAIL_PID=$!
+
+while true; do
+  sleep 5
+  for svc in "${!SERVICE_PIDS[@]}"; do
+    pid="${SERVICE_PIDS[$svc]}"
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo ""
+      echo "[$(date +'%T')] ⚠️  Service '$svc' (PID $pid) stopped. Auto-restarting..."
+      case "$svc" in
+        backend) start_backend ;;
+        web)     start_web ;;
+        admin)   start_admin ;;
+        ai)      start_ai ;;
+      esac
+    fi
+  done
+done
