@@ -31,7 +31,7 @@ The customer-facing DerLg site: Cambodia travel booking with the **Vibe Booking 
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · TanStack Query (server state) · Zustand (client state) · React Hook Form + Zod · next-intl (EN/ZH/KM) · Leaflet + OpenStreetMap · react-markdown + remark-gfm · Serwist (PWA) · Vitest + Testing Library · Playwright
+Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · TanStack Query (server state) · React hooks + localStorage (client state) · React Hook Form + Zod · next-intl (EN/ZH/KM) · Leaflet + OpenStreetMap · react-markdown + remark-gfm · Serwist (PWA) · Vitest + Testing Library · Playwright
 
 No Google Maps key needed — maps use Leaflet with OpenStreetMap tiles.
 
@@ -108,7 +108,7 @@ flowchart LR
 ```
 
 - **Server state** lives in TanStack Query against the typed client in `lib/api/client.ts` (envelope handling, query keys, error mapping in `lib/api/errors.ts`).
-- **Client state** lives in Zustand stores (`stores/`).
+- **Client state** lives in React hooks (`hooks/use-auth.ts`, `use-theme.ts`, `use-currency.ts`, …) backed by localStorage where persistence is needed. (`zustand` is still a dependency but currently unused.)
 - **Secrets never reach the browser**: the BFF route handlers under `app/api/ai/*` are the only readers of `AI_SERVICE_KEY` and `JWT_ACCESS_SECRET`.
 - **Chat** uses the typed WebSocket client `lib/vibe/socket.ts` + protocol contracts `lib/vibe/protocol.ts`, wrapped by the `hooks/use-vibe-socket.ts` hook (auto-reconnect, message queue).
 
@@ -121,14 +121,13 @@ app/[locale]/       Localised routes (en | zh | km): trips, hotels, guides,
 app/api/ai/         BFF route handlers — the only place the service key is read
 components/ui/      Design system primitives
 components/chat/    Vibe chat UI + payloads/ block renderers (19 block types)
-hooks/              React hooks (auth, booking, vibe socket, …)
+hooks/              React hooks — client state (auth, theme, currency), booking, vibe socket
 lib/api/            Typed API client, envelope handling, query keys, errors
 lib/vibe/           Typed WebSocket client, protocol, transcript, workspace
 lib/auth/           Server-side token verification
 lib/i18n/           Locale config + next-intl request setup
 messages/           Translation catalogues: en.json, zh.json, km.json
 schemas/            Zod contracts (agent payloads, forms)
-stores/             Zustand client state
 tests/              Vitest unit tests (incl. i18n drift guard)
 e2e/                Playwright end-to-end tests
 ```

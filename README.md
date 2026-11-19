@@ -32,7 +32,7 @@ The platform is a **monorepo of four services**:
 |---------|------|----------|-----------|---------|
 | **Backend** | NestJS 11 · Prisma 6 · Socket.io | `4007` | [`backend/`](backend/README.md) | Single API server: public `/v1/*`, AI `/v1/ai-tools/*`, admin `/v1/admin/*`, Telegram `/v1/telegram/*` |
 | **Web** | Next.js 16 · React 19 · TanStack Query | `4008` | [`web/`](web/README.md) | Customer booking site with AI chat, EN / ZH / KM |
-| **Vibe Booking** | FastAPI · Python 3.12 · Redis | `4009` | [`vibe-booking/`](vibe-booking/README.md) | Stateful AI booking concierge (WebSocket + 16-tool loop) |
+| **Vibe Booking** | FastAPI · Python 3.13+ · Redis | `4009` | [`vibe-booking/`](vibe-booking/README.md) | Stateful AI booking concierge (WebSocket + 16-tool loop) |
 | **Admin** | Next.js 16 · React 19 · shadcn | `4010` | [`derlg-system-admin/`](derlg-system-admin/README.md) | Staff panel (frontend-only; its API lives in the backend) |
 
 Supporting infrastructure: **PostgreSQL**, **Redis**, and **MinIO** (object storage for media).
@@ -86,7 +86,7 @@ flowchart TB
 
 ## Quick start
 
-Prerequisites: **Node.js 20+**, **Python 3.12**, **Docker** (or native Postgres/Redis), and MinIO for seeded imagery.
+Prerequisites: **Node.js 20+**, **Python 3.13+** (the dev venv runs 3.14), **Docker** (or native Postgres/Redis), and MinIO for seeded imagery.
 
 ```bash
 # From the repository root — starts all four services, streams logs,
@@ -172,10 +172,10 @@ The `.env` defaults and `run-all.sh` dev overrides differ on purpose (to avoid c
 
 | Service | Configured default | Dev (`run-all.sh`) |
 |---------|--------------------|--------------------|
-| Backend | 3003 | **4007** |
-| Web | 3002 | **4008** |
-| Vibe Booking | 8001 | **4009** |
-| Admin | 5000 | **4010** |
+| Backend | 3003 in `backend/.env` (code fallback 3001) | **4007** |
+| Web | 3002 (`package.json` dev script) | **4008** |
+| Vibe Booking | 8000 (settings default; examples use 8001) | **4009** |
+| Admin | 5000 (`package.json` dev script) | **4010** |
 | Postgres | 5434 native / 5433 Docker | same |
 | Redis | 6380 (6379 is often taken) | same |
 | MinIO | 9000 | same |

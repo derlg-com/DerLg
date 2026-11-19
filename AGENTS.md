@@ -17,7 +17,7 @@ The platform is a **monorepo** of four services:
 | **Vibe Booking** | FastAPI · Python · Redis | 4009 | `vibe-booking/` | Stateful AI booking concierge (WebSocket + 16-tool loop) |
 | **Admin** | Next.js 16 · React 19 · shadcn | 4010 | `derlg-system-admin/` | Staff-only admin panel (frontend-only; API lives in backend) |
 
-> Dev ports (4007–4010) differ from the configured defaults (3003, 3002, 8001, 5000). `run-all.sh` sets the dev ports via env override.
+> Dev ports (4007–4010) differ from the configured defaults (backend 3003 in `.env`, code fallback 3001; web 3002; agent 8000 settings default; admin 5000). `run-all.sh` sets the dev ports via env override.
 
 ---
 

@@ -9,7 +9,7 @@ NestJS 11 API for the DerLg Cambodia travel booking platform. **One server, four
 | Admin | `/v1/admin/*` | JWT + `admin_users` role grant | Admin panel |
 | Telegram | `/v1/telegram/*` | Webhook secret / driver PIN | Driver bot |
 
-> Part of the [DerLg monorepo](../README.md). Dev port **4007** via `run-all.sh` (configured default 3003).
+> Part of the [DerLg monorepo](../README.md). Dev port **4007** via `run-all.sh` (`backend/.env` sets 3003; code fallback 3001).
 
 ---
 
@@ -83,7 +83,7 @@ All feature code lives in `src/modules/` (16 modules):
 
 | Module | Purpose |
 |--------|---------|
-| `admin` | `/v1/admin/*` — 20 controllers, 19 services: dashboard, bookings, trips CRUD, customers, payments ledger + ABA exception queue, fleet, audit log, Socket.io gateway (`websocket/admin.gateway.ts`) |
+| `admin` | `/v1/admin/*` — 19 controllers, 20 services: dashboard, bookings, trips CRUD, customers, payments ledger + ABA exception queue, fleet, audit log, Socket.io gateway (`websocket/admin.gateway.ts`) |
 | `ai-tools` | `/v1/ai-tools/*` for the agent: search, availability, booking holds, payments/QR, budget, weather, SOS, loyalty, custom trips, chat-transcript archive |
 | `auth` | JWT access (15 min) + refresh, Telegram OAuth, Google OAuth |
 | `bookings` | Booking creation, confirmation, cancellation, 15-minute Redis holds (`use-cases/`) |

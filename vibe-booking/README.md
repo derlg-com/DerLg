@@ -1,7 +1,7 @@
 # Vibe Booking — AI Travel Concierge
 
 > **Feature IDs:** F10–F16 · **Status:** Implemented · **Scope:** MVP
-> Part of the [DerLg monorepo](../README.md). Dev port **4009** via `run-all.sh` (configured default 8001).
+> Part of the [DerLg monorepo](../README.md). Dev port **4009** via `run-all.sh` (settings default 8000).
 
 **Vibe Booking** is DerLg's core product differentiator: a conversational AI interface that lets travelers discover, plan, and book complete Cambodia trips through natural language chat.
 
@@ -61,7 +61,7 @@ flowchart LR
 
 ```bash
 cd vibe-booking
-python3.12 -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate   # Python 3.13+ (dev venv runs 3.14)
 pip install -r requirements.txt
 cp .env.example .env            # fill in LLM_API_KEY, AI_SERVICE_KEY, JWT_SECRET
 
@@ -168,7 +168,7 @@ Canonical contracts: `web/lib/vibe/protocol.ts` (TypeScript) and `web/schemas/` 
 ## Sessions and languages
 
 - Redis key `session:{session_id}`, TTL **7 days**, messages capped at 60, state saved after every turn. Last 20 messages go to the model; max 5 tool loops per turn.
-- Payment notifications arrive via Redis Pub/Sub on `payment_events:{user_id}`.
+- Payment updates are **client-driven, never client-trusted**: the web app sends `payment_completed { booking_id }` after a payment flow, and the agent verifies the actual status with the backend (`GET ai-tools/payments/status`) before continuing. The agent can also poll via the `check_payment_status` tool. (The backend publishes operator events on the Redis `admin_events` channel for the admin panel's Socket.io gateway — not to the chat agent.)
 - Languages: `EN` (default), `ZH` (Simplified Chinese), `KH` (Khmer — note the agent enum is `KH`, not `KM`). Khmer always uses the Gateway (best Khmer support). The preference is set in `auth`, injected into the system prompt, and forwarded as `Accept-Language`.
 
 ## Resilience and security
@@ -180,10 +180,10 @@ Canonical contracts: `web/lib/vibe/protocol.ts` (TypeScript) and `web/schemas/` 
 | Backend down | Circuit breaker: open after 5 failures, half-open probe afterwards |
 | Streaming failure | Falls back to non-streaming |
 | WS disconnect | Session saved; client auto-reconnects and queues messages |
-| Rate limiting | 10 messages/minute per session (Redis-backed) |
+| Rate limiting | 10 messages/minute per user (per IP for guests), Redis-backed |
 | Auth | `user_id` required before booking actions; JWT verified with `JWT_SECRET` |
 | Origin guard | `ALLOWED_WS_ORIGINS` (CSWSH); violation closes with 4403 |
-| Data hygiene | Input sanitised; ids never logged in plain text; $5,000 booking cap |
+| Data hygiene | Input sanitised; ids never logged in plain text; $5,000 booking cap enforced server-side by the backend |
 
 ## Testing
 

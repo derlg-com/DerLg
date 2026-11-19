@@ -3,7 +3,7 @@
 > **Layer:** Python AI Agent Service
 > **Directory:** `vibe-booking/`
 > **Framework:** FastAPI + hand-rolled async tool loop + OpenAI-compatible Gateway (RayuCode `deepseek-v4.1-flash` → `deepseek-v4.1-flash-cloud`)
-> **Port:** 8001 configured default (dev: 4009 via `run-all.sh`)
+> **Port:** 8000 settings default (dev: 4009 via `run-all.sh`)
 > **Protocol:** WebSocket (`/ws/chat`) + HTTP tools to backend
 
 ---
@@ -140,7 +140,7 @@ Tools are dispatched via `TOOL_DISPATCH` map in `_defs.py`: tool name → (HTTP 
 
 ### Connection
 ```
-Client ──ws://localhost:8001/ws/chat──▶ AI Agent
+Client ──ws://localhost:4009/ws/chat──▶ AI Agent
 ```
 
 ### Client → Server Messages
@@ -154,8 +154,11 @@ Client ──ws://localhost:8001/ws/chat──▶ AI Agent
 // Action from content interaction
 { type: "user_action", action_type: "book_trip", item_id: "...", payload: {} }
 
-// Location sharing
-{ type: "location", lat: 13.3615, lng: 103.8606 }
+// Payment flow finished in the browser (agent re-verifies with the backend)
+{ type: "payment_completed", booking_id: "..." }
+
+// Feedback on a message
+{ type: "feedback", message_id: "...", ... }
 ```
 
 ### Server → Client Messages
@@ -195,11 +198,16 @@ The `content_payloads` field contains typed blocks that the frontend auto-render
 | `booking_summary` | Booking hold confirmation |
 | `booking_confirmed` | Confirmed booking |
 | `qr_payment` | QR code + expiry countdown |
+| `stripe_card_form` | Stripe card payment form |
 | `payment_status` | Payment status badge |
 | `itinerary` | Day-by-day plan |
 | `budget_estimate` | Cost breakdown |
 | `weather` | Forecast widget |
 | `comparison` | Side-by-side comparison |
+| `map_view` | Leaflet map with pins |
+| `image_gallery` | Photo grid |
+| `trip_detail` | Single trip detail block |
+| `hotel_detail` | Single hotel detail block |
 | `text_summary` | Fallback text |
 
 ---
@@ -247,10 +255,10 @@ class ConversationState(BaseModel):
 | Backend auth | `X-Service-Key` header (32+ chars), validated on startup |
 | User auth | `user_id` required in WebSocket auth message before processing |
 | Session validation | `session_id` must be UUID format |
-| Rate limiting | 10 messages/minute per session (Redis-backed) |
+| Rate limiting | 10 messages/minute per user (per IP for guests), Redis-backed |
 | Input sanitization | All user input sanitized |
 | Sensitive data | `user_id`, `booking_id`, `payment_intent_id` never logged in plain text |
-| Booking cap | $5,000 USD per transaction |
+| Booking cap | $5,000 USD per transaction (enforced server-side by the backend) |
 
 ---
 
@@ -261,7 +269,7 @@ class ConversationState(BaseModel):
 | Model API timeout (90s) | Retry once with exponential backoff → user-friendly error with cause |
 | Tool call timeout (15s) | Return error response → continue conversation |
 | Redis connection failure | Log error → attempt reconnection with backoff |
-| Backend unavailable | Circuit breaker (open after 5 failures, half-open after 30s) |
+| Backend unavailable | Circuit breaker (open after 5 failures, half-open after 60s) |
 | WebSocket disconnect | Save session → remove from active connections |
 | Streaming failure | Fall back to non-streaming (graceful degradation) |
 
@@ -290,7 +298,7 @@ class ConversationState(BaseModel):
 cd vibe-booking
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8001
+uvicorn main:app --host 0.0.0.0 --port 4009   # dev port; settings default is 8000
 ```
 
 > **Run without `--reload`** — the reloader hangs on slow in-flight LLM calls.
@@ -322,7 +330,7 @@ pytest --cov=agent --cov-report=html  # With coverage
 
 ### With Redis
 - **Session store:** Key-value with 7-day TTL
-- **Pub/Sub:** `payment_events:{user_id}` channel for payment notifications
+- **Payment verification:** on a client `payment_completed` frame the agent confirms status via `GET ai-tools/payments/status` — the client's claim is never trusted. (Redis Pub/Sub `admin_events` feeds the admin panel gateway, not the chat agent.)
 
 ---
 

@@ -23,7 +23,7 @@ All implementation is under `src/modules/`:
 
 | Module | Purpose | Key Files |
 |--------|---------|-----------|
-| `admin` | `/v1/admin/*` admin panel API — 20 controllers, 19 services. Includes trip-package CRUD (`admin-trips.*`), customer status/role management, and payment operations (`admin-payments.*`: ledger, ABA exception queue, manual settlement, refund payouts) | `admin.module.ts`, `controllers/`, `services/`, `interceptors/audit.interceptor.ts`, `websocket/admin.gateway.ts` |
+| `admin` | `/v1/admin/*` admin panel API — 19 controllers, 20 services. Includes trip-package CRUD (`admin-trips.*`), customer status/role management, and payment operations (`admin-payments.*`: ledger, ABA exception queue, manual settlement, refund payouts) | `admin.module.ts`, `controllers/`, `services/`, `interceptors/audit.interceptor.ts`, `websocket/admin.gateway.ts` |
 | `ai-tools` | `/v1/ai-tools/*` endpoints for the AI agent, including the chat-transcript archive (`chat-sessions*`) | `ai-tools.controller.ts`, `ai-tools.service.ts`, `ai-tools.dto.ts` |
 | `auth` | JWT access + refresh, Telegram OAuth | `auth.controller.ts`, `auth.service.ts` |
 | `bookings` | Booking creation, confirmation, cancellation, holds | `bookings.controller.ts`, `use-cases/`, `dto/` |
