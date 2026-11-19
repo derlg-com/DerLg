@@ -70,7 +70,7 @@ Cross-cutting code lives in `src/common/`:
 ## Database
 
 - Schema: `prisma/schema.prisma`
-- Dev: local Supabase on port 54322
+- Dev: native PostgreSQL on port 5434 (systemd; check `pg_lsclusters`). Docker fallback publishes 5433 — see `.env.example`. No Supabase.
 - VPS (Coolify): point `DATABASE_URL` at Coolify-managed Postgres
 - Migrations: write the SQL by hand, then `npx prisma migrate deploy`.
   Generate a candidate with:
@@ -85,7 +85,7 @@ Cross-cutting code lives in `src/common/`:
 - **NVIDIA_API_KEY shadowing** (affects AI agent, not backend directly): unset before launching the agent
 - **DB drift**: as of the admin-panel merge (2026-08-19) there is **none** — replaying all migrations into a shadow database produced SQL byte-identical to a diff against the live database. The earlier warning here predates `20260805090000_baseline_sync`, which fixed it. Still prefer `migrate deploy` and reviewed SQL.
 - **Guards are global**: `JwtAuthGuard`, `RolesGuard` and `AdminRoleGuard` are registered as `APP_GUARD` in `common.module.ts`. Do not add `@UseGuards(JwtAuthGuard)` to controllers. Use `@Public()` to opt out, `@Roles()` for the JWT claim, `@AdminRoles()` for the `admin_users` grant. **A route with no `@AdminRoles()` is not admin-protected** — the guard passes it through.
-- **Compiled entrypoint is `dist/src/main.js`**, not `dist/main.js`, because `debug_e2e.ts` at the project root shifts the TypeScript rootDir. `package.json`'s `start:prod` script still has the old path and fails with MODULE_NOT_FOUND.
+- **Compiled entrypoint is `dist/src/main.js`**, not `dist/main.js`, because `debug_e2e.ts` at the project root shifts the TypeScript rootDir. `package.json`'s `start:prod` script is updated to `node dist/src/main`.
 - **forbidNonWhitelisted**: every new query param must be in the DTO
 - **`@CurrentUser('sub')` returns a claim, not the payload.** The decorator honours
   its argument; passing none yields the whole `JwtPayload`. It used to ignore the
@@ -127,7 +127,8 @@ Cross-cutting code lives in `src/common/`:
 
 | File | Purpose |
 |------|---------|
-| `RAYU.md` | RAYU project-wide conventions |
-| `AGENTS.md` | Agent routing (root level) |
-| `CLAUDE.md` | Claude Code project-wide conventions |
+| `README.md` | Human-facing setup, module index, conventions |
+| `docs/payments.md` | Stripe + ABA KHQR payments |
 | `docs/admin-merge/` | Admin-panel merge: baseline, port inventory, deliberate behaviour changes |
+| `../AGENTS.md` | Agent routing (root level) |
+| `../README.md` | Monorepo overview |

@@ -2,8 +2,8 @@
 
 > **Layer:** Python AI Agent Service
 > **Directory:** `vibe-booking/`
-> **Framework:** FastAPI + hand-rolled async tool loop + OpenAI-compatible Gateway (RayuCode longcat-2.0)
-> **Port:** 8001
+> **Framework:** FastAPI + hand-rolled async tool loop + OpenAI-compatible Gateway (RayuCode `deepseek-v4.1-flash` → `deepseek-v4.1-flash-cloud`)
+> **Port:** 8001 configured default (dev: 4009 via `run-all.sh`)
 > **Protocol:** WebSocket (`/ws/chat`) + HTTP tools to backend
 
 ---
@@ -46,8 +46,8 @@ The Vibe Booking AI Agent is a **stateful, purpose-built conversational booking 
   ┌──────────┐     ┌──────────┐     ┌──────────┐
   │  Model   │     │  Tool    │     │ Session  │
   │  Layer   │     │  Layer   │     │  Layer   │
-  │(Gateway  │     │ 15 tools │     │(Redis   │
-  │ longcat- │     │ → NestJS)│     │ checkpt) │
+  │(Gateway  │     │ 16 tools │     │(Redis   │
+  │ deepseek-│     │ → NestJS)│     │ checkpt) │
   │ 2.0)     │     │          │     │          │
   └──────────┘     └──────────┘     └──────────┘
 ```
@@ -64,12 +64,12 @@ vibe-booking/
 │   ├── suggestions.py       # Follow-up suggestion generation
 │   ├── models/
 │   │   ├── client.py        # ModelClient abstract interface
-│   │   ├── gateway.py       # GatewayClient — OpenAI-compatible LLM client (RayuCode longcat-2.0)
+│   │   ├── gateway.py       # GatewayClient — OpenAI-compatible LLM client (RayuCode deepseek-v4.1-flash)
 │   │   ├── nvidia.py        # Legacy compatibility shim
 │   │   ├── ollama.py        # OllamaClient — local model fallback
 │   │   └── factory.py       # Model client factory
 │   ├── tools/
-│   │   └── _defs.py         # 15 tool schemas + TOOL_DISPATCH map
+│   │   └── _defs.py         # 16 tool schemas + TOOL_DISPATCH map
 │   ├── prompts/
 │   │   ├── builder.py       # build_system_prompt() — dynamic by state
 │   │   └── templates.py     # System prompt templates (ANSWER STYLE, CUSTOM TRIPS, etc.)
@@ -101,7 +101,7 @@ vibe-booking/
 ## Tool System
 
 ### Tool Definitions (`agent/tools/_defs.py`)
-All 15 tools are defined as JSON schemas in OpenAI-compatible tool calling format. Each schema includes a description, required parameters, and type constraints.
+All 16 tools are defined as JSON schemas in OpenAI-compatible tool calling format. Each schema includes a description, required parameters, and type constraints.
 
 ### Tool List
 
@@ -122,7 +122,7 @@ All 15 tools are defined as JSON schemas in OpenAI-compatible tool calling forma
 | `send_sos_alert` | Send SOS alert | `POST ai-tools/sos` |
 | `get_user_loyalty` | Get user loyalty points | `GET ai-tools/loyalty` |
 | `get_trip_detail` | Get trip details | `GET trips/{trip_id}` |
-| `get_hotel_detail` | Get hotel details | `GET ai-tools/hotels` |
+| `get_hotel_detail` | Get hotel details | `GET hotels/{hotel_id}` |
 
 ### Tool Dispatch
 Tools are dispatched via `TOOL_DISPATCH` map in `_defs.py`: tool name → (HTTP method, backend path). The dispatch path must match `ai-tools.controller.ts` exactly.
@@ -146,7 +146,7 @@ Client ──ws://localhost:8001/ws/chat──▶ AI Agent
 ### Client → Server Messages
 ```typescript
 // Auth (first message)
-{ type: "auth", user_id: "uuid", session_id: "uuid", preferred_language: "EN" | "ZH" | "KM" }
+{ type: "auth", user_id: "uuid", session_id?: "uuid", token?: "jwt", preferred_language: "EN" | "ZH" | "KH" }
 
 // User text message
 { type: "user_message", content: "3-day temple tour in Siem Reap" }
@@ -164,7 +164,7 @@ Client ──ws://localhost:8001/ws/chat──▶ AI Agent
 { type: "typing_start" }
 { type: "typing_end" }
 
-// Streaming reasoning (gpt-oss-120b reasoning_content)
+// Streaming reasoning (reasoning_content)
 { type: "agent_reasoning_chunk", delta: "..." }
 
 // Tool execution status
@@ -231,8 +231,8 @@ class ConversationState(BaseModel):
 | Language | Code | Behavior |
 |----------|------|----------|
 | English | `EN` | Default |
-| Khmer | `KM` | Always uses Gateway (best Khmer support) |
-| Chinese (Simplified) | `ZH` | Gateway longcat-2.0 responds in Simplified Chinese |
+| Khmer | `KH` | Always uses Gateway (best Khmer support). `KM` is accepted as an alias and normalised to `KH` |
+| Chinese (Simplified) | `ZH` | Gateway `deepseek-v4.1-flash` responds in Simplified Chinese |
 
 - `preferred_language` set via WebSocket auth message
 - Passed to backend in `Accept-Language` header
@@ -271,9 +271,9 @@ class ConversationState(BaseModel):
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `LLM_API_KEY` | yes | LLM Gateway API key (e.g. RayuCode `rayu_sk_live_...`) |
+| `LLM_API_KEY` | yes | RayuCode API key (see https://rayucode.com/docs/15-api-keys) |
 | `LLM_BASE_URL` | no | Default: `https://gateway.rayucode.com/v1` |
-| `MODEL_LLM` | no | Default: `longcat-2.0` |
+| `MODEL_LLM` | no | Default: `deepseek-v4.1-flash` (mapped to `deepseek-v4.1-flash-cloud`) |
 | `MODEL_TIMEOUT_S` | no | Default: 90 |
 | `BACKEND_URL` | yes | NestJS backend base URL |
 | `AI_SERVICE_KEY` | yes | 32+ char secret for backend auth |
@@ -330,7 +330,7 @@ pytest --cov=agent --cov-report=html  # With coverage
 
 1. **Never invent data.** All facts come from backend tool calls.
 2. **Always confirm before booking.** `create_booking_hold` only after explicit user confirmation.
-3. **Khmer = Gateway.** When `preferred_language == "KM"`, always use GatewayClient.
+3. **Khmer = Gateway.** When `preferred_language == "KH"`, always use GatewayClient.
 4. **JSON only to frontend.** Never send HTML/JSX. Send structured `content_payload`.
 5. **Parallel tools.** Execute multiple tool calls concurrently with `asyncio.gather`.
 6. **Limit context window.** Pass last 20 messages to model; max 5 tool call loops.
